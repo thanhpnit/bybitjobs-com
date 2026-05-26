@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { Filter, Download, ArrowUpRight, MoreVertical } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
+import { PaymentConfigTab } from './PaymentConfigTab';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,51 +20,69 @@ const transactions = [
 
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
+  const [activeTab, setActiveTab] = useState<'overview' | 'config'>('overview');
 
   return (
     <View style={styles.container}>
-      <View style={styles.topGrid}>
-        <Card style={styles.chartCard}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
-            <View>
-              <Typography variant="h3">Doanh thu 7 ngày qua</Typography>
-              <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>Tổng cộng: 45.200.000 VNĐ</Typography>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <ArrowUpRight color={colors.primaryColor} size={16} />
-              <Typography variant="subtitle2" color="brand">+12.5%</Typography>
+      <View style={[styles.tabsHeader, { borderBottomColor: colors.borderLight }]}>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'overview' && [styles.tabActive, { borderBottomColor: colors.primaryColor }]]}
+          onPress={() => setActiveTab('overview')}
+        >
+          <Typography variant="subtitle2" color={activeTab === 'overview' ? 'primary' : 'secondary'}>Tổng quan giao dịch</Typography>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'config' && [styles.tabActive, { borderBottomColor: colors.primaryColor }]]}
+          onPress={() => setActiveTab('config')}
+        >
+          <Typography variant="subtitle2" color={activeTab === 'config' ? 'primary' : 'secondary'}>Cấu hình nhận tiền</Typography>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === 'overview' ? (
+        <>
+          <View style={styles.topGrid}>
+            <Card style={styles.chartCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
+                <View>
+                  <Typography variant="h3">Doanh thu 7 ngày qua</Typography>
+                  <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>Tổng cộng: 45.200.000 VNĐ</Typography>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <ArrowUpRight color={colors.primaryColor} size={16} />
+                  <Typography variant="subtitle2" color="brand">+12.5%</Typography>
+                </View>
+              </View>
+              
+              <MockChart
+                type="line"
+                labels={["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"]}
+                data={[15, 25, 45, 30, 60, 50, 70]}
+                height={220}
+              />
+            </Card>
+
+            <View style={styles.rightStats}>
+              <Card style={[styles.statCardSolid, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
+                <Typography variant="subtitle2" style={{ color: 'rgba(255,255,255,0.8)' }}>Giao dịch hôm nay</Typography>
+                <Typography variant="h1" style={{ color: '#fff', marginVertical: 12 }}>128 Giao dịch</Typography>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ArrowUpRight color="#fff" size={16} />
+                  <Typography variant="body2" style={{ color: '#fff' }}>Tăng 8% so với hôm qua</Typography>
+                </View>
+              </Card>
+
+              <Card style={styles.statCard}>
+                <Typography variant="subtitle2" color="secondary">Tỷ lệ thanh toán thành công</Typography>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                  <Typography variant="h1">98.4%</Typography>
+                  <View style={[styles.circleBadge, { borderColor: colors.successText }]}>
+                    <Typography variant="caption" color="success" style={{ fontWeight: '700' }}>Safe</Typography>
+                  </View>
+                </View>
+              </Card>
             </View>
           </View>
-          
-          <MockChart
-            type="line"
-            labels={["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"]}
-            data={[15, 25, 45, 30, 60, 50, 70]}
-            height={220}
-          />
-        </Card>
-
-        <View style={styles.rightStats}>
-          <Card style={[styles.statCardSolid, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
-            <Typography variant="subtitle2" style={{ color: 'rgba(255,255,255,0.8)' }}>Giao dịch hôm nay</Typography>
-            <Typography variant="h1" style={{ color: '#fff', marginVertical: 12 }}>128 Giao dịch</Typography>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <ArrowUpRight color="#fff" size={16} />
-              <Typography variant="body2" style={{ color: '#fff' }}>Tăng 8% so với hôm qua</Typography>
-            </View>
-          </Card>
-
-          <Card style={styles.statCard}>
-            <Typography variant="subtitle2" color="secondary">Tỷ lệ thanh toán thành công</Typography>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-              <Typography variant="h1">98.4%</Typography>
-              <View style={[styles.circleBadge, { borderColor: colors.successText }]}>
-                <Typography variant="caption" color="success" style={{ fontWeight: '700' }}>Safe</Typography>
-              </View>
-            </View>
-          </Card>
-        </View>
-      </View>
 
       <Card style={styles.tableCard}>
         <View style={styles.filterBar}>
@@ -121,6 +140,10 @@ export const Payments: React.FC = () => {
           </View>
         </View>
       </Card>
+      </>
+      ) : (
+        <PaymentConfigTab />
+      )}
     </View>
   );
 };
@@ -149,5 +172,8 @@ const styles = StyleSheet.create({
   methodIcon: { width: 24, height: 24, borderRadius: 4 },
   pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24 },
   pageNumbers: { flexDirection: 'row', gap: 8 },
-  pageBtn: { height: 36, minWidth: 36, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }
+  pageBtn: { height: 36, minWidth: 36, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tabsHeader: { flexDirection: 'row', borderBottomWidth: 1, marginBottom: 24 },
+  tabBtn: { paddingVertical: 12, paddingHorizontal: 24, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -1 },
+  tabActive: { }
 });

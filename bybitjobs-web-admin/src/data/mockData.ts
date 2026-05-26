@@ -71,3 +71,8 @@ export const initialReviews = [
   { id: 1, user: 'Le Van C', company: 'Công ty ABC', rating: 1, comment: 'Bắt đóng tiền cọc đồng phục 500k', date: '2023-10-24', status: 'Chờ duyệt' },
   { id: 2, user: 'Hoang Thi D', company: 'Công ty XYZ', rating: 5, comment: 'Môi trường tốt, lương đúng hạn', date: '2023-10-22', status: 'Đã duyệt' },
 ];
+
+export const initialPaymentMethods = [
+  { id: 'pm-1', type: 'Chuyển khoản Ngân hàng', name: 'Vietcombank', accountName: 'NGUYEN VAN A', accountNumber: '0071 0001 23456', branch: 'Chi nhánh Nam Sài Gòn', status: 'Đang dùng' },
+  { id: 'pm-2', type: 'Ví điện tử', name: 'Ví Momo', accountName: 'NGUYEN VAN A', accountNumber: '0901234567', branch: '', status: 'Đang dùng' },
+];

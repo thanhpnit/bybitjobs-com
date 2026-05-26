@@ -6,7 +6,8 @@ import {
   initialPackages, 
   initialIndustries, 
   initialReports, 
-  initialReviews 
+  initialReviews,
+  initialPaymentMethods
 } from '../data/mockData';
 
 interface DataContextType {
@@ -24,6 +25,8 @@ interface DataContextType {
   setReports: (reports: any[]) => void;
   reviews: any[];
   setReviews: (reviews: any[]) => void;
+  paymentMethods: any[];
+  setPaymentMethods: (paymentMethods: any[]) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -46,6 +49,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [industries, setIndustriesState] = useState(() => loadData('bybitjobs_industries', initialIndustries));
   const [reports, setReportsState] = useState(() => loadData('bybitjobs_reports', initialReports));
   const [reviews, setReviewsState] = useState(() => loadData('bybitjobs_reviews', initialReviews));
+  const [paymentMethods, setPaymentMethodsState] = useState(() => loadData('bybitjobs_paymentMethods', initialPaymentMethods));
 
   const setUsers = (data: any[]) => { setUsersState(data); localStorage.setItem('bybitjobs_users', JSON.stringify(data)); };
   const setEmployers = (data: any[]) => { setEmployersState(data); localStorage.setItem('bybitjobs_employers', JSON.stringify(data)); };
@@ -54,6 +58,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const setIndustries = (data: any[]) => { setIndustriesState(data); localStorage.setItem('bybitjobs_industries', JSON.stringify(data)); };
   const setReports = (data: any[]) => { setReportsState(data); localStorage.setItem('bybitjobs_reports', JSON.stringify(data)); };
   const setReviews = (data: any[]) => { setReviewsState(data); localStorage.setItem('bybitjobs_reviews', JSON.stringify(data)); };
+  const setPaymentMethods = (data: any[]) => { setPaymentMethodsState(data); localStorage.setItem('bybitjobs_paymentMethods', JSON.stringify(data)); };
 
   return (
     <DataContext.Provider value={{
@@ -63,7 +68,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       packages, setPackages,
       industries, setIndustries,
       reports, setReports,
-      reviews, setReviews
+      reviews, setReviews,
+      paymentMethods, setPaymentMethods
     }}>
       {children}
     </DataContext.Provider>
