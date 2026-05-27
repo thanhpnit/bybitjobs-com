@@ -1,11 +1,23 @@
 import { Tabs } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
+  const { userRole } = useAuth();
+
+  const bottomInset = insets.bottom;
+  const isIphoneWithNotch = bottomInset > 0;
+
+  // Calculate dynamic tab bar height and bottom padding to account for safe area / home indicator
+  const tabBarHeight = isIphoneWithNotch ? 75 + bottomInset - 10 : 72;
+  const paddingBottom = isIphoneWithNotch ? bottomInset : 12;
+  const paddingTop = 10;
 
   return (
     <Tabs
@@ -14,9 +26,9 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#0084FF',
         tabBarInactiveTintColor: isDark ? '#8E8E93' : '#8E8E93',
         tabBarStyle: {
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 8,
+          height: tabBarHeight,
+          paddingBottom: paddingBottom,
+          paddingTop: paddingTop,
           backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
@@ -54,24 +66,9 @@ export default function TabLayout() {
         name="post-job"
         options={{
           title: 'Đăng tin',
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={props.onPress}
-              style={styles.customButtonContainer}
-            >
-              <View style={[styles.customButton, { borderColor: isDark ? '#1C1C1E' : '#F4F5F7' }]}>
-                <Ionicons name="add" size={32} color="#FFF" />
-              </View>
-              <Text
-                style={[
-                  styles.customButtonLabel,
-                  { color: props.accessibilityState?.selected ? '#0084FF' : '#8E8E93' }
-                ]}
-              >
-                Đăng tin
-              </Text>
-            </TouchableOpacity>
+          href: userRole === 'employer' ? '/post-job' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={24} color={color} />
           ),
         }}
       />
@@ -81,6 +78,15 @@ export default function TabLayout() {
           title: 'Cộng đồng',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Thông báo',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={24} color={color} />
           ),
         }}
       />
@@ -97,30 +103,4 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  customButtonContainer: {
-    top: -18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 70,
-  },
-  customButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#0084FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    elevation: 6,
-    shadowColor: '#0084FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  customButtonLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-});
+const styles = StyleSheet.create({});

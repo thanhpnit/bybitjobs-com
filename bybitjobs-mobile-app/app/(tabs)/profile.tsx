@@ -8,23 +8,152 @@ import {
   SafeAreaView,
   Platform,
   Alert,
+  Modal,
+  ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
 
-type SubTab = 'CV của tôi' | 'Việc làm đã xem' | 'Việc làm đã ứng tuyển' | 'Lời mời việc';
-
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { isLoggedIn, logout, userData } = useAuth();
+  
+  const { 
+    isLoggedIn, 
+    logout, 
+    userData, 
+    userRole, 
+    employerData, 
+    registerEmployer, 
+    verifyAccount 
+  } = useAuth();
 
-  const [activeSubTab, setActiveSubTab] = React.useState<SubTab>('CV của tôi');
+  // Job seeking switch states
+  const [isJobSeeking, setIsJobSeeking] = React.useState(true);
+  const [allowEmployerSearch, setAllowEmployerSearch] = React.useState(true);
 
-  const displayName = userData?.fullName || 'Nguyễn Minh Quân';
+  // 2-Step Verification state
+  const [is2FAEnabled, setIs2FAEnabled] = React.useState(false);
+
+  // CV / Cover Letter states
+  interface CVInfo {
+    fileName: string;
+    fileSize: string;
+    uploadTime: string;
+  }
+  const [cvFile, setCvFile] = React.useState<CVInfo | null>(null);
+  const [coverLetterFile, setCoverLetterFile] = React.useState<CVInfo | null>(null);
+  
+  // Active selected tab inside My CV section ('cv' | 'coverLetter')
+  const [activeCvTab, setActiveCvTab] = React.useState<'cv' | 'coverLetter'>('cv');
+
+  // File explorer states
+  const [isFileExplorerVisible, setIsFileExplorerVisible] = React.useState(false);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [selectedFileIndex, setSelectedFileIndex] = React.useState<number | null>(null);
+  const [activeUploadType, setActiveUploadType] = React.useState<'cv' | 'coverLetter'>('cv');
+
+  // Verification code states
+  const [isVerificationVisible, setIsVerificationVisible] = React.useState(false);
+  const [verificationCode, setVerificationCode] = React.useState('');
+
+  // Sync mock CV only for the default pre-existing developer account
+  React.useEffect(() => {
+    if (userData) {
+      if (userData.emailOrPhone === 'quan.nguyen@example.com') {
+        setCvFile({
+          fileName: 'CV_NguyenMinhQuan_Senior_Web.pdf',
+          fileSize: '1.2MB',
+          uploadTime: '2 ngày trước',
+        });
+      } else {
+        setCvFile(null); // Newly registered user will start with no CV
+      }
+    } else {
+      setCvFile(null);
+    }
+  }, [userData]);
+
+  const mockFiles = [
+    { name: 'CV_Web_Developer_VN.pdf', size: '1.1 MB', path: 'Documents/CVs/' },
+    { name: 'CV_Frontend_Senior_En.pdf', size: '1.4 MB', path: 'Documents/CVs/' },
+    { name: 'CV_Design_Portfolio.pdf', size: '3.8 MB', path: 'Downloads/' },
+    { name: 'CV_Product_Manager_2026.pdf', size: '2.1 MB', path: 'Documents/' },
+  ];
+
+  const handleUploadCV = () => {
+    if (selectedFileIndex === null) {
+      Alert.alert('Thông báo', 'Vui lòng chọn một tệp từ danh sách.');
+      return;
+    }
+    
+    setIsFileExplorerVisible(false);
+    setIsUploading(true);
+    
+    // Simulate uploading for 1.2 seconds
+    setTimeout(() => {
+      const selected = mockFiles[selectedFileIndex];
+      const newFile = {
+        fileName: selected.name,
+        fileSize: selected.size,
+        uploadTime: 'Vừa xong',
+      };
+      
+      if (activeUploadType === 'cv') {
+        setCvFile(newFile);
+      } else {
+        setCoverLetterFile(newFile);
+      }
+      
+      setIsUploading(false);
+      setSelectedFileIndex(null);
+      Alert.alert('Thành công', `Tải lên tài liệu ${activeUploadType === 'cv' ? 'CV' : 'Cover Letter'} thành công!`);
+    }, 1200);
+  };
+
+  const handleSendVerificationEmail = () => {
+    Alert.alert(
+      'Gửi mã xác thực',
+      `Mã xác thực gồm 6 chữ số đã được gửi tới email ${userEmail}. Bạn có muốn nhập mã để xác thực tài khoản ngay không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Nhập mã',
+          onPress: () => {
+            setIsVerificationVisible(true);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleVerifySubmit = () => {
+    if (verificationCode.trim() === '123456' || verificationCode.trim().length === 6) {
+      verifyAccount();
+      setIsVerificationVisible(false);
+      setVerificationCode('');
+      Alert.alert('Thành công', 'Tài khoản của bạn đã được xác thực thành công! Dấu tích xanh uy tín đã được cấp.');
+    } else {
+      Alert.alert('Lỗi xác thực', 'Mã xác thực không đúng. Vui lòng nhập lại (Mã mẫu là 123456).');
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Xác nhận đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Đăng xuất', style: 'destructive', onPress: logout }
+      ]
+    );
+  };
+
+  const displayName = isLoggedIn ? (userData?.fullName || 'Nguyễn Minh Quân') : 'Tài khoản khách';
 
   const getInitial = (name: string) => {
     if (!name) return 'Q';
@@ -34,298 +163,870 @@ export default function ProfileScreen() {
     return lastPart.charAt(0).toUpperCase();
   };
 
-  const initialLetter = getInitial(displayName);
+  const initialLetter = isLoggedIn ? getInitial(displayName) : 'G';
 
-  const handleEditProfile = () => {
-    Alert.alert('Thông báo', 'Chức năng chỉnh sửa hồ sơ đang được cập nhật.');
+  // Dynamically assign registered account info
+  const userEmail = isLoggedIn
+    ? (userData?.emailOrPhone && userData.emailOrPhone.includes('@')
+        ? userData.emailOrPhone
+        : 'quan.nguyen@example.com')
+    : 'Chưa liên kết';
+
+  const userPhone = isLoggedIn
+    ? (userData?.emailOrPhone && !userData.emailOrPhone.includes('@')
+        ? userData.emailOrPhone
+        : '090 1234 567')
+    : 'Chưa liên kết';
+
+  // Dynamic dates
+  const creationDate = isLoggedIn
+    ? (userData?.emailOrPhone ? 'Đăng ký hôm nay' : '15/10/2023')
+    : 'Chưa đăng ký';
+  const lastLogin = isLoggedIn
+    ? (userData?.emailOrPhone ? 'Vừa xong' : '24/05/2024 - 14:30')
+    : 'Chưa đăng nhập';
+
+  const handleFeaturePress = (featureName: string, action: () => void) => {
+    if (!isLoggedIn) {
+      Alert.alert(
+        'Yêu cầu đăng nhập',
+        `Vui lòng đăng nhập để sử dụng tính năng "${featureName}".`,
+        [
+          { text: 'Hủy', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => router.push('/login') }
+        ]
+      );
+    } else {
+      action();
+    }
+  };
+
+  const triggerFeatureMock = (featureName: string) => {
+    Alert.alert('Thông báo', `Chức năng "${featureName}" đang được chuẩn bị cập nhật trong phiên bản tiếp theo.`);
   };
 
   const handlePreviewCV = () => {
-    Alert.alert('Xem trước CV', 'Mở trình duyệt xem trước tệp CV_NguyenMinhQuan_Senior_Web.pdf');
+    Alert.alert('Xem trước tài liệu', 'Đang mở trình duyệt xem trước tệp tài liệu của bạn...');
   };
 
-  const handleDownloadCV = () => {
-    Alert.alert('Tải xuống CV', 'Bắt đầu tải xuống tệp CV_NguyenMinhQuan_Senior_Web.pdf (1.2MB)...');
-  };
+  // Switch renderer helper
+  const renderSwitch = (value: boolean, onValueChange: () => void) => (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={onValueChange}
+      style={[
+        styles.switchTrack,
+        { backgroundColor: value ? '#4CAF50' : (isDark ? '#3A3A3C' : '#E5E5EA') }
+      ]}
+    >
+      <View
+        style={[
+          styles.switchThumb,
+          { alignSelf: value ? 'flex-end' : 'flex-start' }
+        ]}
+      />
+    </TouchableOpacity>
+  );
 
-  // 1. Locked state when user is not logged in
-  if (!isLoggedIn) {
-    return (
-      <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
-        {/* Top Header Background */}
-        <View style={styles.headerBg} />
-        
-        <SafeAreaView style={styles.safeArea}>
-          {/* Header Bar */}
-          <View style={styles.headerBar}>
-            <View style={styles.headerBarPlaceholder} />
-            <Text style={styles.headerTitle}>Smalljobs.vn</Text>
-            <View style={styles.headerBarPlaceholder} />
-          </View>
-
-          {/* Centered Locked Prompt Card */}
-          <View style={styles.lockedContainer}>
-            <View style={[styles.whiteCard, styles.lockedCard, isDark && styles.darkCard]}>
-              <View style={[styles.lockedIconCircle, { backgroundColor: isDark ? '#152E47' : '#E6F4FE' }]}>
-                <Ionicons name="lock-closed" size={36} color="#0084FF" />
-              </View>
-              <Text style={[styles.lockedTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Yêu cầu đăng nhập
-              </Text>
-              <Text style={styles.lockedSubtitle}>
-                Vui lòng đăng nhập để xem thông tin cá nhân và quản lý hồ sơ CV của bạn.
-              </Text>
-              
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => router.push('/login')}
-                style={styles.lockedButton}
-              >
-                <Text style={styles.lockedButtonText}>Đăng nhập ngay</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
+  // Reusable row for settings
+  const renderSettingRow = (
+    iconName: any,
+    title: string,
+    onPress: () => void,
+    rightElement?: React.ReactNode
+  ) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[styles.settingRowItem, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
+    >
+      <View style={styles.settingRowLeft}>
+        <View style={[styles.settingRowIconBox, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+          <Ionicons name={iconName} size={18} color="#0084FF" />
+        </View>
+        <Text style={[styles.settingRowText, { color: isDark ? '#FFF' : '#11181C' }]}>
+          {title}
+        </Text>
       </View>
-    );
-  }
+      {rightElement ? rightElement : (
+        <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
+      )}
+    </TouchableOpacity>
+  );
 
-  // 2. Full premium profile view when logged in
+
+
+  // 2. Full premium TopCV-style profile view when logged in
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
-      {/* Top Header Background */}
       <View style={styles.headerBg} />
-
       <SafeAreaView style={styles.safeArea}>
-        {/* Header Bar with Logout button */}
+        
+        {/* Header Bar with Logout */}
         <View style={styles.headerBar}>
           <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
             <Ionicons name="menu-outline" size={26} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Smalljobs.vn</Text>
-          <View style={styles.headerRightGroup}>
-            <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
-              <Ionicons name="notifications-outline" size={24} color="#FFF" />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} onPress={logout} style={[styles.iconButton, { marginLeft: 8 }]}>
-              <Ionicons name="log-out-outline" size={24} color="#FFF" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.headerTitle}>BybitJobs</Text>
+          <View style={styles.headerBarPlaceholder} />
         </View>
 
-        {/* Scrollable Profile Content */}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          {/* Avatar and Basic Info Card */}
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatarWrapper}>
-              <View
-                style={[
-                  styles.avatarImage,
-                  {
-                    backgroundColor: '#0084FF',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderColor: isDark ? '#3C3C3E' : '#FFF',
-                  },
-                ]}
-              >
-                <Text style={styles.avatarInitialText}>{initialLetter}</Text>
-              </View>
-              <TouchableOpacity activeOpacity={0.8} onPress={handleEditProfile} style={styles.pencilOverlay}>
-                <Ionicons name="pencil" size={12} color="#FFF" />
-              </TouchableOpacity>
-            </View>
+          {/* 1. Header Profile & Avatar Card */}
+          <View style={[styles.whiteCard, styles.avatarCard, isDark && styles.darkCard]}>
+            <View style={styles.avatarMainSection}>
+              {isLoggedIn ? (
+                <>
+                  <View style={styles.avatarWrapper}>
+                    <View
+                      style={[
+                        styles.avatarImage,
+                        {
+                          backgroundColor: '#0084FF',
+                          borderColor: isDark ? '#3C3C3E' : '#FFF',
+                        },
+                      ]}
+                    >
+                      <Text style={styles.avatarInitialText}>{initialLetter}</Text>
+                    </View>
+                    <TouchableOpacity activeOpacity={0.8} onPress={() => triggerFeatureMock('Thay ảnh đại diện')} style={styles.pencilOverlay}>
+                      <Ionicons name="camera" size={12} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
 
-            <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>{displayName}</Text>
-            <Text style={styles.userId}>USER ID: SJ-992834</Text>
+                  <View style={styles.avatarInfoCol}>
+                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      {displayName}
+                    </Text>
+                    <Text style={styles.userId}>USER ID: SJ-992834</Text>
+                    
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => triggerFeatureMock('Nâng cấp tài khoản')}
+                      style={styles.upgradeHeaderBtn}
+                    >
+                      <Ionicons name="star" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.upgradeHeaderBtnText}>Nâng cấp tài khoản</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/login')} style={styles.avatarWrapper}>
+                    <View
+                      style={[
+                        styles.avatarImage,
+                        {
+                          backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                          borderColor: isDark ? '#3C3C3E' : '#FFF',
+                        },
+                      ]}
+                    >
+                      <Ionicons name="person" size={38} color={isDark ? '#8E8E93' : '#AEAEB2'} />
+                    </View>
+                    <View style={[styles.pencilOverlay, { backgroundColor: '#0084FF' }]}>
+                      <Ionicons name="log-in" size={12} color="#FFF" />
+                    </View>
+                  </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.8} onPress={handleEditProfile} style={styles.editProfileBtn}>
-              <Text style={styles.editProfileBtnText}>Chỉnh sửa hồ sơ</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Personal Info Card (Thông tin cá nhân) */}
-          <View style={[styles.whiteCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="card-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
-              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Thông tin cá nhân
-              </Text>
-            </View>
-            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-            {/* Email Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="mail-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>EMAIL</Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  quan.nguyen@example.com
-                </Text>
-              </View>
-            </View>
-
-            {/* Phone Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="call-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>SỐ ĐIỆN THOẠI</Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  090 1234 567
-                </Text>
-              </View>
-            </View>
-
-            {/* Role Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="people-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>VAI TRÒ</Text>
-                <Text style={[styles.infoValueActive, { color: '#0084FF' }]}>
-                  Người tìm việc
-                </Text>
-              </View>
+                  <View style={styles.avatarInfoCol}>
+                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      Chào bạn!
+                    </Text>
+                    <Text style={styles.userId}>Đăng nhập để lưu hồ sơ & ứng tuyển</Text>
+                    
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => router.push('/login')}
+                      style={[styles.upgradeHeaderBtn, { backgroundColor: '#0084FF', shadowColor: '#0084FF' }]}
+                    >
+                      <Ionicons name="log-in-outline" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.upgradeHeaderBtnText}>Đăng nhập ngay</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
           </View>
 
-          {/* Activity Logs Card (Hoạt động) */}
-          <View style={[styles.whiteCard, isDark && styles.darkCard]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="time-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
-              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Hoạt động
-              </Text>
-            </View>
-            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-            {/* Creation Date Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="calendar-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>NGÀY TẠO</Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  15/10/2023
-                </Text>
-              </View>
-            </View>
-
-            {/* Last Login Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="log-in-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>ĐĂNG NHẬP GẦN NHẤT</Text>
-                <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  24/05/2024 - 14:30
-                </Text>
-              </View>
-            </View>
-
-            {/* Profile Status Row */}
-            <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                <Ionicons name="checkmark-done-outline" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.infoTextCol}>
-                <Text style={styles.infoLabel}>TRẠNG THÁI HỒ SƠ</Text>
-                <View style={styles.verifiedStatusRow}>
-                  <Text style={[styles.infoValueVerified, { color: '#4CAF50' }]}>
-                    Đã xác thực
+          {/* 2. Job Seeking Switches (Trạng thái tìm việc & Cho phép NTD tìm kiếm hồ sơ) - Chỉ hiển thị khi đã đăng nhập */}
+          {isLoggedIn && (
+            <View style={[styles.whiteCard, isDark && styles.darkCard]}>
+              <View style={styles.switchRowItem}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={[styles.switchTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Trạng thái tìm việc
                   </Text>
-                  <Ionicons name="checkmark-circle" size={14} color="#4CAF50" style={styles.checkIcon} />
+                  <Text style={styles.switchDescText}>
+                    {isJobSeeking ? 'Đang bật tìm kiếm cơ hội việc làm mới' : 'Đang tắt tìm việc'}
+                  </Text>
+                </View>
+                {renderSwitch(isJobSeeking, () => handleFeaturePress('Trạng thái tìm việc', () => setIsJobSeeking(!isJobSeeking)))}
+              </View>
+
+              <View style={[styles.dividerLight, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+              <View style={styles.switchRowItem}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                  <Text style={[styles.switchTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Cho phép NTD tìm kiếm hồ sơ
+                  </Text>
+                  <Text style={styles.switchDescText}>
+                    Cho phép nhà tuyển dụng chủ động xem CV và gửi lời mời phỏng vấn
+                  </Text>
+                </View>
+                {renderSwitch(allowEmployerSearch, () => handleFeaturePress('Cho phép NTD tìm kiếm hồ sơ', () => setAllowEmployerSearch(!allowEmployerSearch)))}
+              </View>
+            </View>
+          )}
+
+          {/* 3. Personal Info Card (Thông tin cá nhân & Xác thực) - Chỉ hiển thị khi đã đăng nhập */}
+          {isLoggedIn && (
+            <View style={[styles.whiteCard, isDark && styles.darkCard]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="card-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+                <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Thông tin cá nhân
+                </Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Ionicons name="mail-outline" size={16} color="#0084FF" />
+                </View>
+                <View style={styles.infoTextCol}>
+                  <Text style={styles.infoLabel}>EMAIL</Text>
+                  <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    {userEmail}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Ionicons name="call-outline" size={16} color="#0084FF" />
+                </View>
+                <View style={styles.infoTextCol}>
+                  <Text style={styles.infoLabel}>SỐ ĐIỆN THOẠI</Text>
+                  <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    {userPhone}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Ionicons name="people-outline" size={16} color="#0084FF" />
+                </View>
+                <View style={styles.infoTextCol}>
+                  <Text style={styles.infoLabel}>VAI TRÒ</Text>
+                  <Text style={[styles.infoValueActive, { color: userRole === 'employer' ? '#4CAF50' : '#0084FF' }]}>
+                    {userRole === 'employer' ? 'Nhà tuyển dụng' : 'Người tìm việc'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Ionicons name={userData?.isVerified ? "checkmark-done-outline" : "alert-circle-outline"} size={16} color={userData?.isVerified ? "#4CAF50" : "#FF9500"} />
+                </View>
+                <View style={styles.infoTextCol}>
+                  <Text style={styles.infoLabel}>TRẠNG THÁI HỒ SƠ</Text>
+                  {userData?.isVerified ? (
+                    <View style={styles.verifiedStatusRow}>
+                      <Text style={[styles.infoValueVerified, { color: '#4CAF50' }]}>
+                        Đã xác thực
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={14} color="#4CAF50" style={styles.checkIcon} />
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#FF9500' }}>
+                        Chưa xác thực
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleFeaturePress('Xác thực hồ sơ', handleSendVerificationEmail)}
+                        style={{ backgroundColor: '#FF9500', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 }}
+                      >
+                        <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold' }}>Xác thực</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
+          )}
+
+          {/* Employer Card (Company details displayed dynamically if role is Employer) */}
+          {userRole === 'employer' && (
+            <View style={[styles.whiteCard, isDark && styles.darkCard]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="business-outline" size={20} color="#4CAF50" style={styles.cardHeaderIcon} />
+                <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Thông tin Doanh nghiệp
+                </Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+              
+              <View style={styles.companyInfoItem}>
+                <Text style={styles.companyInfoLabel}>TÊN CÔNG TY</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginTop: 2 }}>
+                  {employerData?.companyName || 'Công ty Công nghệ Bybit Việt Nam'}
+                </Text>
+              </View>
+
+              <View style={styles.companyInfoItem}>
+                <Text style={styles.companyInfoLabel}>MÃ SỐ THUẾ</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginTop: 2 }}>
+                  {employerData?.taxId || '0109283746'}
+                </Text>
+              </View>
+
+              <View style={styles.companyInfoItem}>
+                <Text style={styles.companyInfoLabel}>ĐỊA CHỈ</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginTop: 2 }}>
+                  {employerData?.address || 'Tòa nhà Landmark 81, TP. HCM'}
+                </Text>
+              </View>
+
+              <View style={styles.companyInfoItem}>
+                <Text style={styles.companyInfoLabel}>GÓI DỊCH VỤ</Text>
+                <View style={styles.packageBadgeRow}>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#4CAF50', marginTop: 2 }}>
+                    {employerData?.servicePackage || 'Free'}
+                  </Text>
+                  <TouchableOpacity 
+                    activeOpacity={0.7}
+                    onPress={() => triggerFeatureMock('Nâng cấp gói')}
+                    style={styles.upgradePackageBtn}
+                  >
+                    <Text style={styles.upgradePackageBtnText}>Nâng cấp</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Employer Upgrade Promo (Shown if candidate) */}
+          {userRole !== 'employer' && (
+            <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#0084FF' }]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="business-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+                <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Tuyển dụng trên BybitJobs
+                </Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+              <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16, lineHeight: 18 }}>
+                Đăng ký tài khoản nhà tuyển dụng miễn phí để đăng tin tuyển dụng và tìm kiếm nhân tài ngay hôm nay.
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => handleFeaturePress('Đăng ký tuyển dụng', () => {
+                  Alert.alert(
+                    'Đăng ký Nhà tuyển dụng',
+                    'Bạn có chắc chắn muốn đăng ký nâng cấp tài khoản thành Nhà tuyển dụng trên hệ thống không?',
+                    [
+                      { text: 'Hủy', style: 'cancel' },
+                      {
+                        text: 'Đăng ký ngay',
+                        onPress: () => {
+                          registerEmployer({
+                            companyName: 'Công ty Công nghệ Bybit Việt Nam',
+                            taxId: '0109283746',
+                            phoneNumber: userData?.emailOrPhone || '098 7654 321',
+                            address: 'Tòa nhà Landmark 81, Quận Bình Thạnh, TP. HCM',
+                          });
+                          Alert.alert('Thành công', 'Đã kích hoạt tài khoản Nhà tuyển dụng thành công! Tab "Đăng tin" hiện đã hiển thị ở thanh điều hướng phía dưới.');
+                        }
+                      }
+                    ]
+                  );
+                })}
+                style={styles.upgradeButton}
+              >
+                <Text style={styles.upgradeButtonText}>Kích hoạt tài khoản Tuyển dụng</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 4. CV của tôi (CV đã tải lên & Cover Letter) Card */}
+          <View style={[styles.whiteCard, styles.tabbedCard, isDark && styles.darkCard]}>
+            <View style={[styles.cardHeader, { paddingHorizontal: 16, paddingTop: 4 }]}>
+              <Ionicons name="document-text-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                CV của tôi
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', marginHorizontal: 16 }]} />
+            
+            {/* My CV nested tab buttons */}
+            <View style={styles.nestedCvTabBar}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setActiveCvTab('cv')}
+                style={[styles.nestedCvTabBtn, activeCvTab === 'cv' && styles.nestedCvTabBtnActive]}
+              >
+                <Text style={[styles.nestedCvTabBtnText, activeCvTab === 'cv' ? styles.nestedCvTabBtnTextActive : (isDark ? styles.nestedCvTabBtnTextDark : styles.nestedCvTabBtnTextInactive)]}>
+                  CV đã tải lên
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setActiveCvTab('coverLetter')}
+                style={[styles.nestedCvTabBtn, activeCvTab === 'coverLetter' && styles.nestedCvTabBtnActive]}
+              >
+                <Text style={[styles.nestedCvTabBtnText, activeCvTab === 'coverLetter' ? styles.nestedCvTabBtnTextActive : (isDark ? styles.nestedCvTabBtnTextDark : styles.nestedCvTabBtnTextInactive)]}>
+                  Cover Letter
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Nested Content Rendering */}
+            <View style={{ marginTop: 10 }}>
+              {isUploading ? (
+                <View style={[styles.dashedBox, { borderColor: '#0084FF', paddingVertical: 32 }]}>
+                  <ActivityIndicator size="large" color="#0084FF" />
+                  <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginTop: 16, fontWeight: '600' }}>
+                    Đang tải tài liệu lên hệ thống...
+                  </Text>
+                </View>
+              ) : activeCvTab === 'cv' ? (
+                cvFile ? (
+                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
+                    <View style={[styles.documentCircle, { backgroundColor: '#FFEBEE' }]}>
+                      <Ionicons name="document-text" size={32} color="#D32F2F" />
+                    </View>
+                    
+                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                      {cvFile.fileName}
+                    </Text>
+                    <Text style={styles.documentMeta}>
+                      Đã tải lên: {cvFile.uploadTime} • {cvFile.fileSize}
+                    </Text>
+
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handlePreviewCV}
+                        style={styles.previewButton}
+                      >
+                        <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
+                        <Text style={styles.previewText}>Xem trước</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setActiveUploadType('cv');
+                          setIsFileExplorerVisible(true);
+                        }}
+                        style={styles.downloadButton}
+                      >
+                        <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
+                        <Text style={styles.downloadText}>Thay đổi tệp</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        Alert.alert(
+                          'Xóa CV',
+                          'Bạn có chắc muốn xóa tệp CV này khỏi tài khoản?',
+                          [
+                            { text: 'Hủy', style: 'cancel' },
+                            { text: 'Xóa ngay', style: 'destructive', onPress: () => setCvFile(null) }
+                          ]
+                        );
+                      }}
+                      style={{ marginTop: 14 }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#FF3B30', fontWeight: 'bold' }}>Xóa tệp CV hiện tại</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5', paddingVertical: 24 }]}>
+                    <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
+                      <Ionicons name="cloud-upload" size={32} color="#0084FF" />
+                    </View>
+                    
+                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
+                      Bạn chưa tải lên CV nào
+                    </Text>
+                    <Text style={[styles.documentMeta, { marginBottom: 16 }]}>
+                      Tải lên tệp PDF, DOCX tối đa 5MB để ứng tuyển
+                    </Text>
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => handleFeaturePress('Tải lên CV', () => {
+                        setActiveUploadType('cv');
+                        setIsFileExplorerVisible(true);
+                      })}
+                      style={styles.uploadCVButton}
+                    >
+                      <Ionicons name="folder-open" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.uploadCVButtonText}>Chọn tệp từ thư mục</Text>
+                    </TouchableOpacity>
+                  </View>
+                )
+              ) : (
+                coverLetterFile ? (
+                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
+                    <View style={[styles.documentCircle, { backgroundColor: '#E3F2FD' }]}>
+                      <Ionicons name="reader" size={32} color="#0084FF" />
+                    </View>
+                    
+                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                      {coverLetterFile.fileName}
+                    </Text>
+                    <Text style={styles.documentMeta}>
+                      Đã tải lên: {coverLetterFile.uploadTime} • {coverLetterFile.fileSize}
+                    </Text>
+
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => Alert.alert('Xem trước', 'Hiển thị xem trước tài liệu Cover Letter...')}
+                        style={styles.previewButton}
+                      >
+                        <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
+                        <Text style={styles.previewText}>Xem trước</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => handleFeaturePress('Thay đổi Cover Letter', () => {
+                          setActiveUploadType('coverLetter');
+                          setIsFileExplorerVisible(true);
+                        })}
+                        style={styles.downloadButton}
+                      >
+                        <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
+                        <Text style={styles.downloadText}>Thay đổi tệp</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        Alert.alert(
+                          'Xóa Cover Letter',
+                          'Bạn có chắc muốn xóa tệp Cover Letter này khỏi tài khoản?',
+                          [
+                            { text: 'Hủy', style: 'cancel' },
+                            { text: 'Xóa ngay', style: 'destructive', onPress: () => setCoverLetterFile(null) }
+                          ]
+                        );
+                      }}
+                      style={{ marginTop: 14 }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#FF3B30', fontWeight: 'bold' }}>Xóa tệp hiện tại</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5', paddingVertical: 24 }]}>
+                    <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
+                      <Ionicons name="cloud-upload" size={32} color="#0084FF" />
+                    </View>
+                    
+                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
+                      Bạn chưa có Cover Letter nào
+                    </Text>
+                    <Text style={[styles.documentMeta, { marginBottom: 16 }]}>
+                      Tải lên Cover Letter để gây ấn tượng mạnh với NTD
+                    </Text>
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => handleFeaturePress('Tải lên Cover Letter', () => {
+                        setActiveUploadType('coverLetter');
+                        setIsFileExplorerVisible(true);
+                      })}
+                      style={styles.uploadCVButton}
+                    >
+                      <Ionicons name="folder-open" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.uploadCVButtonText}>Tải lên Cover Letter</Text>
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+            </View>
           </View>
 
-          {/* Sub-Tabs Categories Card */}
-          <View style={[styles.whiteCard, styles.tabbedCard, isDark && styles.darkCard]}>
-            {/* Horizontal Sub-Tabs Bar */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.subTabBar}
+          {/* 5. Quản lý tìm việc Section */}
+          <View style={[styles.whiteCard, isDark && styles.darkCard, { paddingBottom: 6 }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="briefcase-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Quản lý tìm việc
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+            {renderSettingRow('checkmark-circle-outline', 'Việc làm đã ứng tuyển', () => handleFeaturePress('Việc làm đã ứng tuyển', () => triggerFeatureMock('Việc làm đã ứng tuyển')))}
+            {renderSettingRow('heart-outline', 'Việc làm đã lưu', () => handleFeaturePress('Việc làm đã lưu', () => triggerFeatureMock('Việc làm đã lưu')))}
+            {renderSettingRow('sparkles-outline', 'Việc làm phù hợp', () => handleFeaturePress('Việc làm phù hợp', () => triggerFeatureMock('Việc làm phù hợp')))}
+            {renderSettingRow('ribbon-outline', 'Công ty đang theo dõi', () => handleFeaturePress('Công ty đang theo dõi', () => triggerFeatureMock('Công ty đang theo dõi')))}
+            {renderSettingRow('eye-outline', 'NTD đã xem hồ sơ', () => handleFeaturePress('NTD đã xem hồ sơ', () => triggerFeatureMock('NTD đã xem hồ sơ')))}
+            {renderSettingRow('options-outline', 'Cài đặt gợi ý việc làm', () => handleFeaturePress('Cài đặt gợi ý việc làm', () => triggerFeatureMock('Cài đặt gợi ý việc làm')))}
+            {renderSettingRow('notifications-outline', 'Thông báo việc làm', () => handleFeaturePress('Thông báo việc làm', () => triggerFeatureMock('Thông báo việc làm')))}
+          </View>
+
+          {/* 6. Cài đặt tài khoản Section */}
+          <View style={[styles.whiteCard, isDark && styles.darkCard, { paddingBottom: 6 }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="settings-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Cài đặt tài khoản
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+            {renderSettingRow('ribbon-outline', 'Nâng cấp tài khoản VIP', () => handleFeaturePress('Nâng cấp tài khoản VIP', () => triggerFeatureMock('Nâng cấp VIP')))}
+            {renderSettingRow('key-outline', 'Đổi mật khẩu', () => handleFeaturePress('Đổi mật khẩu', () => triggerFeatureMock('Đổi mật khẩu')))}
+            {renderSettingRow('shield-checkmark-outline', 'Cài đặt bảo mật', () => handleFeaturePress('Cài đặt bảo mật', () => triggerFeatureMock('Cài đặt bảo mật')))}
+            
+            {/* 2-Step Verification with dynamic badge */}
+            {renderSettingRow(
+              'lock-closed-outline', 
+              'Xác minh 2 bước', 
+              () => handleFeaturePress('Xác minh 2 bước', () => {
+                const updated = !is2FAEnabled;
+                setIs2FAEnabled(updated);
+                Alert.alert(
+                  'Thông báo', 
+                  `Đã ${updated ? 'bật' : 'tắt'} chế độ xác minh 2 bước thành công để bảo vệ tài khoản.`
+                );
+              }),
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.twoFactorBadge, { backgroundColor: is2FAEnabled ? '#E8F5E9' : (isDark ? '#3C2F1E' : '#FFF3E0') }]}>
+                  <Text style={[styles.twoFactorBadgeText, { color: is2FAEnabled ? '#4CAF50' : '#FF9500' }]}>
+                    {is2FAEnabled ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
+              </View>
+            )}
+
+            {renderSettingRow('mail-unread-outline', 'Cài đặt thông báo email', () => handleFeaturePress('Cài đặt thông báo email', () => triggerFeatureMock('Cài đặt thông báo email')))}
+            {renderSettingRow('trash-outline', 'Vô hiệu hóa tài khoản', () => handleFeaturePress('Vô hiệu hóa tài khoản', () => triggerFeatureMock('Vô hiệu hóa tài khoản')))}
+          </View>
+
+          {/* 7. Chính sách và hỗ trợ Section */}
+          <View style={[styles.whiteCard, isDark && styles.darkCard, { paddingBottom: 6 }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="help-circle-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Chính sách và hỗ trợ
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+            {renderSettingRow('document-text-outline', 'Điều khoản dịch vụ', () => triggerFeatureMock('Điều khoản dịch vụ'))}
+            {renderSettingRow('shield-outline', 'Chính sách bảo mật', () => triggerFeatureMock('Chính sách bảo mật'))}
+            {renderSettingRow('information-circle-outline', 'Trung tâm trợ giúp', () => triggerFeatureMock('Trung tâm trợ giúp'))}
+            {renderSettingRow('chatbox-ellipses-outline', 'Gửi ý kiến phản hồi', () => triggerFeatureMock('Gửi ý kiến phản hồi'))}
+            {renderSettingRow('call-outline', 'Liên hệ hỗ trợ 24/7', () => triggerFeatureMock('Liên hệ hỗ trợ'))}
+          </View>
+
+          {/* 8. Elegant Bottom Logout Button */}
+          {!isLoggedIn ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/login')}
+              style={[styles.bigLogoutButton, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', borderColor: '#0084FF', borderWidth: 1 }]}
             >
-              {(['CV của tôi', 'Việc làm đã xem', 'Việc làm đã ứng tuyển', 'Lời mời việc'] as SubTab[]).map((tab) => {
-                const isActive = activeSubTab === tab;
+              <Ionicons name="log-in" size={20} color="#0084FF" style={{ marginRight: 8 }} />
+              <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Đăng nhập tài khoản</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleLogout}
+              style={[styles.bigLogoutButton, { backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE' }]}
+            >
+              <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+              <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.scrollPaddingBottom} />
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* 9. Premium File Explorer Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isFileExplorerVisible}
+        onRequestClose={() => setIsFileExplorerVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.explorerContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            
+            <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="folder-open" size={22} color="#0084FF" style={{ marginRight: 8 }} />
+                <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Chọn tài liệu từ thư mục
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setIsFileExplorerVisible(false);
+                  setSelectedFileIndex(null);
+                }}
+                style={styles.closeExplorerBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#AAA' : '#666'} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.pathBar, { backgroundColor: isDark ? '#2C2C2E' : '#F0F4F8' }]}>
+              <Ionicons name="phone-portrait-outline" size={14} color="#0084FF" />
+              <Text style={[styles.pathText, { color: isDark ? '#AAA' : '#5E6E7A' }]}>
+                {` Bộ nhớ máy > Tài liệu > ${activeUploadType === 'cv' ? 'CVs' : 'CoverLetters'}`}
+              </Text>
+            </View>
+
+            <View style={[styles.searchBarWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F5F5F5' }]}>
+              <Ionicons name="search" size={18} color="#8E8E93" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 13, color: '#8E8E93' }}>Tìm kiếm tài liệu của bạn...</Text>
+            </View>
+
+            <ScrollView style={styles.fileList} showsVerticalScrollIndicator={false}>
+              {mockFiles.map((file, index) => {
+                const isSelected = selectedFileIndex === index;
                 return (
                   <TouchableOpacity
-                    key={tab}
-                    activeOpacity={0.7}
-                    onPress={() => setActiveSubTab(tab)}
-                    style={[styles.subTabItem, isActive && styles.subTabItemActive]}
+                    key={index}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedFileIndex(index)}
+                    style={[
+                      styles.fileItemRow,
+                      {
+                        borderColor: isSelected ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E5EA'),
+                        backgroundColor: isSelected 
+                          ? (isDark ? '#1C2A3A' : '#E6F4FE') 
+                          : 'transparent'
+                      }
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.subTabText,
-                        isActive ? styles.subTabTextActive : (isDark ? styles.subTabTextDark : styles.subTabTextInactive),
-                      ]}
-                    >
-                      {tab}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={[styles.pdfIconBox, { backgroundColor: '#FFEBEE' }]}>
+                        <Ionicons name="document-text" size={24} color="#D32F2F" />
+                      </View>
+                      <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text 
+                          style={[
+                            styles.fileNameText, 
+                            { color: isDark ? '#FFF' : '#11181C', fontWeight: isSelected ? 'bold' : '500' }
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {file.name}
+                        </Text>
+                        <Text style={styles.fileSizeText}>
+                          {file.path}{file.size}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.checkboxCircle}>
+                      <Ionicons
+                        name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                        size={22}
+                        color={isSelected ? "#0084FF" : (isDark ? "#444" : "#CCC")}
+                      />
+                    </View>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
-            {/* Active Content Body */}
-            {activeSubTab === 'CV của tôi' ? (
-              <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
-                <View style={[styles.documentCircle, { backgroundColor: '#E3F2FD' }]}>
-                  <Ionicons name="reader" size={32} color="#0084FF" />
-                </View>
-                
-                <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                  CV_NguyenMinhQuan_Senior_Web.pdf
-                </Text>
-                <Text style={styles.documentMeta}>
-                  Cập nhật lần cuối: 2 ngày trước • 1.2MB
-                </Text>
+            <View style={[styles.explorerFooter, { borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleUploadCV}
+                style={[
+                  styles.confirmUploadBtn,
+                  { backgroundColor: selectedFileIndex !== null ? '#0084FF' : '#B0BEC5' }
+                ]}
+                disabled={selectedFileIndex === null}
+              >
+                <Ionicons name="cloud-upload" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.confirmUploadBtnText}>Tải lên tệp đã chọn</Text>
+              </TouchableOpacity>
+            </View>
 
-                {/* CV Action Row */}
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handlePreviewCV}
-                    style={styles.previewButton}
-                  >
-                    <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
-                    <Text style={styles.previewText}>Xem trước</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleDownloadCV}
-                    style={styles.downloadButton}
-                  >
-                    <Ionicons name="download-outline" size={16} color="#FFF" style={styles.buttonIcon} />
-                    <Text style={styles.downloadText}>Tải xuống</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              // Templates for other subtabs (to be finalized later)
-              <View style={styles.emptyView}>
-                <Ionicons name="folder-open-outline" size={36} color="#B0BEC5" />
-                <Text style={styles.emptyText}>Đang cập nhật danh mục {activeSubTab}...</Text>
-              </View>
-            )}
           </View>
+        </View>
+      </Modal>
 
-          {/* Safe spacing at bottom */}
-          <View style={styles.scrollPaddingBottom} />
-        </ScrollView>
-      </SafeAreaView>
+      {/* 10. Verification Code Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isVerificationVisible}
+        onRequestClose={() => setIsVerificationVisible(false)}
+      >
+        <View style={styles.modalCenteredOverlay}>
+          <View style={[styles.verificationContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.verificationTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Xác thực tài khoản
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setIsVerificationVisible(false);
+                  setVerificationCode('');
+                }}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#AAA' : '#666'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.verificationSubtitle, { color: isDark ? '#AAA' : '#5E6E7A', lineHeight: 18 }]}>
+              Hệ thống đã gửi mã xác thực gồm 6 chữ số tới liên hệ đăng ký của bạn. Nhập mã mẫu <Text style={{ fontWeight: 'bold', color: '#FF9500' }}>123456</Text> để hoàn tất xác minh.
+            </Text>
+
+            <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F5F5F5' }]}>
+              <TextInput
+                style={[styles.verificationTextInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                placeholder="Nhập mã 6 chữ số"
+                placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                keyboardType="number-pad"
+                maxLength={6}
+                value={verificationCode}
+                onChangeText={setVerificationCode}
+              />
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleVerifySubmit}
+              style={[
+                styles.verificationSubmitBtn,
+                { backgroundColor: verificationCode.trim().length === 6 ? '#4CAF50' : '#B0BEC5' }
+              ]}
+              disabled={verificationCode.trim().length !== 6}
+            >
+              <Text style={styles.verificationSubmitBtnText}>Xác minh tài khoản</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -425,26 +1126,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  avatarContainer: {
+  
+  // Header Avatar styles
+  avatarCard: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  avatarMainSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
   },
   avatarWrapper: {
     position: 'relative',
-    marginBottom: 12,
+    marginRight: 16,
   },
   avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#FFF',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitialText: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: 'bold',
   },
   pencilOverlay: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
+    bottom: -2,
+    right: -2,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -454,33 +1166,82 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFF',
   },
+  avatarInfoCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   userName: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   userId: {
     fontSize: 12,
     color: '#8E8E93',
     fontWeight: '600',
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  editProfileBtn: {
-    backgroundColor: '#0084FF',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#0084FF',
+  upgradeHeaderBtn: {
+    backgroundColor: '#FF9500',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 26,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    elevation: 2,
+    shadowColor: '#FF9500',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 2,
   },
-  editProfileBtnText: {
+  upgradeHeaderBtnText: {
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
+
+  // Switches Styles
+  switchRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  switchTitleText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  switchDescText: {
+    fontSize: 11,
+    color: '#8E8E93',
+    lineHeight: 15,
+  },
+  switchTrack: {
+    width: 48,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  switchThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+  },
+  dividerLight: {
+    height: 1,
+    marginVertical: 4,
+  },
+
+  // Cards & Layout elements
   whiteCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -556,35 +1317,85 @@ const styles = StyleSheet.create({
   checkIcon: {
     marginLeft: 4,
   },
-  tabbedCard: {
-    paddingHorizontal: 0,
+
+  // Employer Card Styles
+  companyInfoItem: {
+    marginBottom: 12,
   },
-  subTabBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    gap: 20,
+  companyInfoLabel: {
+    fontSize: 10,
+    color: '#8E8E93',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  subTabItem: {
-    paddingVertical: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  packageBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
-  subTabItemActive: {
-    borderBottomColor: '#0084FF',
+  upgradePackageBtn: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  subTabText: {
+  upgradePackageBtnText: {
+    color: '#4CAF50',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  upgradeButton: {
+    backgroundColor: '#0084FF',
+    borderRadius: 12,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 8,
+  },
+  upgradeButtonText: {
+    color: '#FFF',
     fontSize: 13,
     fontWeight: 'bold',
   },
-  subTabTextActive: {
+
+  // My CV nested tabs
+  tabbedCard: {
+    paddingHorizontal: 0,
+  },
+  nestedCvTabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 6,
+    gap: 12,
+  },
+  nestedCvTabBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  nestedCvTabBtnActive: {
+    borderColor: '#0084FF',
+    backgroundColor: '#F0F8FF',
+  },
+  nestedCvTabBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  nestedCvTabBtnTextActive: {
     color: '#0084FF',
   },
-  subTabTextInactive: {
+  nestedCvTabBtnTextInactive: {
     color: '#687076',
   },
-  subTabTextDark: {
+  nestedCvTabBtnTextDark: {
     color: '#9BA1A6',
   },
+
   dashedBox: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
@@ -632,7 +1443,6 @@ const styles = StyleSheet.create({
     borderColor: '#0084FF',
     borderRadius: 10,
     height: 38,
-    maxHeight: 38,
   },
   previewText: {
     color: '#0084FF',
@@ -647,7 +1457,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0084FF',
     borderRadius: 10,
     height: 38,
-    maxHeight: 38,
   },
   downloadText: {
     color: '#FFF',
@@ -657,23 +1466,242 @@ const styles = StyleSheet.create({
   buttonIcon: {
     marginRight: 6,
   },
-  emptyView: {
-    padding: 30,
-    alignItems: 'center',
+  uploadCVButton: {
+    backgroundColor: '#0084FF',
+    flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 40,
+    paddingHorizontal: 18,
+    elevation: 3,
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  emptyText: {
+  uploadCVButtonText: {
+    color: '#FFF',
     fontSize: 12,
-    color: '#8E8E93',
+    fontWeight: 'bold',
+  },
+
+  // Settings lists styles
+  settingRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  settingRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingRowIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingRowText: {
+    fontSize: 13,
     fontWeight: '500',
-    marginTop: 10,
+  },
+  twoFactorBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  twoFactorBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+
+  // Policies and Bottom section
+  bigLogoutButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 14,
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  bigLogoutButtonText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   scrollPaddingBottom: {
-    height: 40,
+    height: 60,
   },
-  avatarInitialText: {
+
+  // Modal File Explorer styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  explorerContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '65%',
+    width: '100%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  explorerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  explorerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeExplorerBtn: {
+    padding: 4,
+  },
+  pathBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  pathText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  searchBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 38,
+    paddingHorizontal: 12,
+  },
+  fileList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  fileItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 10,
+  },
+  pdfIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fileNameText: {
+    fontSize: 13,
+  },
+  fileSizeText: {
+    fontSize: 10,
+    color: '#8E8E93',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  checkboxCircle: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  explorerFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+  },
+  confirmUploadBtn: {
+    borderRadius: 12,
+    height: 46,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    elevation: 3,
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  confirmUploadBtnText: {
     color: '#FFF',
-    fontSize: 34,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
+  // Modal 2FA styles
+  modalCenteredOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  verificationContainer: {
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 320,
+    padding: 20,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  verificationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  verificationSubtitle: {
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  verificationInputWrapper: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+    height: 48,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  verificationTextInput: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 4,
+    textAlign: 'center',
+    height: '100%',
+    width: '100%',
+  },
+  verificationSubmitBtn: {
+    borderRadius: 12,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verificationSubmitBtnText: {
+    color: '#FFF',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

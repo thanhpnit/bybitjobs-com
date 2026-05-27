@@ -51,25 +51,29 @@ export default function SignupScreen() {
       return;
     }
 
-    // Call mock auth hook registration
-    signup(email, fullName);
+    // Call mock auth hook registration with password
+    const result = signup(email, fullName, password);
+
+    if (!result.success) {
+      Alert.alert('Lỗi đăng ký', result.message);
+      return;
+    }
 
     Alert.alert(
       'Thành công',
-      'Đăng ký tài khoản mới thành công!',
+      'Đăng ký tài khoản mới thành công! Đang chuyển hướng bạn đến trang Đăng nhập.',
       [
         {
-          text: 'Đồng ý',
+          text: 'Đăng nhập ngay',
           onPress: () => {
-            if (redirectTitle) {
-              // Automatically redirect back to apply flow
-              router.replace({
-                pathname: '/apply-job',
-                params: { title: redirectTitle }
-              });
-            } else {
-              router.dismissAll(); // Go back to Home
-            }
+            router.replace({
+              pathname: '/login',
+              params: {
+                prefilledEmail: email,
+                prefilledPassword: password,
+                redirectTitle
+              }
+            });
           },
         },
       ]

@@ -22,13 +22,27 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
 
-  // Get dynamic redirect parameters from job details if any
-  const { redirectTitle } = useLocalSearchParams<{ redirectTitle: string }>();
+  // Get dynamic redirect parameters and prefilled values if any
+  const { redirectTitle, prefilledEmail, prefilledPassword } = useLocalSearchParams<{ 
+    redirectTitle?: string;
+    prefilledEmail?: string;
+    prefilledPassword?: string;
+  }>();
 
   // State managers
   const [emailOrPhone, setEmailOrPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+
+  // Auto-fill parameters when redirected from signup screen
+  React.useEffect(() => {
+    if (prefilledEmail) {
+      setEmailOrPhone(prefilledEmail);
+    }
+    if (prefilledPassword) {
+      setPassword(prefilledPassword);
+    }
+  }, [prefilledEmail, prefilledPassword]);
 
   const handleLoginSubmit = () => {
     if (!emailOrPhone.trim()) {
@@ -40,8 +54,13 @@ export default function LoginScreen() {
       return;
     }
 
-    // Call mock auth hook login
-    login(emailOrPhone);
+    // Call mock auth hook login with both credentials
+    const result = login(emailOrPhone, password);
+
+    if (!result.success) {
+      Alert.alert('Lỗi đăng nhập', result.message);
+      return;
+    }
 
     Alert.alert(
       'Thành công',
@@ -57,7 +76,7 @@ export default function LoginScreen() {
                 params: { title: redirectTitle }
               });
             } else {
-              router.back();
+              router.dismissAll(); // Return to original home/tabs stack
             }
           },
         },

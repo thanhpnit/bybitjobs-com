@@ -113,10 +113,6 @@ export default function HomeScreen() {
               <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
                 <Ionicons name="search-outline" size={24} color="#FFF" />
               </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7} style={[styles.iconButton, styles.notificationBtn]}>
-                <Ionicons name="notifications-outline" size={24} color="#FFF" />
-                <View style={styles.notificationDot} />
-              </TouchableOpacity>
             </View>
           </View>
 

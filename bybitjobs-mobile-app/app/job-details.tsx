@@ -64,9 +64,6 @@ export default function JobDetailsScreen() {
             </TouchableOpacity>
             <Text style={styles.brandTitle}>BybitJobs</Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={24} color="#FFF" />
-          </TouchableOpacity>
         </View>
 
         {/* Scrollable Content */}
