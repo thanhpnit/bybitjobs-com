@@ -39,6 +39,70 @@ export default function ProfileScreen() {
   // 2-Step Verification state
   const [is2FAEnabled, setIs2FAEnabled] = React.useState(false);
 
+  // 2-Step Verification Flow States
+  const [is2FAModalVisible, setIs2FAModalVisible] = React.useState(false);
+  const [twoFAStep, setTwoFAStep] = React.useState<'intro' | 'otp' | 'enabled_info'>('intro');
+  const [twoFACode, setTwoFACode] = React.useState('');
+  const [twoFATimer, setTwoFATimer] = React.useState(150); // 2 minutes 30 seconds
+
+  // Countdown timer for 2FA OTP
+  React.useEffect(() => {
+    let interval: any = null;
+    if (is2FAModalVisible && twoFAStep === 'otp' && twoFATimer > 0) {
+      interval = setInterval(() => {
+        setTwoFATimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [is2FAModalVisible, twoFAStep, twoFATimer]);
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleResend2FACode = () => {
+    setTwoFATimer(150);
+    Alert.alert('Thành công', 'Một mã xác minh mới đã được gửi tới email của bạn.');
+  };
+
+  const handleConfirm2FAOTP = () => {
+    if (twoFACode.trim().length === 6) {
+      verifyAccount(); // Automatically grant verification (blue tick)
+      setIs2FAEnabled(true);
+      setTwoFAStep('enabled_info');
+      Alert.alert(
+        'Thành công',
+        'Tính năng xác minh 2 bước đã được kích hoạt thành công. Hồ sơ của bạn đã được xác thực uy tín với dấu tích xanh!'
+      );
+      setIs2FAModalVisible(false);
+    } else {
+      Alert.alert('Lỗi xác thực', 'Vui lòng nhập đúng mã xác minh 6 ký tự.');
+    }
+  };
+
+  const handleDisable2FA = () => {
+    Alert.alert(
+      'Vô hiệu hóa xác minh 2 bước',
+      'Bạn có chắc chắn muốn tắt tính năng xác minh 2 bước? Bảo mật tài khoản của bạn sẽ bị giảm đi.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Vô hiệu hóa',
+          style: 'destructive',
+          onPress: () => {
+            setIs2FAEnabled(false);
+            setIs2FAModalVisible(false);
+            Alert.alert('Thông báo', 'Đã tắt tính năng xác minh 2 bước.');
+          }
+        }
+      ]
+    );
+  };
+
   // CV / Cover Letter states
   interface CVInfo {
     fileName: string;
@@ -797,12 +861,14 @@ export default function ProfileScreen() {
               'lock-closed-outline', 
               'Xác minh 2 bước', 
               () => handleFeaturePress('Xác minh 2 bước', () => {
-                const updated = !is2FAEnabled;
-                setIs2FAEnabled(updated);
-                Alert.alert(
-                  'Thông báo', 
-                  `Đã ${updated ? 'bật' : 'tắt'} chế độ xác minh 2 bước thành công để bảo vệ tài khoản.`
-                );
+                if (is2FAEnabled) {
+                  setTwoFAStep('enabled_info');
+                } else {
+                  setTwoFAStep('intro');
+                }
+                setTwoFACode('');
+                setTwoFATimer(150);
+                setIs2FAModalVisible(true);
               }),
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={[styles.twoFactorBadge, { backgroundColor: is2FAEnabled ? '#E8F5E9' : (isDark ? '#3C2F1E' : '#FFF3E0') }]}>
@@ -1025,6 +1091,203 @@ export default function ProfileScreen() {
 
           </View>
         </View>
+      </Modal>
+
+      {/* 11. Multi-step 2-Step Verification Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={is2FAModalVisible}
+        onRequestClose={() => {
+          if (twoFAStep === 'otp' && !is2FAEnabled) {
+            setTwoFAStep('intro');
+          } else {
+            setIs2FAModalVisible(false);
+          }
+        }}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
+          {/* Modal Header */}
+          <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              onPress={() => {
+                if (twoFAStep === 'otp' && !is2FAEnabled) {
+                  setTwoFAStep('intro');
+                } else {
+                  setIs2FAModalVisible(false);
+                }
+              }}
+              style={styles.modalHeaderBackBtn}
+            >
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#11181C'} />
+            </TouchableOpacity>
+            <Text style={[styles.modalHeaderTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+              Xác minh 2 bước
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Modal Body */}
+          <ScrollView 
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {twoFAStep === 'intro' && (
+              <>
+                <View style={styles.twoFAContent}>
+                  <View style={styles.twoFAShieldContainer}>
+                    {/* Shadow shield in background */}
+                    <View style={styles.twoFAShieldBg}>
+                      <Ionicons name="shield" size={120} color={isDark ? '#2C2C2E' : '#ECEFF1'} />
+                    </View>
+                    {/* Primary silver shield in foreground */}
+                    <View style={styles.twoFAShieldFg}>
+                      <Ionicons name="shield" size={150} color={isDark ? '#3A3D40' : '#CFD8DC'} style={styles.twoFAShieldIconShadow} />
+                      <View style={styles.twoFAShieldGearBox}>
+                        <Ionicons name="settings" size={54} color={isDark ? '#8E8E93' : '#78909C'} />
+                      </View>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.twoFATitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Bật tính năng xác minh 2 bước
+                  </Text>
+                  <Text style={[styles.twoFASubtitle, { color: isDark ? '#9BA1A6' : '#5E6E7A' }]}>
+                    Bảo vệ dữ liệu cá nhân và giữ tài khoản luôn nằm trong tầm kiểm soát của bạn bằng 1 lớp bảo mật nữa.
+                  </Text>
+                </View>
+
+                <View style={styles.twoFAButtonContainer}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setTwoFAStep('otp');
+                      setTwoFACode('');
+                      setTwoFATimer(150); // Reset timer to 2:30
+                    }}
+                    style={[styles.twoFAButton, { backgroundColor: '#0084FF', shadowColor: '#0084FF' }]}
+                  >
+                    <Text style={styles.twoFAButtonText}>Bật xác minh 2 bước</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {twoFAStep === 'otp' && (
+              <>
+                <View style={styles.twoFAContent}>
+                  <Text style={[styles.twoFATitle, { color: isDark ? '#FFF' : '#11181C', marginTop: 20 }]}>
+                    Nhập mã xác minh
+                  </Text>
+                  <Text style={[styles.twoFASubtitle, { color: isDark ? '#9BA1A6' : '#5E6E7A' }]}>
+                    Chúng tôi đã gửi mã xác minh tới{' '}
+                    <Text style={{ fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C' }}>
+                      {userEmail === 'Chưa liên kết' ? 'lechilinh02410@gmail.com' : userEmail}
+                    </Text>
+                    . Bạn vui lòng kiểm tra email để lấy mã.
+                  </Text>
+
+                  <View style={[styles.twoFAInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                    <TextInput
+                      style={[styles.twoFATextInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                      placeholder="Nhập mã 6 ký tự"
+                      placeholderTextColor={isDark ? '#444' : '#B0BEC5'}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={twoFACode}
+                      onChangeText={setTwoFACode}
+                    />
+                  </View>
+
+                  <Text style={[styles.twoFATimerText, { color: isDark ? '#AAA' : '#687076' }]}>
+                    Mã hết hạn sau: <Text style={{ fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C' }}>{formatTimer(twoFATimer)}</Text>
+                  </Text>
+
+                  <View style={styles.twoFAResendRow}>
+                    <Text style={{ fontSize: 13, color: isDark ? '#8E8E93' : '#687076' }}>
+                      Chưa nhận được mã?{' '}
+                    </Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={handleResend2FACode}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0084FF', textDecorationLine: 'underline' }}>
+                        Gửi lại mã
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.twoFAButtonContainer}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleConfirm2FAOTP}
+                    style={[
+                      styles.twoFAButton,
+                      { 
+                        backgroundColor: twoFACode.trim().length === 6 ? '#0084FF' : (isDark ? '#2C2C2E' : '#B0BEC5'),
+                        shadowColor: twoFACode.trim().length === 6 ? '#0084FF' : 'transparent',
+                      }
+                    ]}
+                    disabled={twoFACode.trim().length !== 6}
+                  >
+                    <Text style={styles.twoFAButtonText}>Xác nhận</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {twoFAStep === 'enabled_info' && (
+              <>
+                <View style={styles.twoFAContent}>
+                  <View style={styles.twoFAShieldContainer}>
+                    <View style={styles.twoFAShieldFg}>
+                      <Ionicons name="shield-checkmark" size={150} color="#0FB759" style={styles.twoFAShieldIconShadow} />
+                    </View>
+                  </View>
+
+                  <Text style={[styles.twoFATitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Xác minh 2 bước đang hoạt động
+                  </Text>
+                  <Text style={[styles.twoFASubtitle, { color: isDark ? '#9BA1A6' : '#5E6E7A' }]}>
+                    Tài khoản của bạn đang được bảo vệ bằng lớp xác thực bổ sung qua Email. Cám ơn bạn đã nâng cấp bảo mật!
+                  </Text>
+
+                  <View style={[styles.twoFAStatusBox, { backgroundColor: isDark ? '#1C2D24' : '#E8F5E9' }]}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0FB759', textAlign: 'center' }}>
+                      TRẠNG THÁI: ĐÃ BẢO VỆ AN TOÀN
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.twoFAButtonContainer}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleDisable2FA}
+                    style={[styles.twoFAButton, { backgroundColor: '#FF3B30', shadowColor: '#FF3B30', marginBottom: 12 }]}
+                  >
+                    <Text style={styles.twoFAButtonText}>Tắt xác minh 2 bước</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setIs2FAModalVisible(false)}
+                    style={[
+                      styles.twoFAButton, 
+                      { 
+                        backgroundColor: 'transparent', 
+                        borderWidth: 1.5, 
+                        borderColor: isDark ? '#3C3C3E' : '#E5E5EA', 
+                        shadowColor: 'transparent',
+                        elevation: 0,
+                      }
+                    ]}
+                  >
+                    <Text style={[styles.twoFAButtonText, { color: isDark ? '#FFF' : '#11181C' }]}>Đóng</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
     </View>
@@ -1703,5 +1966,135 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  // Modal 2FA Header & Screen Layout Styles
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: 56,
+    borderBottomWidth: 1,
+  },
+  modalHeaderBackBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
+  },
+  twoFAContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  twoFAShieldContainer: {
+    height: 200,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  twoFAShieldBg: {
+    position: 'absolute',
+    right: '30%',
+    top: '15%',
+    opacity: 0.7,
+  },
+  twoFAShieldFg: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  twoFAShieldIconShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  twoFAShieldGearBox: {
+    position: 'absolute',
+    top: '32%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  twoFATitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  twoFASubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  twoFAInputWrapper: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    height: 54,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  twoFATextInput: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    height: '100%',
+    width: '100%',
+    letterSpacing: 1.5,
+  },
+  twoFATimerText: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  twoFAResendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+  },
+  twoFAButtonContainer: {
+    width: '100%',
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  twoFAButton: {
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#0FB759',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  twoFAButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  twoFAStatusBox: {
+    padding: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 10,
   },
 });
