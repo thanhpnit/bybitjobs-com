@@ -1,0 +1,356 @@
+import React from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+
+export default function RecruiterRegisterScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const router = useRouter();
+  const { registerEmployer } = useAuth();
+
+  // Input states
+  const [companyName, setCompanyName] = React.useState('');
+  const [taxId, setTaxId] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [address, setAddress] = React.useState('');
+
+  const handleRegister = () => {
+    // 1. Validation Logic
+    if (!companyName.trim()) {
+      Alert.alert('Cảnh báo', 'Tên công ty/Tổ chức không được để trống.');
+      return;
+    }
+    if (!taxId.trim()) {
+      Alert.alert('Cảnh báo', 'Mã số thuế bắt buộc phải điền.');
+      return;
+    }
+    if (!phone.trim()) {
+      Alert.alert('Cảnh báo', 'Số điện thoại liên hệ không được để trống.');
+      return;
+    }
+    if (!address.trim()) {
+      Alert.alert('Cảnh báo', 'Địa chỉ công ty không được để trống.');
+      return;
+    }
+
+    // 2. Perform Mock Registration & Role Upgrade
+    registerEmployer({
+      companyName,
+      taxId,
+      phoneNumber: phone,
+      address,
+    });
+
+    // 3. Show Success & Redirect to Plans Selection Screen
+    Alert.alert(
+      'Đăng ký thành công',
+      'Hồ sơ doanh nghiệp của bạn đã được thiết lập thành công. Hãy chọn gói dịch vụ tuyển dụng phù hợp với bạn.',
+      [
+        {
+          text: 'Chọn gói dịch vụ',
+          onPress: () => {
+            router.push('/recruiter/pricing');
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F5F7FA' }]}>
+      {/* Top Navigation Bar */}
+      <View style={[styles.navBar, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#11181C'} />
+        </TouchableOpacity>
+        <Text style={[styles.navTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+          Đăng ký Nhà tuyển dụng
+        </Text>
+        <View style={styles.navPlaceholder} />
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Main Card Wrapper */}
+          <View style={[styles.formCard, isDark && styles.formCardDark]}>
+            {/* Header Text */}
+            <Text style={styles.headerTitle}>Tạo hồ sơ doanh nghiệp</Text>
+            <Text style={[styles.headerSubtitle, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Điền thông tin dưới đây để bắt đầu đăng tin và tìm kiếm ứng viên phù hợp trên hệ thống của chúng tôi.
+            </Text>
+
+            {/* Input fields */}
+            {/* Input 1: Company Name */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Tên công ty/Tổ chức
+              </Text>
+              <View style={[styles.inputWrapper, { borderColor: isDark ? '#2C2C2E' : '#D1D5DB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                <Ionicons name="business-outline" size={20} color="#8E8E93" style={styles.leftIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                  placeholder="Ví dụ: Công ty TNHH ABC"
+                  placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  value={companyName}
+                  onChangeText={setCompanyName}
+                />
+              </View>
+            </View>
+
+            {/* Input 2: Tax Code */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Mã số thuế
+                </Text>
+                <Text style={styles.requiredStar}> *</Text>
+              </View>
+              <View style={[styles.inputWrapper, { borderColor: isDark ? '#2C2C2E' : '#D1D5DB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                <Ionicons name="card-outline" size={20} color="#8E8E93" style={styles.leftIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                  placeholder="Nhập mã số thuế doanh nghiệp"
+                  placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  keyboardType="numeric"
+                  value={taxId}
+                  onChangeText={setTaxId}
+                />
+              </View>
+              <Text style={styles.subtext}>Thông tin bắt buộc để xác thực doanh nghiệp.</Text>
+            </View>
+
+            {/* Input 3: Phone */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Số điện thoại liên hệ
+              </Text>
+              <View style={[styles.inputWrapper, { borderColor: isDark ? '#2C2C2E' : '#D1D5DB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                <Ionicons name="call-outline" size={20} color="#8E8E93" style={styles.leftIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                  placeholder="Số điện thoại người đại diện hoặc công ty"
+                  placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+              </View>
+            </View>
+
+            {/* Input 4: Address */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Địa chỉ công ty
+              </Text>
+              <View style={[styles.textareaWrapper, { borderColor: isDark ? '#2C2C2E' : '#D1D5DB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                <Ionicons name="location-outline" size={20} color="#8E8E93" style={[styles.leftIcon, { marginTop: 2 }]} />
+                <TextInput
+                  style={[styles.textareaInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                  placeholder="Nhập địa chỉ trụ sở chính"
+                  placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  multiline={true}
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  value={address}
+                  onChangeText={setAddress}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#E5E7EB' }]} />
+
+            {/* Large Blue Submit Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleRegister}
+              style={styles.submitButton}
+            >
+              <Text style={styles.submitButtonText}>Xác nhận đăng ký</Text>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={styles.submitIcon} />
+            </TouchableOpacity>
+
+            {/* Terms and Privacy Notes */}
+            <Text style={[styles.noteText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Bằng việc xác nhận đăng ký, bạn đồng ý với{' '}
+              <Text style={styles.linkText}>Điều khoản dịch vụ</Text> và{' '}
+              <Text style={styles.linkText}>Chính sách bảo mật</Text> của chúng tôi.
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  navBar: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    padding: 4,
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  navPlaceholder: {
+    width: 32,
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  formCardDark: {
+    backgroundColor: '#1C1C1E',
+    shadowOpacity: 0.2,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#0084FF',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 24,
+  },
+  inputGroup: {
+    marginBottom: 16,
+    width: '100%',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  requiredStar: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 48,
+    paddingHorizontal: 14,
+  },
+  leftIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    height: '100%',
+  },
+  subtext: {
+    fontSize: 11,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  textareaWrapper: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 100,
+  },
+  textareaInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    minHeight: 80,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 20,
+    width: '100%',
+  },
+  submitButton: {
+    backgroundColor: '#0084FF',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 48,
+    borderRadius: 12,
+    width: '100%',
+    elevation: 3,
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  submitIcon: {
+    marginLeft: 8,
+  },
+  noteText: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    paddingHorizontal: 10,
+  },
+  linkText: {
+    color: '#0084FF',
+    fontWeight: '700',
+  },
+});

@@ -110,7 +110,7 @@ export default function NotificationsScreen() {
       {/* Header Background */}
       <View style={styles.headerBg} />
       <SafeAreaView style={styles.safeArea}>
-        
+
         {/* Header Bar */}
         <View style={styles.headerBar}>
           <View style={styles.headerBarPlaceholder} />
@@ -172,7 +172,7 @@ export default function NotificationsScreen() {
                   ]}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    
+
                     {/* Category Icon Circle */}
                     <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C1C1E' : iconData.bg }]}>
                       <Ionicons name={iconData.name as any} size={20} color={iconData.color} />
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   // Segment bar styles
   segmentContainer: {
     paddingHorizontal: 16,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-  
+
   // Notification cards
   notificationCard: {
     borderRadius: 16,

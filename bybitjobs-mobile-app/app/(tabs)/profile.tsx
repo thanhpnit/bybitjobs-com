@@ -21,15 +21,15 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  
-  const { 
-    isLoggedIn, 
-    logout, 
-    userData, 
-    userRole, 
-    employerData, 
-    registerEmployer, 
-    verifyAccount 
+
+  const {
+    isLoggedIn,
+    logout,
+    userData,
+    userRole,
+    employerData,
+    registerEmployer,
+    verifyAccount
   } = useAuth();
 
   // Job seeking switch states
@@ -111,7 +111,7 @@ export default function ProfileScreen() {
   }
   const [cvFile, setCvFile] = React.useState<CVInfo | null>(null);
   const [coverLetterFile, setCoverLetterFile] = React.useState<CVInfo | null>(null);
-  
+
   // Active selected tab inside My CV section ('cv' | 'coverLetter')
   const [activeCvTab, setActiveCvTab] = React.useState<'cv' | 'coverLetter'>('cv');
 
@@ -154,10 +154,10 @@ export default function ProfileScreen() {
       Alert.alert('Thông báo', 'Vui lòng chọn một tệp từ danh sách.');
       return;
     }
-    
+
     setIsFileExplorerVisible(false);
     setIsUploading(true);
-    
+
     // Simulate uploading for 1.2 seconds
     setTimeout(() => {
       const selected = mockFiles[selectedFileIndex];
@@ -166,13 +166,13 @@ export default function ProfileScreen() {
         fileSize: selected.size,
         uploadTime: 'Vừa xong',
       };
-      
+
       if (activeUploadType === 'cv') {
         setCvFile(newFile);
       } else {
         setCoverLetterFile(newFile);
       }
-      
+
       setIsUploading(false);
       setSelectedFileIndex(null);
       Alert.alert('Thành công', `Tải lên tài liệu ${activeUploadType === 'cv' ? 'CV' : 'Cover Letter'} thành công!`);
@@ -232,14 +232,14 @@ export default function ProfileScreen() {
   // Dynamically assign registered account info
   const userEmail = isLoggedIn
     ? (userData?.emailOrPhone && userData.emailOrPhone.includes('@')
-        ? userData.emailOrPhone
-        : 'quan.nguyen@example.com')
+      ? userData.emailOrPhone
+      : 'quan.nguyen@example.com')
     : 'Chưa liên kết';
 
   const userPhone = isLoggedIn
     ? (userData?.emailOrPhone && !userData.emailOrPhone.includes('@')
-        ? userData.emailOrPhone
-        : '090 1234 567')
+      ? userData.emailOrPhone
+      : '090 1234 567')
     : 'Chưa liên kết';
 
   // Dynamic dates
@@ -325,7 +325,7 @@ export default function ProfileScreen() {
     <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
       <View style={styles.headerBg} />
       <SafeAreaView style={styles.safeArea}>
-        
+
         {/* Header Bar with Logout */}
         <View style={styles.headerBar}>
           <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
@@ -336,7 +336,7 @@ export default function ProfileScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
+
           {/* 1. Header Profile & Avatar Card */}
           <View style={[styles.whiteCard, styles.avatarCard, isDark && styles.darkCard]}>
             <View style={styles.avatarMainSection}>
@@ -364,7 +364,7 @@ export default function ProfileScreen() {
                       {displayName}
                     </Text>
                     <Text style={styles.userId}>USER ID: SJ-992834</Text>
-                    
+
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() => triggerFeatureMock('Nâng cấp tài khoản')}
@@ -399,7 +399,7 @@ export default function ProfileScreen() {
                       Chào bạn!
                     </Text>
                     <Text style={styles.userId}>Đăng nhập để lưu hồ sơ & ứng tuyển</Text>
-                    
+
                     <TouchableOpacity
                       activeOpacity={0.85}
                       onPress={() => router.push('/login')}
@@ -534,7 +534,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-              
+
               <View style={styles.companyInfoItem}>
                 <Text style={styles.companyInfoLabel}>TÊN CÔNG TY</Text>
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginTop: 2 }}>
@@ -562,15 +562,33 @@ export default function ProfileScreen() {
                   <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#4CAF50', marginTop: 2 }}>
                     {employerData?.servicePackage || 'Free'}
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => triggerFeatureMock('Nâng cấp gói')}
+                    onPress={() => router.push('/recruiter/pricing')}
                     style={styles.upgradePackageBtn}
                   >
                     <Text style={styles.upgradePackageBtnText}>Nâng cấp</Text>
                   </TouchableOpacity>
                 </View>
               </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push('/recruiter/dashboard')}
+                style={{
+                  backgroundColor: '#4CAF50',
+                  height: 44,
+                  borderRadius: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 16,
+                  flexDirection: 'row',
+                  gap: 6
+                }}
+              >
+                <Ionicons name="desktop-outline" size={16} color="#FFF" />
+                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 13 }}>Mở Dashboard Tuyển dụng</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -590,25 +608,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => handleFeaturePress('Đăng ký tuyển dụng', () => {
-                  Alert.alert(
-                    'Đăng ký Nhà tuyển dụng',
-                    'Bạn có chắc chắn muốn đăng ký nâng cấp tài khoản thành Nhà tuyển dụng trên hệ thống không?',
-                    [
-                      { text: 'Hủy', style: 'cancel' },
-                      {
-                        text: 'Đăng ký ngay',
-                        onPress: () => {
-                          registerEmployer({
-                            companyName: 'Công ty Công nghệ Bybit Việt Nam',
-                            taxId: '0109283746',
-                            phoneNumber: userData?.emailOrPhone || '098 7654 321',
-                            address: 'Tòa nhà Landmark 81, Quận Bình Thạnh, TP. HCM',
-                          });
-                          Alert.alert('Thành công', 'Đã kích hoạt tài khoản Nhà tuyển dụng thành công! Tab "Đăng tin" hiện đã hiển thị ở thanh điều hướng phía dưới.');
-                        }
-                      }
-                    ]
-                  );
+                  router.push('/recruiter/register');
                 })}
                 style={styles.upgradeButton}
               >
@@ -626,7 +626,7 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', marginHorizontal: 16 }]} />
-            
+
             {/* My CV nested tab buttons */}
             <View style={styles.nestedCvTabBar}>
               <TouchableOpacity
@@ -665,7 +665,7 @@ export default function ProfileScreen() {
                     <View style={[styles.documentCircle, { backgroundColor: '#FFEBEE' }]}>
                       <Ionicons name="document-text" size={32} color="#D32F2F" />
                     </View>
-                    
+
                     <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
                       {cvFile.fileName}
                     </Text>
@@ -695,7 +695,7 @@ export default function ProfileScreen() {
                         <Text style={styles.downloadText}>Thay đổi tệp</Text>
                       </TouchableOpacity>
                     </View>
-                    
+
                     <TouchableOpacity
                       activeOpacity={0.7}
                       onPress={() => {
@@ -718,7 +718,7 @@ export default function ProfileScreen() {
                     <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
                       <Ionicons name="cloud-upload" size={32} color="#0084FF" />
                     </View>
-                    
+
                     <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
                       Bạn chưa tải lên CV nào
                     </Text>
@@ -745,7 +745,7 @@ export default function ProfileScreen() {
                     <View style={[styles.documentCircle, { backgroundColor: '#E3F2FD' }]}>
                       <Ionicons name="reader" size={32} color="#0084FF" />
                     </View>
-                    
+
                     <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
                       {coverLetterFile.fileName}
                     </Text>
@@ -775,7 +775,7 @@ export default function ProfileScreen() {
                         <Text style={styles.downloadText}>Thay đổi tệp</Text>
                       </TouchableOpacity>
                     </View>
-                    
+
                     <TouchableOpacity
                       activeOpacity={0.7}
                       onPress={() => {
@@ -798,7 +798,7 @@ export default function ProfileScreen() {
                     <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
                       <Ionicons name="cloud-upload" size={32} color="#0084FF" />
                     </View>
-                    
+
                     <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
                       Bạn chưa có Cover Letter nào
                     </Text>
@@ -855,11 +855,11 @@ export default function ProfileScreen() {
             {renderSettingRow('ribbon-outline', 'Nâng cấp tài khoản VIP', () => handleFeaturePress('Nâng cấp tài khoản VIP', () => triggerFeatureMock('Nâng cấp VIP')))}
             {renderSettingRow('key-outline', 'Đổi mật khẩu', () => handleFeaturePress('Đổi mật khẩu', () => triggerFeatureMock('Đổi mật khẩu')))}
             {renderSettingRow('shield-checkmark-outline', 'Cài đặt bảo mật', () => handleFeaturePress('Cài đặt bảo mật', () => triggerFeatureMock('Cài đặt bảo mật')))}
-            
+
             {/* 2-Step Verification with dynamic badge */}
             {renderSettingRow(
-              'lock-closed-outline', 
-              'Xác minh 2 bước', 
+              'lock-closed-outline',
+              'Xác minh 2 bước',
               () => handleFeaturePress('Xác minh 2 bước', () => {
                 if (is2FAEnabled) {
                   setTwoFAStep('enabled_info');
@@ -935,7 +935,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.explorerContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-            
+
             <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Ionicons name="folder-open" size={22} color="#0084FF" style={{ marginRight: 8 }} />
@@ -979,8 +979,8 @@ export default function ProfileScreen() {
                       styles.fileItemRow,
                       {
                         borderColor: isSelected ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E5EA'),
-                        backgroundColor: isSelected 
-                          ? (isDark ? '#1C2A3A' : '#E6F4FE') 
+                        backgroundColor: isSelected
+                          ? (isDark ? '#1C2A3A' : '#E6F4FE')
                           : 'transparent'
                       }
                     ]}
@@ -990,9 +990,9 @@ export default function ProfileScreen() {
                         <Ionicons name="document-text" size={24} color="#D32F2F" />
                       </View>
                       <View style={{ marginLeft: 12, flex: 1 }}>
-                        <Text 
+                        <Text
                           style={[
-                            styles.fileNameText, 
+                            styles.fileNameText,
                             { color: isDark ? '#FFF' : '#11181C', fontWeight: isSelected ? 'bold' : '500' }
                           ]}
                           numberOfLines={1}
@@ -1004,7 +1004,7 @@ export default function ProfileScreen() {
                         </Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.checkboxCircle}>
                       <Ionicons
                         name={isSelected ? "checkmark-circle" : "ellipse-outline"}
@@ -1045,7 +1045,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.modalCenteredOverlay}>
           <View style={[styles.verificationContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-            
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={[styles.verificationTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
                 Xác thực tài khoản
@@ -1109,8 +1109,8 @@ export default function ProfileScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
           {/* Modal Header */}
           <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
-            <TouchableOpacity 
-              activeOpacity={0.7} 
+            <TouchableOpacity
+              activeOpacity={0.7}
               onPress={() => {
                 if (twoFAStep === 'otp' && !is2FAEnabled) {
                   setTwoFAStep('intro');
@@ -1129,7 +1129,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Modal Body */}
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
           >
@@ -1222,7 +1222,7 @@ export default function ProfileScreen() {
                     onPress={handleConfirm2FAOTP}
                     style={[
                       styles.twoFAButton,
-                      { 
+                      {
                         backgroundColor: twoFACode.trim().length === 6 ? '#0084FF' : (isDark ? '#2C2C2E' : '#B0BEC5'),
                         shadowColor: twoFACode.trim().length === 6 ? '#0084FF' : 'transparent',
                       }
@@ -1271,11 +1271,11 @@ export default function ProfileScreen() {
                     activeOpacity={0.8}
                     onPress={() => setIs2FAModalVisible(false)}
                     style={[
-                      styles.twoFAButton, 
-                      { 
-                        backgroundColor: 'transparent', 
-                        borderWidth: 1.5, 
-                        borderColor: isDark ? '#3C3C3E' : '#E5E5EA', 
+                      styles.twoFAButton,
+                      {
+                        backgroundColor: 'transparent',
+                        borderWidth: 1.5,
+                        borderColor: isDark ? '#3C3C3E' : '#E5E5EA',
                         shadowColor: 'transparent',
                         elevation: 0,
                       }
@@ -1389,7 +1389,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  
+
   // Header Avatar styles
   avatarCard: {
     paddingVertical: 20,
