@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bybitjobs-api:
+    build: .
+    container_name: bybitjobs-api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
