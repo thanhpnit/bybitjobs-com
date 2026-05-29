@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  bybitjobs-admin:
+    build: .
+    container_name: bybitjobs-web-admin
+    restart: always
+    ports:
+      - "80:80"
