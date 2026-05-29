@@ -12,6 +12,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --only=production
 COPY --from=build /app/dist ./dist
+# Copy serviceAccountKey.json nếu có (để Firebase hoạt động)
+COPY serviceAccountKey.json ./serviceAccountKey.json
 
 EXPOSE 4000
 CMD ["node", "dist/server.js"]
