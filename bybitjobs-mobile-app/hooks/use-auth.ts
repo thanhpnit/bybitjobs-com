@@ -1,4 +1,12 @@
 import React from 'react';
+import { auth } from '../src/config/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
 
 export type UserRole = 'candidate' | 'employer' | null;
 
@@ -16,154 +24,97 @@ export interface UserData {
   isVerified?: boolean;
 }
 
-export interface UserRecord {
-  emailOrPhone: string;
-  fullName: string;
-  password?: string;
-  role: UserRole;
-  employerData?: EmployerData | null;
-  isVerified: boolean;
-}
-
-// In-memory persistent mock database of users
-const registeredUsers: UserRecord[] = [
-  {
-    emailOrPhone: 'quan.nguyen@example.com',
-    fullName: 'Nguyễn Minh Quân',
-    password: '123',
-    role: 'candidate',
-    employerData: null,
-    isVerified: true // Default mock account is already verified
-  }
-];
-
-// In-memory reactive global states for the prototype ecosystem
-let globalIsLoggedIn = false;
-let globalUserRole: UserRole = null;
-let globalUserData: UserData | null = null;
+// Giữ lại trạng thái mock cho Employer Data vì Firebase Auth không lưu phần này
+// Trong thực tế, dữ liệu này sẽ được lưu ở Firestore hoặc Node.js MongoDB Backend
 let globalEmployerData: EmployerData | null = null;
-
+let globalUserRole: UserRole = null;
 const listeners = new Set<() => void>();
-
-const notifyAll = () => {
-  listeners.forEach((l) => l());
-};
+const notifyAll = () => listeners.forEach((l) => l());
 
 export function useAuth() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(globalIsLoggedIn);
+  const [firebaseUser, setFirebaseUser] = React.useState<FirebaseUser | null>(auth.currentUser);
+  const [isInitializing, setIsInitializing] = React.useState(true);
+  
   const [userRole, setUserRole] = React.useState<UserRole>(globalUserRole);
-  const [userData, setUserData] = React.useState<UserData | null>(globalUserData);
   const [employerData, setEmployerData] = React.useState<EmployerData | null>(globalEmployerData);
 
   React.useEffect(() => {
-    const handleChange = () => {
-      setIsLoggedIn(globalIsLoggedIn);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        if (!globalUserRole) globalUserRole = 'candidate';
+      } else {
+        globalUserRole = null;
+        globalEmployerData = null;
+      }
       setUserRole(globalUserRole);
-      setUserData(globalUserData);
+      setEmployerData(globalEmployerData);
+      setIsInitializing(false);
+    });
+
+    const handleMockDataChange = () => {
+      setUserRole(globalUserRole);
       setEmployerData(globalEmployerData);
     };
-    listeners.add(handleChange);
+    listeners.add(handleMockDataChange);
+
     return () => {
-      listeners.delete(handleChange);
+      unsubscribe();
+      listeners.delete(handleMockDataChange);
     };
   }, []);
 
-  const login = (emailOrPhone: string, passwordInput: string): { success: boolean; message: string } => {
-    const user = registeredUsers.find(
-      (u) => u.emailOrPhone.trim().toLowerCase() === emailOrPhone.trim().toLowerCase()
-    );
-
-    if (!user) {
-      return { success: false, message: 'Tài khoản không tồn tại trên hệ thống. Vui lòng đăng ký mới.' };
-    }
-
-    if (user.password && user.password !== passwordInput) {
-      return { success: false, message: 'Mật khẩu đăng nhập không khớp.' };
-    }
-
-    globalIsLoggedIn = true;
-    globalUserRole = user.role;
-    globalUserData = {
-      emailOrPhone: user.emailOrPhone,
-      fullName: user.fullName,
-      isVerified: user.isVerified
-    };
-    globalEmployerData = user.employerData || null;
-    notifyAll();
-    return { success: true, message: 'Đăng nhập thành công!' };
-  };
-
-  const signup = (emailOrPhone: string, fullName: string, passwordInput: string): { success: boolean; message: string } => {
-    const exists = registeredUsers.some(
-      (u) => u.emailOrPhone.trim().toLowerCase() === emailOrPhone.trim().toLowerCase()
-    );
-    if (exists) {
-      return { success: false, message: 'Tài khoản Email hoặc SĐT này đã được đăng ký.' };
-    }
-
-    registeredUsers.push({
-      emailOrPhone,
-      fullName,
-      password: passwordInput,
-      role: 'candidate',
-      employerData: null,
-      isVerified: false // Newly registered users are NOT verified yet
-    });
-    
-    return { success: true, message: 'Đăng ký tài khoản thành công!' };
-  };
-
-  const verifyAccount = () => {
-    if (globalUserData) {
-      globalUserData.isVerified = true;
-      const user = registeredUsers.find(
-        (u) => u.emailOrPhone.trim().toLowerCase() === globalUserData!.emailOrPhone.trim().toLowerCase()
-      );
-      if (user) {
-        user.isVerified = true;
+  const login = async (emailOrPhone: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      await signInWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      return { success: true, message: 'Đăng nhập thành công!' };
+    } catch (error: any) {
+      let msg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        msg = 'Sai thông tin email hoặc mật khẩu.';
+      } else if (error.code === 'auth/invalid-email') {
+        msg = 'Định dạng email không hợp lệ.';
       }
-      notifyAll();
+      return { success: false, message: msg };
     }
   };
+
+  const signup = async (emailOrPhone: string, fullName: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      return { success: true, message: 'Đăng ký tài khoản thành công!' };
+    } catch (error: any) {
+      let msg = 'Đăng ký thất bại. Vui lòng thử lại.';
+      if (error.code === 'auth/email-already-in-use') {
+        msg = 'Email này đã được đăng ký trên hệ thống.';
+      } else if (error.code === 'auth/weak-password') {
+        msg = 'Mật khẩu quá yếu, vui lòng nhập ít nhất 6 ký tự.';
+      } else if (error.code === 'auth/invalid-email') {
+        msg = 'Định dạng email không hợp lệ.';
+      }
+      return { success: false, message: msg };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth);
+    } catch (error) {
+      console.error("Lỗi đăng xuất", error);
+    }
+  };
+
+  const verifyAccount = () => {};
 
   const registerEmployer = (data: Omit<EmployerData, 'servicePackage'>) => {
-    globalIsLoggedIn = true;
-    globalUserRole = 'employer'; // Elevated to employer
-    globalEmployerData = {
-      ...data,
-      servicePackage: 'Free', // Defaults to Free package
-    };
-
-    // Update the record in the in-memory database
-    if (globalUserData) {
-      const user = registeredUsers.find(
-        (u) => u.emailOrPhone.trim().toLowerCase() === globalUserData!.emailOrPhone.trim().toLowerCase()
-      );
-      if (user) {
-        user.role = 'employer';
-        user.employerData = globalEmployerData;
-      }
-    }
-    
+    globalUserRole = 'employer';
+    globalEmployerData = { ...data, servicePackage: 'Free' };
     notifyAll();
   };
 
   const updateCompany = (data: Partial<EmployerData>) => {
     if (globalEmployerData) {
-      globalEmployerData = {
-        ...globalEmployerData,
-        ...data,
-      };
-      
-      // Update in database too
-      if (globalUserData) {
-        const user = registeredUsers.find(
-          (u) => u.emailOrPhone.trim().toLowerCase() === globalUserData!.emailOrPhone.trim().toLowerCase()
-        );
-        if (user) {
-          user.employerData = globalEmployerData;
-        }
-      }
+      globalEmployerData = { ...globalEmployerData, ...data };
       notifyAll();
     }
   };
@@ -171,32 +122,15 @@ export function useAuth() {
   const upgradePackage = (packageName: 'Free' | 'Gold' | 'Diamond') => {
     if (globalEmployerData) {
       globalEmployerData.servicePackage = packageName;
-      
-      // Update in database too
-      if (globalUserData) {
-        const user = registeredUsers.find(
-          (u) => u.emailOrPhone.trim().toLowerCase() === globalUserData!.emailOrPhone.trim().toLowerCase()
-        );
-        if (user) {
-          user.employerData = globalEmployerData;
-        }
-      }
       notifyAll();
     }
   };
 
-  const logout = () => {
-    globalIsLoggedIn = false;
-    globalUserRole = null;
-    globalUserData = null;
-    globalEmployerData = null; 
-    notifyAll();
-  };
-
   return {
-    isLoggedIn,
+    isLoggedIn: !!firebaseUser,
+    isInitializing,
     userRole,
-    userData,
+    userData: firebaseUser ? { emailOrPhone: firebaseUser.email || '', isVerified: true } : null,
     employerData,
     login,
     signup,

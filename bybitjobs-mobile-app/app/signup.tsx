@@ -33,7 +33,7 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  const handleSignupSubmit = () => {
+  const handleSignupSubmit = async () => {
     if (!fullName.trim()) {
       Alert.alert('Thông báo', 'Vui lòng nhập Họ và tên.');
       return;
@@ -51,8 +51,7 @@ export default function SignupScreen() {
       return;
     }
 
-    // Call mock auth hook registration with password
-    const result = signup(email, fullName, password);
+    const result = await signup(email, fullName, password);
 
     if (!result.success) {
       Alert.alert('Lỗi đăng ký', result.message);

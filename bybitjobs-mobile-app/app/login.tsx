@@ -44,9 +44,9 @@ export default function LoginScreen() {
     }
   }, [prefilledEmail, prefilledPassword]);
 
-  const handleLoginSubmit = () => {
+  const handleLoginSubmit = async () => {
     if (!emailOrPhone.trim()) {
-      Alert.alert('Thông báo', 'Vui lòng nhập Email hoặc Số điện thoại.');
+      Alert.alert('Thông báo', 'Vui lòng nhập Email.');
       return;
     }
     if (!password.trim()) {
@@ -54,8 +54,7 @@ export default function LoginScreen() {
       return;
     }
 
-    // Call mock auth hook login with both credentials
-    const result = login(emailOrPhone, password);
+    const result = await login(emailOrPhone, password);
 
     if (!result.success) {
       Alert.alert('Lỗi đăng nhập', result.message);
