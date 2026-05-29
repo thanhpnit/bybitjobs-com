@@ -22,7 +22,7 @@ export const Users: React.FC = () => {
   const itemsPerPage = 10;
 
   const fetchUsers = () => {
-    fetch('http://localhost:4000/api/users')
+    fetch(`http://${window.location.hostname}:4000/api/users`)
       .then(res => res.json())
       .then(data => {
         // Đôi khi API trả về { users: [...] } hoặc [...]
