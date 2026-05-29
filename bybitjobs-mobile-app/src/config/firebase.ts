@@ -12,15 +12,18 @@ const firebaseConfig = {
   measurementId: "G-9K2536WERT"
 };
 
-// Khởi tạo app (kiểm tra xem app đã tồn tại chưa để tránh lỗi initialize nhiều lần)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Khởi tạo app và auth (kiểm tra để tránh lỗi initialize nhiều lần)
+let app;
+let auth;
 
-// Khởi tạo Auth với cơ chế lưu trữ bền vững (giúp user không bị đăng xuất khi tắt app)
-let auth = getAuth(app);
-if (getApps().length === 0) {
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage)
   });
+} else {
+  app = getApp();
+  auth = getAuth(app);
 }
 
 export { app, auth };
