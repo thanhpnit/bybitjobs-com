@@ -21,6 +21,17 @@ export const Users: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  React.useEffect(() => {
+    fetch('http://localhost:4000/api/users')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setUsers(data);
+        }
+      })
+      .catch(err => console.error('Lỗi tải danh sách người dùng:', err));
+  }, [setUsers]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmProps, setConfirmProps] = useState({ visible: false, title: '', message: '', onConfirm: () => {} });
