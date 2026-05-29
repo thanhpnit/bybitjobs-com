@@ -364,15 +364,6 @@ export default function ProfileScreen() {
                       {displayName}
                     </Text>
                     <Text style={styles.userId}>USER ID: SJ-992834</Text>
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() => triggerFeatureMock('Nâng cấp tài khoản')}
-                      style={styles.upgradeHeaderBtn}
-                    >
-                      <Ionicons name="star" size={13} color="#FFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.upgradeHeaderBtnText}>Nâng cấp tài khoản</Text>
-                    </TouchableOpacity>
                   </View>
                 </>
               ) : (
@@ -413,37 +404,6 @@ export default function ProfileScreen() {
               )}
             </View>
           </View>
-
-          {/* 2. Job Seeking Switches (Trạng thái tìm việc & Cho phép NTD tìm kiếm hồ sơ) - Chỉ hiển thị khi đã đăng nhập */}
-          {isLoggedIn && (
-            <View style={[styles.whiteCard, isDark && styles.darkCard]}>
-              <View style={styles.switchRowItem}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.switchTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    Trạng thái tìm việc
-                  </Text>
-                  <Text style={styles.switchDescText}>
-                    {isJobSeeking ? 'Đang bật tìm kiếm cơ hội việc làm mới' : 'Đang tắt tìm việc'}
-                  </Text>
-                </View>
-                {renderSwitch(isJobSeeking, () => handleFeaturePress('Trạng thái tìm việc', () => setIsJobSeeking(!isJobSeeking)))}
-              </View>
-
-              <View style={[styles.dividerLight, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-              <View style={styles.switchRowItem}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.switchTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    Cho phép NTD tìm kiếm hồ sơ
-                  </Text>
-                  <Text style={styles.switchDescText}>
-                    Cho phép nhà tuyển dụng chủ động xem CV và gửi lời mời phỏng vấn
-                  </Text>
-                </View>
-                {renderSwitch(allowEmployerSearch, () => handleFeaturePress('Cho phép NTD tìm kiếm hồ sơ', () => setAllowEmployerSearch(!allowEmployerSearch)))}
-              </View>
-            </View>
-          )}
 
           {/* 3. Personal Info Card (Thông tin cá nhân & Xác thực) - Chỉ hiển thị khi đã đăng nhập */}
           {isLoggedIn && (
@@ -835,11 +795,8 @@ export default function ProfileScreen() {
 
             {renderSettingRow('checkmark-circle-outline', 'Việc làm đã ứng tuyển', () => handleFeaturePress('Việc làm đã ứng tuyển', () => triggerFeatureMock('Việc làm đã ứng tuyển')))}
             {renderSettingRow('heart-outline', 'Việc làm đã lưu', () => handleFeaturePress('Việc làm đã lưu', () => triggerFeatureMock('Việc làm đã lưu')))}
-            {renderSettingRow('sparkles-outline', 'Việc làm phù hợp', () => handleFeaturePress('Việc làm phù hợp', () => triggerFeatureMock('Việc làm phù hợp')))}
-            {renderSettingRow('ribbon-outline', 'Công ty đang theo dõi', () => handleFeaturePress('Công ty đang theo dõi', () => triggerFeatureMock('Công ty đang theo dõi')))}
-            {renderSettingRow('eye-outline', 'NTD đã xem hồ sơ', () => handleFeaturePress('NTD đã xem hồ sơ', () => triggerFeatureMock('NTD đã xem hồ sơ')))}
-            {renderSettingRow('options-outline', 'Cài đặt gợi ý việc làm', () => handleFeaturePress('Cài đặt gợi ý việc làm', () => triggerFeatureMock('Cài đặt gợi ý việc làm')))}
-            {renderSettingRow('notifications-outline', 'Thông báo việc làm', () => handleFeaturePress('Thông báo việc làm', () => triggerFeatureMock('Thông báo việc làm')))}
+            {renderSettingRow('eye-outline', 'Việc làm đã xem', () => handleFeaturePress('Việc làm đã xem', () => triggerFeatureMock('Việc làm đã xem')))}
+            {renderSettingRow('mail-outline', 'Lời mời làm việc', () => handleFeaturePress('Lời mời làm việc', () => triggerFeatureMock('Lời mời làm việc')))}
           </View>
 
           {/* 6. Cài đặt tài khoản Section */}
@@ -852,9 +809,7 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-            {renderSettingRow('ribbon-outline', 'Nâng cấp tài khoản VIP', () => handleFeaturePress('Nâng cấp tài khoản VIP', () => triggerFeatureMock('Nâng cấp VIP')))}
             {renderSettingRow('key-outline', 'Đổi mật khẩu', () => handleFeaturePress('Đổi mật khẩu', () => triggerFeatureMock('Đổi mật khẩu')))}
-            {renderSettingRow('shield-checkmark-outline', 'Cài đặt bảo mật', () => handleFeaturePress('Cài đặt bảo mật', () => triggerFeatureMock('Cài đặt bảo mật')))}
 
             {/* 2-Step Verification with dynamic badge */}
             {renderSettingRow(
@@ -880,7 +835,6 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            {renderSettingRow('mail-unread-outline', 'Cài đặt thông báo email', () => handleFeaturePress('Cài đặt thông báo email', () => triggerFeatureMock('Cài đặt thông báo email')))}
             {renderSettingRow('trash-outline', 'Vô hiệu hóa tài khoản', () => handleFeaturePress('Vô hiệu hóa tài khoản', () => triggerFeatureMock('Vô hiệu hóa tài khoản')))}
           </View>
 

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -51,6 +52,90 @@ export default function HomeScreen() {
     }
   };
 
+  const provinces = [
+    'Tất cả địa điểm',
+    'TP. Hồ Chí Minh',
+    'Hà Nội',
+    'Đà Nẵng',
+    'Hải Phòng',
+    'Cần Thơ',
+    'An Giang',
+    'Bà Rịa - Vũng Tàu',
+    'Bạc Liêu',
+    'Bắc Giang',
+    'Bắc Kạn',
+    'Bắc Ninh',
+    'Bến Tre',
+    'Bình Dương',
+    'Bình Định',
+    'Bình Phước',
+    'Bình Thuận',
+    'Cà Mau',
+    'Cao Bằng',
+    'Đắk Lắk',
+    'Đắk Nông',
+    'Điện Biên',
+    'Đồng Nai',
+    'Đồng Tháp',
+    'Gia Lai',
+    'Hà Giang',
+    'Hà Nam',
+    'Hà Tĩnh',
+    'Hải Dương',
+    'Hậu Giang',
+    'Hòa Bình',
+    'Hưng Yên',
+    'Khánh Hòa',
+    'Kiên Giang',
+    'Kon Tum',
+    'Lai Châu',
+    'Lạng Sơn',
+    'Lào Cai',
+    'Lâm Đồng',
+    'Long An',
+    'Nam Định',
+    'Nghệ An',
+    'Ninh Bình',
+    'Ninh Thuận',
+    'Phú Thọ',
+    'Phú Yên',
+    'Quảng Bình',
+    'Quảng Nam',
+    'Quảng Ngãi',
+    'Quảng Ninh',
+    'Quảng Trị',
+    'Sóc Trăng',
+    'Sơn La',
+    'Tây Ninh',
+    'Thái Bình',
+    'Thái Nguyên',
+    'Thanh Hóa',
+    'Thừa Thiên Huế',
+    'Tiền Giang',
+    'Trà Vinh',
+    'Tuyên Quang',
+    'Vĩnh Long',
+    'Vĩnh Phúc',
+    'Yên Bái'
+  ];
+
+  const industries = [
+    'Tất cả lĩnh vực',
+    'Nhà hàng / F&B',
+    'UI/UX / Thiết kế',
+    'Giao hàng / Vận chuyển',
+    'Bán hàng / Tư vấn',
+    'Gia sư / Giáo dục',
+    'Hành chính / Văn phòng',
+    'Kỹ thuật / Cơ khí',
+    'Dịch vụ làm đẹp'
+  ];
+
+  const [selectedLocation, setSelectedLocation] = React.useState('Chọn địa điểm');
+  const [isLocationModalVisible, setIsLocationModalVisible] = React.useState(false);
+  const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
+  const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+
   const jobListings: JobItem[] = [
     {
       id: 'job-1',
@@ -62,7 +147,7 @@ export default function HomeScreen() {
         rating: 4.5,
         avatar: 'TT',
       },
-      location: 'Phú Nhuận',
+      location: 'Phú Nhuận, TP. Hồ Chí Minh',
       timeLeft: 'Còn 3 ngày, 3 giờ',
       tags: [
         { label: 'Nhà hàng', type: 'category', icon: 'restaurant-outline' },
@@ -80,7 +165,7 @@ export default function HomeScreen() {
         rating: 4.5,
         avatar: 'D',
       },
-      location: 'Gò Vấp',
+      location: 'Gò Vấp, TP. Hồ Chí Minh',
       timeLeft: 'Còn 1 ngày, 5 giờ',
       tags: [
         { label: 'UI/UX', type: 'skills', icon: 'globe-outline' },
@@ -88,7 +173,55 @@ export default function HomeScreen() {
       ],
       price: '1.000.000đ',
     },
+    {
+      id: 'job-3',
+      title: 'Cần người ship hàng gấp khu vực Hoàn Kiếm, Hà Nội',
+      image: null,
+      author: {
+        name: 'Hoàng Long',
+        verified: false,
+        rating: 4.8,
+        avatar: 'HL',
+      },
+      location: 'Hoàn Kiếm, Hà Nội',
+      timeLeft: 'Còn 5 giờ',
+      tags: [
+        { label: 'Giao hàng', type: 'category', icon: 'bicycle-outline' },
+        { label: '200', type: 'points', icon: 'logo-usd' },
+      ],
+      price: '150.000đ',
+    },
   ];
+
+  const filteredJobs = jobListings.filter(job => {
+    // Filter by Location
+    let matchLocation = true;
+    if (selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm') {
+      if (selectedLocation === 'TP. Hồ Chí Minh') {
+        matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh');
+      } else if (selectedLocation === 'Hà Nội') {
+        matchLocation = job.location.includes('Hà Nội') || job.location.includes('Hoàn Kiếm');
+      } else {
+        matchLocation = job.location.includes(selectedLocation);
+      }
+    }
+
+    // Filter by Industry
+    let matchIndustry = true;
+    if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
+      if (selectedIndustry === 'Nhà hàng / F&B') {
+        matchIndustry = job.tags.some(tag => tag.label === 'Nhà hàng');
+      } else if (selectedIndustry === 'UI/UX / Thiết kế') {
+        matchIndustry = job.tags.some(tag => tag.label === 'UI/UX');
+      } else if (selectedIndustry === 'Giao hàng / Vận chuyển') {
+        matchIndustry = job.tags.some(tag => tag.label === 'Giao hàng');
+      } else {
+        matchIndustry = false; // Mock other categories empty
+      }
+    }
+
+    return matchLocation && matchIndustry;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
@@ -118,61 +251,26 @@ export default function HomeScreen() {
 
           {/* Selectors / Dropdowns Row */}
           <View style={styles.selectorsRow}>
-            <TouchableOpacity activeOpacity={0.8} style={styles.selectorDropdown}>
-              <Text style={styles.selectorText}>Chọn lĩnh vực</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsIndustryModalVisible(true)}
+              style={styles.selectorDropdown}
+            >
+              <Text style={styles.selectorText} numberOfLines={1}>
+                {selectedIndustry}
+              </Text>
               <Ionicons name="chevron-down" size={14} color="#FFF" />
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.8} style={styles.selectorDropdown}>
-              <Text style={styles.selectorText}>Chọn địa điểm</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsLocationModalVisible(true)}
+              style={styles.selectorDropdown}
+            >
+              <Text style={styles.selectorText} numberOfLines={1}>
+                {selectedLocation}
+              </Text>
               <Ionicons name="chevron-down" size={14} color="#FFF" />
             </TouchableOpacity>
-          </View>
-
-          {/* Floating Actions Overlap Card */}
-          <View style={[styles.overlapCard, isDark && styles.overlapCardDark]}>
-            <View style={styles.actionGrid}>
-              {/* Lụm lúa */}
-              <TouchableOpacity activeOpacity={0.7} style={styles.actionItem}>
-                <View style={styles.badgeWrapper}>
-                  <View style={[styles.circleIcon, { backgroundColor: '#E6F4FE' }]}>
-                    <Text style={styles.dollarSymbol}>$</Text>
-                  </View>
-                  <View style={styles.hotBadge}>
-                    <Text style={styles.hotBadgeText}>Hot</Text>
-                  </View>
-                </View>
-                <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : '#333' }]}>Lụm lúa</Text>
-              </TouchableOpacity>
-
-              {/* BXH */}
-              <TouchableOpacity activeOpacity={0.7} style={styles.actionItem}>
-                <View style={styles.badgeWrapper}>
-                  <View style={[styles.circleIcon, { backgroundColor: '#FFEFE6' }]}>
-                    <Ionicons name="ribbon-sharp" size={20} color="#FF8A00" />
-                  </View>
-                  <View style={styles.hotBadge}>
-                    <Text style={styles.hotBadgeText}>Hot</Text>
-                  </View>
-                </View>
-                <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : '#333' }]}>BXH</Text>
-              </TouchableOpacity>
-
-              {/* eKYC */}
-              <TouchableOpacity activeOpacity={0.7} style={styles.actionItem}>
-                <View style={[styles.circleIcon, { backgroundColor: '#E0F7F4' }]}>
-                  <Ionicons name="card-outline" size={20} color="#00BFA5" />
-                </View>
-                <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : '#333' }]}>eKYC</Text>
-              </TouchableOpacity>
-
-              {/* Ví */}
-              <TouchableOpacity activeOpacity={0.7} style={styles.actionItem}>
-                <View style={[styles.circleIcon, { backgroundColor: '#F0F0F0' }]}>
-                  <Ionicons name="wallet-outline" size={20} color="#757575" />
-                </View>
-                <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : '#333' }]}>Ví</Text>
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Promotion Campaign Banner */}
@@ -227,142 +325,279 @@ export default function HomeScreen() {
 
           {/* Job Feed List */}
           <View style={styles.feedContainer}>
-            {jobListings.map((job) => {
-              const isBookmarked = bookmarkedJobs.includes(job.id);
-              return (
+            {filteredJobs.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color={isDark ? '#555' : '#CCC'} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                  Chưa có công việc phù hợp tại địa điểm/lĩnh vực này
+                </Text>
                 <TouchableOpacity
-                  key={job.id}
-                  activeOpacity={0.9}
-                  onPress={() => router.push({ pathname: '/job-details', params: { title: job.title } })}
-                  style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setSelectedLocation('Tất cả địa điểm');
+                    setSelectedIndustry('Tất cả lĩnh vực');
+                  }}
+                  style={styles.resetFilterBtn}
                 >
-                  <View style={styles.jobCardTop}>
-                    {/* Job Image/Avatar */}
-                    {job.image ? (
-                      <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
-                        {/* Custom Vector Coder Girl Mock */}
-                        <Ionicons name="desktop-outline" size={24} color="#FF9800" />
-                      </View>
-                    )}
-
-                    {/* Job Main Details */}
-                    <View style={styles.jobDetails}>
-                      <View style={styles.titleRow}>
-                        <Text
-                          style={[styles.jobTitle, { color: isDark ? '#FFF' : '#11181C' }]}
-                          numberOfLines={2}
-                        >
-                          {job.title}
-                        </Text>
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => toggleBookmark(job.id)}
-                          style={styles.bookmarkButton}
-                        >
-                          <Ionicons
-                            name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
-                            size={20}
-                            color={isBookmarked ? '#0084FF' : '#8E8E93'}
-                          />
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Author Info */}
-                      <View style={styles.authorRow}>
-                        <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
-                          <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
-                            {job.author.avatar}
-                          </Text>
+                  <Text style={styles.resetFilterBtnText}>Xem tất cả công việc</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              filteredJobs.map((job) => {
+                const isBookmarked = bookmarkedJobs.includes(job.id);
+                return (
+                  <TouchableOpacity
+                    key={job.id}
+                    activeOpacity={0.9}
+                    onPress={() => router.push({ pathname: '/job-details', params: { title: job.title } })}
+                    style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
+                  >
+                    <View style={styles.jobCardTop}>
+                      {/* Job Image/Avatar */}
+                      {job.image ? (
+                        <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
+                      ) : (
+                        <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
+                          {/* Custom Vector Coder Girl Mock */}
+                          <Ionicons name="desktop-outline" size={24} color="#FF9800" />
                         </View>
-                        <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                          {job.author.name}
-                        </Text>
-                        {job.author.verified && (
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={14}
-                            color="#0084FF"
-                            style={styles.checkIcon}
-                          />
-                        )}
-                        <View style={styles.ratingBadge}>
-                          <Ionicons name="star" size={12} color="#FFB300" style={styles.starIcon} />
-                          <Text style={[styles.ratingText, { color: isDark ? '#ECEDEE' : '#666' }]}>
-                            {job.author.rating}
+                      )}
+
+                      {/* Job Main Details */}
+                      <View style={styles.jobDetails}>
+                        <View style={styles.titleRow}>
+                          <Text
+                            style={[styles.jobTitle, { color: isDark ? '#FFF' : '#11181C' }]}
+                            numberOfLines={2}
+                          >
+                            {job.title}
                           </Text>
-                        </View>
-                      </View>
-
-                      {/* Location Row */}
-                      <View style={styles.infoRow}>
-                        <Ionicons name="location-sharp" size={14} color="#FF3D00" />
-                        <Text style={[styles.infoText, { color: isDark ? '#A9A9A9' : '#687076' }]}>
-                          {job.location}
-                        </Text>
-                      </View>
-
-                      {/* Remaining Time Row */}
-                      <View style={styles.infoRow}>
-                        <Ionicons name="time-outline" size={14} color="#8E8E93" />
-                        <Text style={[styles.infoText, { color: isDark ? '#A9A9A9' : '#687076' }]}>
-                          {job.timeLeft}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Job Card Bottom (Tags & Price) */}
-                  <View style={styles.jobCardBottom}>
-                    <View style={styles.tagsContainer}>
-                      {job.tags.map((tag, idx) => {
-                        const isPoints = tag.type === 'points';
-                        return (
-                          <View
-                            key={idx}
-                            style={[
-                              styles.tagBubble,
-                              {
-                                backgroundColor: isPoints
-                                  ? (isDark ? '#3D2418' : '#FFEFE6')
-                                  : (isDark ? '#1C2A3A' : '#E6F4FE'),
-                              },
-                            ]}
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => toggleBookmark(job.id)}
+                            style={styles.bookmarkButton}
                           >
                             <Ionicons
-                              name={tag.icon}
-                              size={12}
-                              color={isPoints ? '#FF8A00' : '#0084FF'}
-                              style={styles.tagIcon}
+                              name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+                              size={20}
+                              color={isBookmarked ? '#0084FF' : '#8E8E93'}
                             />
-                            <Text
-                              style={[
-                                styles.tagText,
-                                { color: isPoints ? '#FF8A00' : '#0084FF' },
-                              ]}
-                            >
-                              {tag.label}
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Author Info */}
+                        <View style={styles.authorRow}>
+                          <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
+                            <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
+                              {job.author.avatar}
                             </Text>
                           </View>
-                        );
-                      })}
+                          <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                            {job.author.name}
+                          </Text>
+                          {job.author.verified && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={14}
+                              color="#0084FF"
+                              style={styles.checkIcon}
+                            />
+                          )}
+                          <View style={styles.ratingBadge}>
+                            <Ionicons name="star" size={12} color="#FFB300" style={styles.starIcon} />
+                            <Text style={[styles.ratingText, { color: isDark ? '#ECEDEE' : '#666' }]}>
+                              {job.author.rating}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Location Row */}
+                        <View style={styles.infoRow}>
+                          <Ionicons name="location-sharp" size={14} color="#FF3D00" />
+                          <Text style={[styles.infoText, { color: isDark ? '#A9A9A9' : '#687076' }]}>
+                            {job.location}
+                          </Text>
+                        </View>
+
+                        {/* Remaining Time Row */}
+                        <View style={styles.infoRow}>
+                          <Ionicons name="time-outline" size={14} color="#8E8E93" />
+                          <Text style={[styles.infoText, { color: isDark ? '#A9A9A9' : '#687076' }]}>
+                            {job.timeLeft}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
 
-                    {/* Highly Tilted Price Bubble */}
-                    <View style={[styles.priceBubble, isDark && styles.priceBubbleDark]}>
-                      <Text style={styles.priceText}>{job.price}</Text>
+                    {/* Job Card Bottom (Tags & Price) */}
+                    <View style={styles.jobCardBottom}>
+                      <View style={styles.tagsContainer}>
+                        {job.tags.map((tag, idx) => {
+                          const isPoints = tag.type === 'points';
+                          return (
+                            <View
+                              key={idx}
+                              style={[
+                                styles.tagBubble,
+                                {
+                                  backgroundColor: isPoints
+                                    ? (isDark ? '#3D2418' : '#FFEFE6')
+                                    : (isDark ? '#1C2A3A' : '#E6F4FE'),
+                                },
+                              ]}
+                            >
+                              <Ionicons
+                                name={tag.icon}
+                                size={12}
+                                color={isPoints ? '#FF8A00' : '#0084FF'}
+                                style={styles.tagIcon}
+                              />
+                              <Text
+                                style={[
+                                  styles.tagText,
+                                  { color: isPoints ? '#FF8A00' : '#0084FF' },
+                                ]}
+                              >
+                                {tag.label}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+
+                      {/* Highly Tilted Price Bubble */}
+                      <View style={[styles.priceBubble, isDark && styles.priceBubbleDark]}>
+                        <Text style={styles.priceText}>{job.price}</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
 
           {/* Safe padding bottom for scrolling */}
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Location Selection Modal */}
+      <Modal
+        visible={isLocationModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsLocationModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsLocationModalVisible(false)}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalSheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Chọn tỉnh / thành phố
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsLocationModalVisible(false)}
+                style={styles.closeModalBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {provinces.map((prov) => {
+                const isSelected = selectedLocation === prov || (prov === 'Tất cả địa điểm' && selectedLocation === 'Chọn địa điểm');
+                return (
+                  <TouchableOpacity
+                    key={prov}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedLocation(prov);
+                      setIsLocationModalVisible(false);
+                    }}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' },
+                      isSelected && { backgroundColor: isDark ? '#26354A' : '#E6F4FE' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      { color: isDark ? '#FFF' : '#333' },
+                      isSelected && { color: '#0084FF', fontWeight: 'bold' }
+                    ]}>
+                      {prov}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color="#0084FF" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Industry Selection Modal */}
+      <Modal
+        visible={isIndustryModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsIndustryModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsIndustryModalVisible(false)}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalSheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Chọn lĩnh vực công việc
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsIndustryModalVisible(false)}
+                style={styles.closeModalBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {industries.map((ind) => {
+                const isSelected = selectedIndustry === ind || (ind === 'Tất cả lĩnh vực' && selectedIndustry === 'Chọn lĩnh vực');
+                return (
+                  <TouchableOpacity
+                    key={ind}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedIndustry(ind);
+                      setIsIndustryModalVisible(false);
+                    }}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' },
+                      isSelected && { backgroundColor: isDark ? '#26354A' : '#E6F4FE' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      { color: isDark ? '#FFF' : '#333' },
+                      isSelected && { color: '#0084FF', fontWeight: 'bold' }
+                    ]}>
+                      {ind}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color="#0084FF" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -734,5 +969,79 @@ const styles = StyleSheet.create({
   },
   scrollPaddingBottom: {
     height: 40,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '75%',
+    width: '100%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeModalBtn: {
+    padding: 4,
+  },
+  modalList: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderRadius: 10,
+    marginVertical: 1,
+  },
+  modalItemText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  resetFilterBtn: {
+    backgroundColor: '#0084FF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  resetFilterBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });
