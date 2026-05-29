@@ -70,11 +70,13 @@ export function useAuth() {
       await signInWithEmailAndPassword(auth, emailOrPhone, passwordInput);
       return { success: true, message: 'Đăng nhập thành công!' };
     } catch (error: any) {
-      let msg = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      let msg = `Đăng nhập thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         msg = 'Sai thông tin email hoặc mật khẩu.';
       } else if (error.code === 'auth/invalid-email') {
         msg = 'Định dạng email không hợp lệ.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        msg = 'Chưa bật tính năng Đăng nhập Email/Password trên Firebase!';
       }
       return { success: false, message: msg };
     }
@@ -86,13 +88,15 @@ export function useAuth() {
       await updateProfile(userCredential.user, { displayName: fullName });
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
     } catch (error: any) {
-      let msg = 'Đăng ký thất bại. Vui lòng thử lại.';
+      let msg = `Đăng ký thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
       if (error.code === 'auth/email-already-in-use') {
         msg = 'Email này đã được đăng ký trên hệ thống.';
       } else if (error.code === 'auth/weak-password') {
         msg = 'Mật khẩu quá yếu, vui lòng nhập ít nhất 6 ký tự.';
       } else if (error.code === 'auth/invalid-email') {
         msg = 'Định dạng email không hợp lệ.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        msg = 'Chưa bật tính năng Đăng nhập Email/Password trên Firebase!';
       }
       return { success: false, message: msg };
     }
