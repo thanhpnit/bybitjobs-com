@@ -3,6 +3,7 @@ import { auth } from '../src/config/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
+  updateProfile,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User as FirebaseUser
@@ -81,7 +82,8 @@ export function useAuth() {
 
   const signup = async (emailOrPhone: string, fullName: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
-      await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      const userCredential = await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      await updateProfile(userCredential.user, { displayName: fullName });
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
     } catch (error: any) {
       let msg = 'Đăng ký thất bại. Vui lòng thử lại.';
@@ -130,7 +132,11 @@ export function useAuth() {
     isLoggedIn: !!firebaseUser,
     isInitializing,
     userRole,
-    userData: firebaseUser ? { emailOrPhone: firebaseUser.email || '', isVerified: true } : null,
+    userData: firebaseUser ? { 
+      emailOrPhone: firebaseUser.email || '', 
+      fullName: firebaseUser.displayName || 'Người dùng',
+      isVerified: true 
+    } : null,
     employerData,
     login,
     signup,

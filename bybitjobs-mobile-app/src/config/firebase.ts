@@ -1,5 +1,6 @@
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { FirebaseApp, initializeApp, getApp, getApps } from 'firebase/app';
+// @ts-ignore
+import { Auth, initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -13,12 +14,13 @@ const firebaseConfig = {
 };
 
 // Khởi tạo app và auth (kiểm tra để tránh lỗi initialize nhiều lần)
-let app;
-let auth;
+let app: FirebaseApp;
+let auth: Auth;
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
   auth = initializeAuth(app, {
+    // @ts-ignore
     persistence: getReactNativePersistence(AsyncStorage)
   });
 } else {
