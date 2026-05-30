@@ -79,13 +79,13 @@ export const Users: React.FC = () => {
           });
           const result = await response.json();
           if (response.ok) {
-            setUsers(users.filter(i => i.id !== id));
+            setUsers(users.filter(i => (i.uid || i.id) !== id));
           } else {
             alert(`Lỗi: ${result.error || 'Không thể xóa người dùng'}`);
           }
         } catch (error) {
           console.error('Lỗi khi gọi API xóa người dùng:', error);
-          setUsers(users.filter(i => i.id !== id));
+          setUsers(users.filter(i => (i.uid || i.id) !== id));
         }
         setConfirmProps(prev => ({ ...prev, visible: false }));
       }
@@ -120,7 +120,7 @@ export const Users: React.FC = () => {
           }
         } catch (error) {
           console.error('Lỗi khi gọi API cập nhật trạng thái người dùng:', error);
-          setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
+          setUsers(users.map(i => (i.uid || i.id) === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
         }
         setConfirmProps(prev => ({ ...prev, visible: false }));
       }
