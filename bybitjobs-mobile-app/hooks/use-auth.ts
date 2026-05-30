@@ -79,23 +79,40 @@ export function useAuth() {
   }, []);
 
   React.useEffect(() => {
+    let intervalId: any = null;
+
     const checkStatus = async () => {
       if (firebaseUser) {
         try {
           await firebaseUser.reload();
         } catch (err: any) {
           console.error("Lỗi kiểm tra trạng thái tài khoản:", err);
-          if (err.code === 'auth/user-disabled') {
+          if (err.code === 'auth/user-disabled' || err.code === 'auth/user-not-found') {
+            if (intervalId) clearInterval(intervalId);
+            const title = err.code === 'auth/user-disabled' ? 'Tài khoản bị khóa' : 'Tài khoản không tồn tại';
+            const msg = err.code === 'auth/user-disabled' 
+              ? 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.'
+              : 'Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
             Alert.alert(
-              'Tài khoản bị khóa',
-              'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.',
+              title,
+              msg,
               [{ text: 'Đồng ý', onPress: () => firebaseSignOut(auth) }]
             );
           }
         }
       }
     };
-    checkStatus();
+
+    if (firebaseUser) {
+      checkStatus();
+      intervalId = setInterval(checkStatus, 5000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [firebaseUser]);
 
   const login = async (emailOrPhone: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
@@ -104,7 +121,11 @@ export function useAuth() {
       return { success: true, message: 'Đăng nhập thành công!' };
     } catch (error: any) {
       let msg = `Đăng nhập thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-disabled') {
+        msg = 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
+      } else if (error.code === 'auth/user-not-found') {
+        msg = 'Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
+      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
         msg = 'Sai thông tin email hoặc mật khẩu.';
       } else if (error.code === 'auth/invalid-email') {
         msg = 'Định dạng email không hợp lệ.';
