@@ -174,6 +174,396 @@ app.get('/api/users/:uid/seq', async (req: Request, res: Response): Promise<any>
   }
 });
 
+// --- NEW RECRUITER DATA TYPES & REST APIS ---
+
+interface JobItem {
+  id: string;
+  title: string;
+  industry: string;
+  salary: string;
+  location: string;
+  description: string;
+  requirements: string;
+  deadline: string;
+  isOpen: boolean;
+  createdAt: string;
+}
+
+interface CandidateItem {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  email: string;
+  phone: string;
+  location: string;
+  jobType: string;
+  skills: string[];
+  portfolio: string;
+  education: string;
+  experience: {
+    role: string;
+    company: string;
+    duration: string;
+    description: string;
+    isCurrent?: boolean;
+  }[];
+  rating: number;
+  reviewsCount: number;
+  yearsOfExp: number;
+}
+
+interface ApplicationItem {
+  id: string;
+  candidateId: string;
+  jobId: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  appliedAt: string;
+}
+
+let jobs: JobItem[] = [
+  {
+    id: 'job-1',
+    title: 'Thiết kế logo quán cafe',
+    industry: 'Thiết kế đồ họa',
+    salary: 'Thỏa thuận',
+    location: 'Phú Nhuận, TP.HCM',
+    description: 'Chào các bạn, mình đang cần tìm một bạn thiết kế logo cho quán cafe phong cách tối giản. Logo cần thể hiện được sự ấm cúng và hiện đại.',
+    requirements: '- Có ít nhất 1 năm kinh nghiệm thiết kế thương hiệu.\n- Giao file gốc chất lượng cao.\n- Có khả năng chỉnh sửa 2-3 lần.',
+    deadline: '11/30/2026',
+    isOpen: true,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-2',
+    title: 'Giao hàng nhanh nội thành',
+    industry: 'Vận chuyển',
+    salary: '300k/ngày',
+    location: 'Quận 7, TP.HCM',
+    description: 'Cần tuyển nhân viên giao hàng bằng xe máy khu vực Quận 7 và lân cận. Rành đường thành phố, trung thực, chịu khó.',
+    requirements: '- Có bằng lái xe máy.\n- Có điện thoại thông minh.\n- Chăm chỉ, đúng giờ.',
+    deadline: '05/20/2026',
+    isOpen: false,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-3',
+    title: 'Dọn dẹp căn hộ 2PN',
+    industry: 'Dịch vụ gia đình',
+    salary: '150k/giờ',
+    location: 'Bình Thạnh, TP.HCM',
+    description: 'Cần tìm người dọn dẹp, lau chùi căn hộ chung cư 2 phòng ngủ sạch sẽ, gọn gàng vào cuối tuần.',
+    requirements: '- Có kinh nghiệm dọn dẹp căn hộ.\n- Trung thực, cẩn thận.\n- Có mặt đúng giờ.',
+    deadline: '06/15/2026',
+    isOpen: true,
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'job-4',
+    title: 'Lập trình viên React Native',
+    industry: 'Công nghệ thông tin',
+    salary: 'Cạnh tranh',
+    location: 'Cầu Giấy, Hà Nội',
+    description: 'Tuyển dụng kỹ sư lập trình di động React Native xây dựng các ứng dụng chất lượng cao cho khách hàng quốc tế.',
+    requirements: '- 2+ năm kinh nghiệm React Native.\n- Hiểu biết về Firebase, Redux, RESTful APIs.\n- Tinh thần làm việc đội nhóm tốt.',
+    deadline: '07/15/2026',
+    isOpen: true,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
+let candidates: CandidateItem[] = [
+  {
+    id: 'candidate-1',
+    name: 'Nguyễn Văn An',
+    role: 'Chuyên viên thiết kế UI/UX & Đồ họa',
+    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    email: 'an.nguyen@example.com',
+    phone: '0987 *** 456',
+    location: 'Quận 7, TP. Hồ Chí Minh',
+    jobType: 'Toàn thời gian / Freelance',
+    skills: ['Figma', 'Adobe Suite', 'UI Design', 'Prototyping', 'HTML/CSS'],
+    portfolio: 'behance.net/an-design',
+    education: 'ĐH Mỹ Thuật TP.HCM',
+    rating: 4.9,
+    reviewsCount: 12,
+    yearsOfExp: 4,
+    experience: [
+      {
+        role: 'Senior UI Designer',
+        company: 'TechVibe Solutions',
+        duration: '2021 - Hiện tại',
+        description: 'Dẫn dắt đội ngũ thiết kế xây dựng hệ thống Design System cho 3 sản phẩm Fintech cốt lõi. Tăng trải nghiệm người dùng thêm 25% dựa trên chỉ số CSAT.',
+        isCurrent: true
+      },
+      {
+        role: 'Graphic Designer',
+        company: 'Media Plus Agency',
+        duration: '2018 - 2021',
+        description: 'Thực hiện hơn 100+ chiến dịch quảng cáo kỹ thuật số cho các thương hiệu lớn như Vinamilk, Grab.'
+      }
+    ]
+  },
+  {
+    id: 'candidate-2',
+    name: 'Nguyễn Thu Thủy',
+    role: 'Chuyên viên Marketing',
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+    email: 'thuy.marketing@example.com',
+    phone: '0912 *** 789',
+    location: 'Quận 1, TP. HCM',
+    jobType: 'Toàn thời gian',
+    skills: ['SEO/SEM', 'Content Strategy', 'Data Analysis', 'Social Media'],
+    portfolio: 'linkedin.com/in/thuy-mkt',
+    education: 'ĐH Kinh tế Quốc dân',
+    rating: 4.9,
+    reviewsCount: 8,
+    yearsOfExp: 5,
+    experience: [
+      {
+        role: 'Marketing Lead',
+        company: 'BrandGrowth',
+        duration: '2022 - Hiện tại',
+        description: 'Quản lý ngân sách marketing 500tr/tháng, tăng trưởng lượng khách hàng tiềm năng lên 40%.',
+        isCurrent: true
+      },
+      {
+        role: 'Content Specialist',
+        company: 'AdMax Agency',
+        duration: '2019 - 2022',
+        description: 'Lên kế hoạch nội dung cho hơn 15 dự án lớn, tăng tỷ lệ tiếp cận organic thêm 50%.'
+      }
+    ]
+  },
+  {
+    id: 'candidate-3',
+    name: 'Trần Minh Quân',
+    role: 'Lập trình viên React Native',
+    avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
+    email: 'quan.dev@example.com',
+    phone: '0945 *** 123',
+    location: 'Cầu Giấy, Hà Nội',
+    jobType: 'Toàn thời gian / Từ xa',
+    skills: ['React Native', 'Firebase', 'TypeScript', 'Redux', 'NodeJS'],
+    portfolio: 'github.com/quandev',
+    education: 'ĐH Bách Khoa Hà Nội',
+    rating: 4.8,
+    reviewsCount: 15,
+    yearsOfExp: 3,
+    experience: [
+      {
+        role: 'Mobile Developer',
+        company: 'AppStudio',
+        duration: '2021 - Hiện tại',
+        description: 'Xây dựng 4 ứng dụng di động iOS/Android bằng React Native đạt hơn 100k lượt tải.',
+        isCurrent: true
+      },
+      {
+        role: 'Frontend Developer',
+        company: 'SoftTech JSC',
+        duration: '2020 - 2021',
+        description: 'Phát triển giao diện các trang quản lý ERP phức tạp bằng ReactJS và Ant Design.'
+      }
+    ]
+  },
+  {
+    id: 'candidate-4',
+    name: 'Lê Kim Anh',
+    role: 'Thiết kế UI/UX & Brand',
+    avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
+    email: 'kimanh.design@example.com',
+    phone: '0938 *** 654',
+    location: 'Quận 3, TP. Hồ Chí Minh',
+    jobType: 'Toàn thời gian',
+    skills: ['Figma', 'Product Design', 'Illustrator', 'Branding'],
+    portfolio: 'dribbble.com/kimanh',
+    education: 'ĐH Kiến trúc TP.HCM',
+    rating: 5.0,
+    reviewsCount: 7,
+    yearsOfExp: 7,
+    experience: [
+      {
+        role: 'Product Designer',
+        company: 'Innovate Studio',
+        duration: '2020 - Hiện tại',
+        description: 'Định hình phong cách thương hiệu và thiết kế UI/UX cho chuỗi sản phẩm Smart Home.',
+        isCurrent: true
+      }
+    ]
+  }
+];
+
+let applications: ApplicationItem[] = [
+  {
+    id: 'app-1',
+    candidateId: 'candidate-1',
+    jobId: 'job-1',
+    status: 'Pending',
+    appliedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'app-2',
+    candidateId: 'candidate-3',
+    jobId: 'job-4',
+    status: 'Pending',
+    appliedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  }
+];
+
+// GET list of jobs
+app.get('/api/jobs', (req: Request, res: Response) => {
+  res.status(200).json(jobs);
+});
+
+// GET specific job by ID
+app.get('/api/jobs/:id', (req: Request, res: Response): any => {
+  const job = jobs.find(j => j.id === req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Không tìm thấy bài đăng.' });
+  }
+  res.status(200).json(job);
+});
+
+// POST create a job
+app.post('/api/jobs', (req: Request, res: Response): any => {
+  const { title, industry, salary, location, description, requirements, deadline, isOpen } = req.body;
+  if (!title || !location || !description) {
+    return res.status(400).json({ error: 'Vui lòng cung cấp tiêu đề, địa điểm và mô tả công việc.' });
+  }
+  const newJob: JobItem = {
+    id: `job-${Date.now()}`,
+    title,
+    industry: industry || 'Khác',
+    salary: salary || 'Thỏa thuận',
+    location,
+    description,
+    requirements: requirements || '',
+    deadline: deadline || '',
+    isOpen: isOpen !== undefined ? isOpen : true,
+    createdAt: new Date().toISOString()
+  };
+  jobs.unshift(newJob);
+  res.status(201).json(newJob);
+});
+
+// PUT update a job
+app.put('/api/jobs/:id', (req: Request, res: Response): any => {
+  const { id } = req.params;
+  const index = jobs.findIndex(j => j.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Không tìm thấy bài đăng tuyển.' });
+  }
+  jobs[index] = {
+    ...jobs[index],
+    ...req.body
+  };
+  res.status(200).json(jobs[index]);
+});
+
+// DELETE a job
+app.delete('/api/jobs/:id', (req: Request, res: Response): any => {
+  const { id } = req.params;
+  const index = jobs.findIndex(j => j.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Không tìm thấy bài đăng để xóa.' });
+  }
+  jobs.splice(index, 1);
+  res.status(200).json({ success: true, message: 'Đã xóa bài đăng tuyển dụng.' });
+});
+
+// GET candidates (with search and filters)
+app.get('/api/candidates', (req: Request, res: Response) => {
+  const { query, location, skills, yearsOfExp } = req.query;
+  let result = [...candidates];
+
+  if (query) {
+    const q = String(query).toLowerCase();
+    result = result.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.role.toLowerCase().includes(q) ||
+      c.skills.some(s => s.toLowerCase().includes(q))
+    );
+  }
+
+  if (location) {
+    const loc = String(location).toLowerCase();
+    result = result.filter(c => c.location.toLowerCase().includes(loc));
+  }
+
+  if (skills) {
+    const skillList = String(skills).split(' ');
+    result = result.filter(c => 
+      c.skills.some(s => skillList.some(q => s.toLowerCase().includes(q.toLowerCase())))
+    );
+  }
+
+  if (yearsOfExp) {
+    const exp = parseInt(String(yearsOfExp), 10);
+    if (!isNaN(exp)) {
+      result = result.filter(c => c.yearsOfExp >= exp);
+    }
+  }
+
+  res.status(200).json(result);
+});
+
+// GET list of applications
+app.get('/api/applications', (req: Request, res: Response) => {
+  res.status(200).json(applications);
+});
+
+// PUT update application status & unlock candidate details if approved
+app.put('/api/applications/:id/status', (req: Request, res: Response): any => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  if (!status || !['Pending', 'Approved', 'Rejected'].includes(status)) {
+    return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
+  }
+
+  const appIndex = applications.findIndex(a => a.id === id);
+  if (appIndex === -1) {
+    return res.status(404).json({ error: 'Không tìm thấy hồ sơ ứng tuyển.' });
+  }
+
+  applications[appIndex].status = status;
+
+  // Unlock phone number if Approved
+  if (status === 'Approved') {
+    const candId = applications[appIndex].candidateId;
+    const candIndex = candidates.findIndex(c => c.id === candId);
+    if (candIndex !== -1) {
+      // Unmask phone number
+      let unmasked = candidates[candIndex].phone;
+      if (candId === 'candidate-1') unmasked = '0987345678';
+      else if (candId === 'candidate-2') unmasked = '0912345678';
+      else if (candId === 'candidate-3') unmasked = '0945123456';
+      candidates[candIndex].phone = unmasked;
+    }
+  }
+
+  res.status(200).json({ success: true, application: applications[appIndex] });
+});
+
+// POST headhunt invitation
+app.post('/api/invitations', (req: Request, res: Response): any => {
+  const { candidateId, jobId } = req.body;
+  if (!candidateId || !jobId) {
+    return res.status(400).json({ error: 'Thiếu candidateId hoặc jobId.' });
+  }
+  const candidate = candidates.find(c => c.id === candidateId);
+  const job = jobs.find(j => j.id === jobId);
+
+  if (!candidate || !job) {
+    return res.status(404).json({ error: 'Không tìm thấy ứng viên hoặc bài đăng tuyển.' });
+  }
+
+  res.status(201).json({
+    success: true,
+    message: `Đã gửi lời mời ứng tuyển công việc "${job.title}" đến ứng viên "${candidate.name}" thành công!`
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

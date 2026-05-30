@@ -28,22 +28,93 @@ export default function RecruiterProfileScreen() {
   const { employerData, updateCompany } = useAuth();
 
   // Form Field states (prefilled with mock values or context states)
+  // Form Field states (prefilled with mock values or context states)
   const [companyName, setCompanyName] = React.useState(employerData?.companyName || 'Smalljobs Global Solutions');
-  const [website, setWebsite] = React.useState('https://smalljobs.vn');
-  const [email, setEmail] = React.useState('example@company.com');
+  const [website, setWebsite] = React.useState(employerData?.website || 'https://smalljobs.vn');
+  const [email, setEmail] = React.useState(employerData?.email || 'example@company.com');
   const [phone, setPhone] = React.useState(employerData?.phoneNumber || '0123 456 789');
   const [address, setAddress] = React.useState(employerData?.address || 'Tòa nhà Landmark 81, TP. HCM');
-  const [industry, setIndustry] = React.useState('Công nghệ');
-  const [scale, setScale] = React.useState('51-200 nhân viên');
+  const [industry, setIndustry] = React.useState(employerData?.industry || 'Công nghệ');
+  const [scale, setScale] = React.useState(employerData?.scale || '51-200 nhân viên');
   const [description, setDescription] = React.useState(
-    'Smalljobs.vn là nền tảng kết nối các công việc tự do và bán thời gian hàng đầu Việt Nam. Chúng tôi cam kết mang lại giải pháp tuyển dụng minh bạch, nhanh chóng và hiệu quả cho doanh nghiệp và người lao động.'
+    employerData?.description || 'Smalljobs.vn là nền tảng kết nối các công việc tự do và bán thời gian hàng đầu Việt Nam. Chúng tôi cam kết mang lại giải pháp tuyển dụng minh bạch, nhanh chóng và hiệu quả cho doanh nghiệp và người lao động.'
   );
 
+  // Logo & Banner state simulator
+  const [logoColor, setLogoColor] = React.useState(employerData?.logo || '#0084FF');
+  const [logoUploaded, setLogoUploaded] = React.useState(!!employerData?.logo);
+
   // Dynamic branch list state
-  const [branches, setBranches] = React.useState<BranchItem[]>([
-    { id: 'branch-1', name: 'Trụ sở Hà Nội', address: 'Quận Cầu Giấy, Hà Nội' },
-    { id: 'branch-2', name: 'Chi nhánh TP. HCM', address: 'Quận 1, TP. Hồ Chí Minh' },
-  ]);
+  const [branches, setBranches] = React.useState<BranchItem[]>(
+    employerData?.branches || [
+      { id: 'branch-1', name: 'Trụ sở Hà Nội', address: 'Quận Cầu Giấy, Hà Nội' },
+      { id: 'branch-2', name: 'Chi nhánh TP. HCM', address: 'Quận 1, TP. Hồ Chí Minh' },
+    ]
+  );
+
+  const handleSelectIndustry = () => {
+    Alert.alert(
+      'Chọn Lĩnh vực',
+      'Chọn lĩnh vực hoạt động chính của công ty:',
+      [
+        { text: 'Công nghệ', onPress: () => setIndustry('Công nghệ') },
+        { text: 'Tài chính / Ngân hàng', onPress: () => setIndustry('Tài chính / Ngân hàng') },
+        { text: 'Sản xuất / Vận tải', onPress: () => setIndustry('Sản xuất / Vận tải') },
+        { text: 'Dịch vụ / Bán lẻ', onPress: () => setIndustry('Dịch vụ / Bán lẻ') },
+        { text: 'Khác', onPress: () => setIndustry('Lĩnh vực khác') },
+      ]
+    );
+  };
+
+  const handleSelectScale = () => {
+    Alert.alert(
+      'Chọn Quy mô',
+      'Chọn quy mô nhân sự của công ty:',
+      [
+        { text: 'Dưới 10 nhân viên', onPress: () => setScale('Dưới 10 nhân viên') },
+        { text: '10-50 nhân viên', onPress: () => setScale('10-50 nhân viên') },
+        { text: '51-200 nhân viên', onPress: () => setScale('51-200 nhân viên') },
+        { text: '201-500 nhân viên', onPress: () => setScale('201-500 nhân viên') },
+        { text: 'Trên 500 nhân viên', onPress: () => setScale('Trên 500 nhân viên') },
+      ]
+    );
+  };
+
+  const handleSelectLogo = () => {
+    Alert.alert(
+      'Tải lên Logo',
+      'Chọn phương thức tải ảnh đại diện công ty:',
+      [
+        { text: 'Chụp ảnh mới', onPress: () => {
+          Alert.alert('Thành công', 'Đã chụp ảnh và cập nhật Logo công ty mới.');
+          setLogoColor('#34C759'); // Green color indicates success
+          setLogoUploaded(true);
+        }},
+        { text: 'Chọn từ Thư viện', onPress: () => {
+          Alert.alert('Thành công', 'Đã chọn ảnh từ thư viện và cập nhật Logo.');
+          setLogoColor('#FF9500'); // Orange color indicates success
+          setLogoUploaded(true);
+        }},
+        { text: 'Hủy', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleSelectBanner = () => {
+    Alert.alert(
+      'Tải lên Ảnh bìa (Banner)',
+      'Chọn phương thức tải ảnh bìa công ty:',
+      [
+        { text: 'Chụp ảnh mới', onPress: () => {
+          Alert.alert('Thành công', 'Đã cập nhật ảnh bìa (Banner) công ty mới.');
+        }},
+        { text: 'Chọn từ Thư viện', onPress: () => {
+          Alert.alert('Thành công', 'Đã tải ảnh bìa (Banner) thành công.');
+        }},
+        { text: 'Hủy', style: 'cancel' }
+      ]
+    );
+  };
 
   const handleSaveChanges = () => {
     // 1. Update state back in auth context
@@ -51,10 +122,28 @@ export default function RecruiterProfileScreen() {
       companyName,
       phoneNumber: phone,
       address,
+      website,
+      email,
+      industry,
+      scale,
+      description,
+      branches,
+      logo: logoColor,
     });
 
-    // 2. Alert success
-    Alert.alert('Thành công', 'Thông tin doanh nghiệp và các chi nhánh đã được cập nhật thành công.');
+    // 2. Alert success & redirect back to Recruiter Dashboard
+    Alert.alert(
+      'Thành công',
+      'Thông tin doanh nghiệp và các văn phòng đã được cập nhật thành công.',
+      [
+        {
+          text: 'Về Dashboard',
+          onPress: () => {
+            router.replace('/recruiter/dashboard');
+          },
+        },
+      ]
+    );
   };
 
   const handleAddBranch = () => {
@@ -110,17 +199,32 @@ export default function RecruiterProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Banner image and overlapping logo section */}
         <View style={styles.heroSection}>
-          <Image
-            source={require('../../assets/images/small_jobs_banner.png')}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-          {/* Overlapping company logo */}
-          <View style={[styles.logoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="stats-chart" size={32} color="#0084FF" />
+          <TouchableOpacity activeOpacity={0.85} onPress={handleSelectBanner} style={{ width: '100%' }}>
+            <Image
+              source={require('../../assets/images/small_jobs_banner.png')}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            {/* Camera icon overlay on banner */}
+            <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.5)', padding: 6, borderRadius: 20 }}>
+              <Ionicons name="camera-outline" size={18} color="#FFF" />
             </View>
-          </View>
+          </TouchableOpacity>
+          
+          {/* Overlapping company logo */}
+          <TouchableOpacity 
+            activeOpacity={0.85} 
+            onPress={handleSelectLogo}
+            style={[styles.logoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}
+          >
+            <View style={[styles.logoCircle, { backgroundColor: logoUploaded ? '#EBF5FF' : '#E6F4FE' }]}>
+              <Ionicons name="stats-chart" size={32} color={logoColor} />
+            </View>
+            {/* Edit overlay icon on logo */}
+            <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0084FF', padding: 3, borderRadius: 10, borderWidth: 1.5, borderColor: '#FFF' }}>
+              <Ionicons name="pencil" size={10} color="#FFF" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Space margin to account for absolute overlay */}
@@ -143,21 +247,29 @@ export default function RecruiterProfileScreen() {
 
           {/* Lĩnh vực & Quy mô side by side */}
           <View style={styles.rowGrid}>
-            <View style={styles.colHalf}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              onPress={handleSelectIndustry} 
+              style={styles.colHalf}
+            >
               <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Lĩnh vực</Text>
               <View style={[styles.dropdownBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]}>{industry}</Text>
                 <Ionicons name="chevron-down" size={16} color="#8E8E93" />
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.colHalf}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              onPress={handleSelectScale} 
+              style={styles.colHalf}
+            >
               <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Quy mô</Text>
               <View style={[styles.dropdownBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]}>{scale}</Text>
                 <Ionicons name="chevron-down" size={16} color="#8E8E93" />
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Website */}

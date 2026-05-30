@@ -55,15 +55,15 @@ export default function RecruiterRegisterScreen() {
       address,
     });
 
-    // 3. Show Success & Redirect to Plans Selection Screen
+    // 3. Show Success & Redirect to Update Company Profile Screen
     Alert.alert(
       'Đăng ký thành công',
-      'Hồ sơ doanh nghiệp của bạn đã được thiết lập thành công. Hãy chọn gói dịch vụ tuyển dụng phù hợp với bạn.',
+      'Hồ sơ doanh nghiệp của bạn đã được thiết lập thành công. Vui lòng bổ sung thêm thông tin chi tiết để thu hút ứng viên tốt hơn.',
       [
         {
-          text: 'Chọn gói dịch vụ',
+          text: 'Cập nhật thông tin',
           onPress: () => {
-            router.push('/recruiter/pricing');
+            router.replace('/recruiter/profile');
           },
         },
       ]

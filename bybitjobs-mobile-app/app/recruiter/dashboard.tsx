@@ -28,41 +28,13 @@ export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { employerData, logout } = useAuth();
-
-  // Mock Job items in Recruiter dashboard
-  const [jobs, setJobs] = React.useState<JobItem[]>([
-    {
-      id: 'job-1',
-      title: 'Nhân viên giao hàng khu vực Quận 7',
-      isOpen: true,
-      type: 'Toàn thời gian',
-      requiredCount: 5,
-      applicantsCount: 12,
-      salary: '300k/ngày',
-    },
-    {
-      id: 'job-2',
-      title: 'Nhân viên đóng gói hàng hóa ca tối',
-      isOpen: true,
-      type: 'Bán thời gian',
-      requiredCount: 2,
-      applicantsCount: 4,
-      salary: '25k/giờ',
-    },
-    {
-      id: 'job-3',
-      title: 'Cộng tác viên nhập liệu Online',
-      isOpen: false,
-      type: 'Từ xa',
-      requiredCount: 1,
-      applicantsCount: 8,
-      salary: '50k/đơn',
-    },
-  ]);
+  const { employerData, jobs, logout } = useAuth();
 
   const handlePostJob = () => {
-    Alert.alert('Đăng tin tuyển dụng', 'Hệ thống đang mở Form tạo tin tuyển dụng mới...');
+    router.push({
+      pathname: '/recruiter/edit-job',
+      params: { id: 'new' },
+    });
   };
 
   const handleEditProfile = () => {
@@ -90,6 +62,14 @@ export default function RecruiterDashboardScreen() {
           },
         ]
       );
+    } else if (item === 'Trang chủ') {
+      router.push('/recruiter/dashboard');
+    } else if (item === 'Việc của tôi') {
+      router.push('/recruiter/jobs');
+    } else if (item === 'Cộng đồng') {
+      router.push('/recruiter/candidates');
+    } else if (item === 'Tìm kiếm') {
+      router.push('/recruiter/search-candidates');
     } else {
       Alert.alert('Chuyển tab', `Đang chuyển hướng sang phân hệ: ${item}`);
     }
