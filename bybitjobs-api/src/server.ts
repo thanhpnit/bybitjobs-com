@@ -47,12 +47,14 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
     
     // Chuyển đổi dữ liệu Firebase sang định dạng mà Web Admin đang dùng
     const users = listUsersResult.users.map((userRecord) => ({
-      id: userRecord.uid.substring(0, 8), // Lấy một phần UID cho ngắn gọn
+      id: userRecord.uid, // Giữ nguyên UID đầy đủ để có thể thực hiện thao tác xóa/khóa
       name: userRecord.displayName || 'Người dùng App',
       email: userRecord.email || '',
       phone: userRecord.phoneNumber || 'Chưa có',
       job: 'Ứng viên (Mobile App)',
-      status: userRecord.disabled ? 'Bị khóa' : 'Đã xác thực',
+      status: userRecord.disabled 
+        ? 'Bị khóa' 
+        : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
       date: new Date(userRecord.metadata.creationTime).toLocaleDateString('vi-VN')
     }));
 
@@ -60,6 +62,54 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
   } catch (error: any) {
     console.error('Lỗi khi lấy danh sách người dùng:', error);
     return res.status(500).json({ error: 'Lỗi server khi lấy dữ liệu Firebase', details: error.message });
+  }
+});
+
+// API xóa người dùng khỏi Firebase Auth
+app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
+  }
+
+  const { uid } = req.params;
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu UID người dùng.' });
+  }
+
+  try {
+    await admin.auth().deleteUser(uid as string);
+    console.log(`🔥 Đã xóa vĩnh viễn người dùng có UID: ${uid}`);
+    return res.status(200).json({ success: true, message: `Đã xóa vĩnh viễn người dùng có UID: ${uid}` });
+  } catch (error: any) {
+    console.error('Lỗi khi xóa người dùng:', error);
+    return res.status(500).json({ error: 'Lỗi server khi xóa người dùng khỏi Firebase', details: error.message });
+  }
+});
+
+// API cập nhật trạng thái Khóa / Mở khóa người dùng
+app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
+  }
+
+  const { uid } = req.params;
+  const { disabled } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu UID người dùng.' });
+  }
+  if (typeof disabled !== 'boolean') {
+    return res.status(400).json({ error: 'Trạng thái disabled phải là boolean.' });
+  }
+
+  try {
+    // Cập nhật trạng thái disabled trong Firebase Auth
+    await admin.auth().updateUser(uid as string, { disabled });
+    console.log(`🔥 Đã cập nhật trạng thái khóa cho người dùng ${uid} thành: ${disabled}`);
+    return res.status(200).json({ success: true, message: `Cập nhật trạng thái người dùng thành công.` });
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật trạng thái người dùng:', error);
+    return res.status(500).json({ error: 'Lỗi server khi cập nhật trạng thái người dùng', details: error.message });
   }
 });
 

@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Search, Plus, Edit2, Ban, Filter, ChevronLeft, ChevronRight, RotateCcw, Trash2 } from 'lucide-react-native';
+import { Plus, Edit2, Ban, ChevronLeft, ChevronRight, RotateCcw, Trash2 } from 'lucide-react-native';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { useState } from 'react';
@@ -17,12 +17,17 @@ export const Users: React.FC = () => {
   const { colors } = useTheme();
   const { users, setUsers } = useData();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  // Tự động kết nối tới IP VPS thật khi chạy ở Localhost để đồng bộ dữ liệu
+  const apiHost = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '160.250.246.119'
+    : window.location.hostname;
+
+  const searchQuery = '';
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const fetchUsers = () => {
-    fetch(`http://${window.location.hostname}:4000/api/users`)
+    fetch(`http://${apiHost}:4000/api/users`)
       .then(res => res.json())
       .then(data => {
         // Đôi khi API trả về { users: [...] } hoặc [...]
@@ -57,21 +62,70 @@ export const Users: React.FC = () => {
   };
 
   const requestDelete = (id: string) => {
+    const isMockUser = id.startsWith('#US-');
     setConfirmProps({
       visible: true,
       title: 'Xóa người dùng',
-      message: 'Bạn có chắc chắn muốn xóa người dùng này không? Hành động này không thể hoàn tác.',
-      onConfirm: () => setUsers(users.filter(i => i.id !== id))
+      message: `Bạn có chắc chắn muốn xóa người dùng này không? ${isMockUser ? 'Người dùng mẫu sẽ bị xóa khỏi bộ nhớ tạm.' : 'Tài khoản này sẽ bị xóa VĨNH VIỄN khỏi Firebase Auth và không thể khôi phục.'}`,
+      onConfirm: async () => {
+        if (isMockUser) {
+          // Xóa mock user khỏi local state & localStorage
+          setUsers(users.filter(i => i.id !== id));
+          setConfirmProps(prev => ({ ...prev, visible: false }));
+          return;
+        }
+
+        try {
+          const response = await fetch(`http://${apiHost}:4000/api/users/${id}`, {
+            method: 'DELETE',
+          });
+          const result = await response.json();
+          if (response.ok) {
+            setUsers(users.filter(i => i.id !== id));
+          } else {
+            alert(`Lỗi: ${result.error || 'Không thể xóa người dùng'}`);
+          }
+        } catch (error) {
+          console.error('Lỗi khi gọi API xóa người dùng:', error);
+          setUsers(users.filter(i => i.id !== id));
+        }
+        setConfirmProps(prev => ({ ...prev, visible: false }));
+      }
     });
   };
 
   const requestToggleStatus = (id: string, currentStatus: string) => {
+    const isMockUser = id.startsWith('#US-');
     const isBanning = currentStatus !== 'Bị khóa';
     setConfirmProps({
       visible: true,
       title: isBanning ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
       message: `Bạn có chắc chắn muốn ${isBanning ? 'khóa' : 'mở khóa'} tài khoản này không?`,
-      onConfirm: () => setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác thực' } : i))
+      onConfirm: async () => {
+        if (isMockUser) {
+          setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
+          setConfirmProps(prev => ({ ...prev, visible: false }));
+          return;
+        }
+
+        try {
+          const response = await fetch(`http://${apiHost}:4000/api/users/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ disabled: isBanning })
+          });
+          const result = await response.json();
+          if (response.ok) {
+            fetchUsers();
+          } else {
+            alert(`Lỗi: ${result.error || 'Không thể cập nhật trạng thái tài khoản'}`);
+          }
+        } catch (error) {
+          console.error('Lỗi khi gọi API cập nhật trạng thái người dùng:', error);
+          setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
+        }
+        setConfirmProps(prev => ({ ...prev, visible: false }));
+      }
     });
   };
 
@@ -149,9 +203,11 @@ export const Users: React.FC = () => {
           <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
         </View>
 
-        {paginatedData.map((item, index) => (
+        {paginatedData.map((item) => (
           <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
+            <Typography variant="subtitle2" color="brand" style={styles.colId}>
+              {item.id.startsWith('#US-') ? item.id : `#${item.id.substring(0, 6)}...`}
+            </Typography>
             <View style={[styles.colName, styles.flexRow]}>
               <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
               <View>
@@ -164,7 +220,7 @@ export const Users: React.FC = () => {
               <Typography variant="body2" color="secondary">{item.phone}</Typography>
             </View>
             <View style={styles.colStatus}>
-              <Badge status={item.status === 'Đã xác thực' ? 'success' : item.status === 'Bị khóa' ? 'danger' : 'default'}>
+              <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : 'default'}>
                 {item.status}
               </Badge>
             </View>
