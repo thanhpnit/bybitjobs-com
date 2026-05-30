@@ -77,6 +77,27 @@ export function useAuth() {
     };
   }, []);
 
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      if (firebaseUser) {
+        try {
+          await firebaseUser.reload();
+        } catch (err: any) {
+          console.error("Lỗi kiểm tra trạng thái tài khoản:", err);
+          if (err.code === 'auth/user-disabled') {
+            const { Alert } = await import('react-native');
+            Alert.alert(
+              'Tài khoản bị khóa',
+              'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.',
+              [{ text: 'Đồng ý', onPress: () => firebaseSignOut(auth) }]
+            );
+          }
+        }
+      }
+    };
+    checkStatus();
+  }, [firebaseUser]);
+
   const login = async (emailOrPhone: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
       await signInWithEmailAndPassword(auth, emailOrPhone, passwordInput);
