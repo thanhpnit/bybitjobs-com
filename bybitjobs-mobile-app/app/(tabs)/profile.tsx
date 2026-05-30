@@ -29,7 +29,8 @@ export default function ProfileScreen() {
     userRole,
     employerData,
     registerEmployer,
-    verifyAccount
+    verifyAccount,
+    seqId
   } = useAuth();
 
   // Job seeking switch states
@@ -69,16 +70,20 @@ export default function ProfileScreen() {
     Alert.alert('Thành công', 'Một mã xác minh mới đã được gửi tới email của bạn.');
   };
 
-  const handleConfirm2FAOTP = () => {
+  const handleConfirm2FAOTP = async () => {
     if (twoFACode.trim().length === 6) {
-      verifyAccount(); // Automatically grant verification (blue tick)
-      setIs2FAEnabled(true);
-      setTwoFAStep('enabled_info');
-      Alert.alert(
-        'Thành công',
-        'Tính năng xác minh 2 bước đã được kích hoạt thành công. Hồ sơ của bạn đã được xác thực uy tín với dấu tích xanh!'
-      );
-      setIs2FAModalVisible(false);
+      const result = await verifyAccount();
+      if (result.success) {
+        setIs2FAEnabled(true);
+        setTwoFAStep('enabled_info');
+        Alert.alert(
+          'Thành công',
+          'Tính năng xác minh 2 bước đã được kích hoạt thành công. Hồ sơ của bạn đã được xác thực uy tín với dấu tích xanh!'
+        );
+        setIs2FAModalVisible(false);
+      } else {
+        Alert.alert('Lỗi xác thực', result.message);
+      }
     } else {
       Alert.alert('Lỗi xác thực', 'Vui lòng nhập đúng mã xác minh 6 ký tự.');
     }
@@ -195,12 +200,16 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleVerifySubmit = () => {
+  const handleVerifySubmit = async () => {
     if (verificationCode.trim() === '123456' || verificationCode.trim().length === 6) {
-      verifyAccount();
-      setIsVerificationVisible(false);
-      setVerificationCode('');
-      Alert.alert('Thành công', 'Tài khoản của bạn đã được xác thực thành công! Dấu tích xanh uy tín đã được cấp.');
+      const result = await verifyAccount();
+      if (result.success) {
+        setIsVerificationVisible(false);
+        setVerificationCode('');
+        Alert.alert('Thành công', 'Tài khoản của bạn đã được xác thực thành công! Dấu tích xanh uy tín đã được cấp.');
+      } else {
+        Alert.alert('Lỗi xác thực', result.message);
+      }
     } else {
       Alert.alert('Lỗi xác thực', 'Mã xác thực không đúng. Vui lòng nhập lại (Mã mẫu là 123456).');
     }
@@ -363,7 +372,9 @@ export default function ProfileScreen() {
                     <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>
                       {displayName}
                     </Text>
-                    <Text style={styles.userId}>USER ID: SJ-992834</Text>
+                    <Text style={styles.userId}>
+                      USER ID: {isLoggedIn ? seqId : '000000'}
+                    </Text>
                   </View>
                 </>
               ) : (

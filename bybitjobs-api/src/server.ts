@@ -45,9 +45,15 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
     
+    // Sắp xếp người dùng từ cũ nhất đến mới nhất theo thời gian tạo để sinh ID tuần tự ổn định
+    const sortedUsers = listUsersResult.users.sort((a, b) => {
+      return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
+    });
+
     // Chuyển đổi dữ liệu Firebase sang định dạng mà Web Admin đang dùng
-    const users = listUsersResult.users.map((userRecord) => ({
-      id: userRecord.uid, // Giữ nguyên UID đầy đủ để có thể thực hiện thao tác xóa/khóa
+    const users = sortedUsers.map((userRecord, index) => ({
+      id: String(index).padStart(6, '0'), // Mã USER ID 6 số tuần tự (ví dụ: "000000", "000001")
+      uid: userRecord.uid, // Giữ nguyên UID Firebase để thực hiện thao tác xóa/khóa
       name: userRecord.displayName || 'Người dùng App',
       email: userRecord.email || '',
       phone: userRecord.phoneNumber || 'Chưa có',
@@ -110,6 +116,61 @@ app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<a
   } catch (error: any) {
     console.error('Lỗi khi cập nhật trạng thái người dùng:', error);
     return res.status(500).json({ error: 'Lỗi server khi cập nhật trạng thái người dùng', details: error.message });
+  }
+});
+
+// API xác minh tài khoản người dùng
+app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
+  }
+
+  const { uid } = req.params;
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu UID người dùng.' });
+  }
+
+  try {
+    // Cập nhật trạng thái emailVerified thành true trong Firebase Auth
+    await admin.auth().updateUser(uid as string, { emailVerified: true });
+    console.log(`🔥 Đã xác minh thành công tài khoản người dùng có UID: ${uid}`);
+    return res.status(200).json({ success: true, message: `Xác minh tài khoản thành công.` });
+  } catch (error: any) {
+    console.error('Lỗi khi xác minh tài khoản người dùng:', error);
+    return res.status(500).json({ error: 'Lỗi server khi xác minh tài khoản', details: error.message });
+  }
+});
+
+// API lấy mã USER ID tuần tự (6 số) của một người dùng dựa vào UID
+app.get('/api/users/:uid/seq', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo.' });
+  }
+
+  const { uid } = req.params;
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu UID người dùng.' });
+  }
+
+  try {
+    const listUsersResult = await admin.auth().listUsers(1000);
+    
+    // Sắp xếp người dùng từ cũ nhất đến mới nhất theo creationTime
+    const sortedUsers = listUsersResult.users.sort((a, b) => {
+      return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
+    });
+
+    // Tìm vị trí của người dùng hiện tại trong hàng đợi tạo
+    const index = sortedUsers.findIndex(u => u.uid === uid);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng trên Firebase.' });
+    }
+
+    const seqId = String(index).padStart(6, '0');
+    return res.status(200).json({ seqId });
+  } catch (error: any) {
+    console.error('Lỗi khi lấy mã USER ID tuần tự:', error);
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
   }
 });
 

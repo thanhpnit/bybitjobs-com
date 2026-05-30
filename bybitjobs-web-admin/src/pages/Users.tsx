@@ -17,10 +17,8 @@ export const Users: React.FC = () => {
   const { colors } = useTheme();
   const { users, setUsers } = useData();
 
-  // Tự động kết nối tới IP VPS thật khi chạy ở Localhost để đồng bộ dữ liệu
-  const apiHost = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? '160.250.246.119'
-    : window.location.hostname;
+  // Luôn luôn kết nối trực tiếp tới IP VPS thật để vượt qua các bộ chặn cổng (như Cloudflare / Proxy của tên miền)
+  const apiHost = '160.250.246.119';
 
   const searchQuery = '';
   const [currentPage, setCurrentPage] = useState(1);
@@ -206,7 +204,7 @@ export const Users: React.FC = () => {
         {paginatedData.map((item) => (
           <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
             <Typography variant="subtitle2" color="brand" style={styles.colId}>
-              {item.id.startsWith('#US-') ? item.id : `#${item.id.substring(0, 6)}...`}
+              {item.id.startsWith('#US-') ? item.id : `#${item.id}`}
             </Typography>
             <View style={[styles.colName, styles.flexRow]}>
               <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
@@ -229,14 +227,14 @@ export const Users: React.FC = () => {
               <TouchableOpacity style={styles.iconBtn} onPress={() => handleOpenEdit(item)}>
                 <Edit2 size={18} color={colors.textSecondary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => requestToggleStatus(item.id, item.status)}>
+              <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
                 {item.status === 'Bị khóa' ? (
                   <RotateCcw size={18} color={colors.successText || '#10B981'} />
                 ) : (
                   <Ban size={18} color={colors.warningText || '#F59E0B'} />
                 )}
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => requestDelete(item.id)}>
+              <TouchableOpacity onPress={() => requestDelete(item.uid || item.id)}>
                 <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
               </TouchableOpacity>
             </View>

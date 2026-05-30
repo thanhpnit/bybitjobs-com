@@ -35,18 +35,30 @@ const notifyAll = () => listeners.forEach((l) => l());
 export function useAuth() {
   const [firebaseUser, setFirebaseUser] = React.useState<FirebaseUser | null>(auth.currentUser);
   const [isInitializing, setIsInitializing] = React.useState(true);
+  const [seqId, setSeqId] = React.useState<string>('000000');
   
   const [userRole, setUserRole] = React.useState<UserRole>(globalUserRole);
   const [employerData, setEmployerData] = React.useState<EmployerData | null>(globalEmployerData);
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
         if (!globalUserRole) globalUserRole = 'candidate';
+        // Tự động lấy USER ID tuần tự động từ server VPS
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/seq`);
+          if (response.ok) {
+            const data = await response.json();
+            setSeqId(data.seqId);
+          }
+        } catch (err) {
+          console.error('Lỗi lấy seqId:', err);
+        }
       } else {
         globalUserRole = null;
         globalEmployerData = null;
+        setSeqId('000000');
       }
       setUserRole(globalUserRole);
       setEmployerData(globalEmployerData);
@@ -86,6 +98,16 @@ export function useAuth() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
       await updateProfile(userCredential.user, { displayName: fullName });
+      await userCredential.user.reload();
+      setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+      // Tải mã seqId mới ngay sau khi tạo tài khoản
+      try {
+        const response = await fetch(`http://160.250.246.119:4000/api/users/${userCredential.user.uid}/seq`);
+        if (response.ok) {
+          const data = await response.json();
+          setSeqId(data.seqId);
+        }
+      } catch (err) {}
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
     } catch (error: any) {
       let msg = `Đăng ký thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
@@ -110,7 +132,30 @@ export function useAuth() {
     }
   };
 
-  const verifyAccount = () => {};
+  const verifyAccount = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        return { success: false, message: 'Chưa đăng nhập.' };
+      }
+      
+      const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/verify`, {
+        method: 'POST'
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        await user.reload();
+        setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+        return { success: true, message: 'Xác minh thành công!' };
+      } else {
+        return { success: false, message: result.error || 'Lỗi xác minh.' };
+      }
+    } catch (error: any) {
+      console.error('Lỗi gọi API verify:', error);
+      return { success: false, message: error.message };
+    }
+  };
 
   const registerEmployer = (data: Omit<EmployerData, 'servicePackage'>) => {
     globalUserRole = 'employer';
@@ -136,10 +181,12 @@ export function useAuth() {
     isLoggedIn: !!firebaseUser,
     isInitializing,
     userRole,
+    seqId, // Mã USER ID tuần tự 6 chữ số
     userData: firebaseUser ? { 
+      uid: firebaseUser.uid,
       emailOrPhone: firebaseUser.email || '', 
       fullName: firebaseUser.displayName || 'Người dùng',
-      isVerified: true 
+      isVerified: firebaseUser.emailVerified 
     } : null,
     employerData,
     login,
