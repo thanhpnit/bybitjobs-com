@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { auth } from '../src/config/firebase';
 import { 
   signInWithEmailAndPassword, 
@@ -85,7 +86,6 @@ export function useAuth() {
         } catch (err: any) {
           console.error("Lỗi kiểm tra trạng thái tài khoản:", err);
           if (err.code === 'auth/user-disabled') {
-            const { Alert } = await import('react-native');
             Alert.alert(
               'Tài khoản bị khóa',
               'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.',
