@@ -93,6 +93,7 @@ export interface ApplicationItem {
 // Trong thực tế, dữ liệu này sẽ được lưu ở Firestore hoặc Node.js MongoDB Backend
 let globalEmployerData: EmployerData | null = null;
 let globalUserRole: UserRole = null;
+let globalEmployerUnsubscribe: (() => void) | null = null;
 const listeners = new Set<() => void>();
 const notifyAll = () => listeners.forEach((l) => l());
 
@@ -352,35 +353,39 @@ export function useAuth() {
         };
         fetchUserData();
 
-        // Fetch Employer Data from API
-        const fetchEmployerData = async () => {
-          try {
-            const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
-            if (response.ok) {
-              const data = await response.json();
-              globalEmployerData = {
-                companyName: data.company,
-                industry: data.industry,
-                address: data.address || '',
-                taxId: data.taxId || '',
-                phoneNumber: data.phone || '',
-                email: data.email || '',
-                servicePackage: 'Free',
-                status: data.status
-              };
-              globalUserRole = 'employer';
-            } else {
-              globalUserRole = 'candidate';
-              globalEmployerData = null;
-            }
-          } catch (err) {
-            console.error('Lỗi lấy thông tin employer:', err);
+        // Listen to Employer Data from Firestore
+        if (globalEmployerUnsubscribe) globalEmployerUnsubscribe();
+        
+        const employerRef = doc(db, 'employers', user.uid);
+        globalEmployerUnsubscribe = onSnapshot(employerRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            globalEmployerData = {
+              companyName: data.company,
+              industry: data.industry,
+              address: data.address || '',
+              taxId: data.taxId || '',
+              phoneNumber: data.phone || '',
+              email: data.email || '',
+              servicePackage: 'Free',
+              status: data.status
+            };
+            globalUserRole = 'employer';
+          } else {
+            globalUserRole = 'candidate';
+            globalEmployerData = null;
           }
           setUserRole(globalUserRole);
           setEmployerData(globalEmployerData);
-        };
-        fetchEmployerData();
+          notifyAll();
+        }, (err) => {
+          console.error('Lỗi lắng nghe employer:', err);
+        });
       } else {
+        if (globalEmployerUnsubscribe) {
+          globalEmployerUnsubscribe();
+          globalEmployerUnsubscribe = null;
+        }
         globalUserRole = null;
         globalEmployerData = null;
         setSeqId('000000');

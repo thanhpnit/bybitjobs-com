@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Search, Plus, Filter, MoreVertical, Edit2, Trash2, Building2, CheckCircle2, Clock, FileText, ChevronLeft, ChevronRight, Eye } from 'lucide-react-native';
+import { Search, Plus, Filter, MoreVertical, Edit2, Trash2, Building2, CheckCircle2, Clock, FileText, ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react-native';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { useState } from 'react';
@@ -114,9 +114,14 @@ export const Employers: React.FC = () => {
             Theo dõi hồ sơ công ty và giới hạn tin tuyển dụng
           </Typography>
         </View>
-        <Button icon={<Plus color="#fff" size={18} />} onPress={handleOpenAdd}>
-          Thêm nhà tuyển dụng
-        </Button>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Button variant="outline" icon={<RefreshCcw color={colors.textSecondary} size={18} />} onPress={fetchEmployers}>
+            Làm mới
+          </Button>
+          <Button icon={<Plus color="#fff" size={18} />} onPress={handleOpenAdd}>
+            Thêm nhà tuyển dụng
+          </Button>
+        </View>
       </View>
 
       <View style={styles.statsGrid}>
