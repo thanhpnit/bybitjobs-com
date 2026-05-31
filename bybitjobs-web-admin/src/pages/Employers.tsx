@@ -17,7 +17,8 @@ import { useEffect } from 'react';
 export const Employers: React.FC = () => {
   const { colors } = useTheme();
   const [employers, setEmployers] = useState<any[]>([]);
-  const apiHost = window.location.hostname;
+  // Luôn luôn kết nối trực tiếp tới IP VPS thật để đồng bộ với cấu hình CORS và Port mapping
+  const apiHost = '160.250.246.119';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
