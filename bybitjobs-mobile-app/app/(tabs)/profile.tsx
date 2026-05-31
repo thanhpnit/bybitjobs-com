@@ -30,7 +30,8 @@ export default function ProfileScreen() {
     employerData,
     registerEmployer,
     verifyAccount,
-    seqId
+    seqId,
+    updateDesiredJob
   } = useAuth();
 
   // Job seeking switch states
@@ -39,6 +40,10 @@ export default function ProfileScreen() {
 
   // 2-Step Verification state
   const [is2FAEnabled, setIs2FAEnabled] = React.useState(false);
+
+  // Edit Job State
+  const [isEditJobModalVisible, setIsEditJobModalVisible] = React.useState(false);
+  const [editJobInput, setEditJobInput] = React.useState('');
 
   // 2-Step Verification Flow States
   const [is2FAModalVisible, setIs2FAModalVisible] = React.useState(false);
@@ -224,6 +229,23 @@ export default function ProfileScreen() {
         { text: 'Đăng xuất', style: 'destructive', onPress: logout }
       ]
     );
+  };
+
+  const handleEditJob = () => {
+    setEditJobInput(userData?.desiredJob || 'Ứng viên (Mobile App)');
+    setIsEditJobModalVisible(true);
+  };
+
+  const handleSaveJob = async () => {
+    if (editJobInput.trim() === '') {
+      Alert.alert('Lỗi', 'Vui lòng nhập công việc mong muốn');
+      return;
+    }
+    if (updateDesiredJob) {
+      await updateDesiredJob(editJobInput.trim());
+      setIsEditJobModalVisible(false);
+      Alert.alert('Thành công', 'Cập nhật công việc mong muốn thành công!');
+    }
   };
 
   const displayName = isLoggedIn ? (userData?.fullName || 'Nguyễn Minh Quân') : 'Tài khoản khách';
@@ -460,6 +482,27 @@ export default function ProfileScreen() {
                   <Text style={[styles.infoValueActive, { color: userRole === 'employer' ? '#4CAF50' : '#0084FF' }]}>
                     {userRole === 'employer' ? 'Nhà tuyển dụng' : 'Người tìm việc'}
                   </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Ionicons name="briefcase-outline" size={16} color="#0084FF" />
+                </View>
+                <View style={styles.infoTextCol}>
+                  <Text style={styles.infoLabel}>CÔNG VIỆC MONG MUỐN</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                    <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]} numberOfLines={1}>
+                      {userData?.desiredJob || 'Ứng viên (Mobile App)'}
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={handleEditJob}
+                      style={{ backgroundColor: '#0084FF', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 }}
+                    >
+                      <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold' }}>Sửa</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
@@ -890,6 +933,47 @@ export default function ProfileScreen() {
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Edit Job Modal */}
+      <Modal
+        visible={isEditJobModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalCenteredOverlay}>
+          <View style={[styles.verificationContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <Text style={[styles.verificationTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }]}>Cập nhật Công việc</Text>
+            <Text style={[styles.verificationSubtitle, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 20 }]}>
+              Nhập vị trí hoặc công việc bạn mong muốn để nhà tuyển dụng dễ dàng tìm thấy bạn.
+            </Text>
+            
+            <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
+              <TextInput
+                style={[styles.verificationTextInput, { color: isDark ? '#FFF' : '#11181C', letterSpacing: 0, textAlign: 'left', width: '100%' }]}
+                value={editJobInput}
+                onChangeText={setEditJobInput}
+                placeholder="VD: Frontend Developer"
+                placeholderTextColor={isDark ? '#8E8E93' : '#AEAEB2'}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA' }]}
+                onPress={() => setIsEditJobModalVisible(false)}
+              >
+                <Text style={[styles.verificationSubmitBtnText, { color: isDark ? '#FFF' : '#11181C' }]}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: '#0084FF' }]}
+                onPress={handleSaveJob}
+              >
+                <Text style={styles.verificationSubmitBtnText}>Lưu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* 9. Premium File Explorer Modal */}
       <Modal

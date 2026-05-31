@@ -1,6 +1,5 @@
-import React from 'react';
 import { Alert } from 'react-native';
-import { auth } from '../src/config/firebase';
+import { auth, db } from '../src/config/firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -9,6 +8,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 export type UserRole = 'candidate' | 'employer' | null;
 
@@ -38,6 +38,7 @@ export interface UserData {
   emailOrPhone: string;
   fullName?: string;
   isVerified?: boolean;
+  desiredJob?: string;
 }
 
 export interface JobItem {
@@ -316,8 +317,11 @@ export function useAuth() {
   const [jobs, setJobs] = React.useState<JobItem[]>(globalJobs);
   const [candidates, setCandidates] = React.useState<CandidateItem[]>(globalCandidates);
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string }>({});
 
   React.useEffect(() => {
+    let firestoreUnsubscribe: (() => void) | undefined;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
@@ -332,10 +336,22 @@ export function useAuth() {
         } catch (err) {
           console.error('Lỗi lấy seqId:', err);
         }
+        
+        // Listen to Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        firestoreUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserDataExtra({ desiredJob: docSnap.data().job });
+          } else {
+            setUserDataExtra({});
+          }
+        });
       } else {
         globalUserRole = null;
         globalEmployerData = null;
         setSeqId('000000');
+        setUserDataExtra({});
+        if (firestoreUnsubscribe) firestoreUnsubscribe();
       }
       setUserRole(globalUserRole);
       setEmployerData(globalEmployerData);
@@ -353,6 +369,7 @@ export function useAuth() {
 
     return () => {
       unsubscribe();
+      if (firestoreUnsubscribe) firestoreUnsubscribe();
       listeners.delete(handleMockDataChange);
     };
   }, []);
@@ -491,13 +508,14 @@ export function useAuth() {
     }
   };
 
-  const upgradePackage = (packageName: 'Free' | 'Gold' | 'Diamond') => {
+  const updatePackage = (packageName: 'Free' | 'Gold' | 'Diamond') => {
     if (globalEmployerData) {
       globalEmployerData.servicePackage = packageName;
       notifyAll();
     }
   };
 
+<<<<<<< HEAD
   const addJob = (job: Omit<JobItem, 'id' | 'createdAt'>) => {
     const newJob: JobItem = {
       ...job,
@@ -553,6 +571,13 @@ export function useAuth() {
     }
   };
 
+  const updateDesiredJob = async (newJob: string) => {
+    if (firebaseUser) {
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      await setDoc(userDocRef, { job: newJob }, { merge: true });
+    }
+  };
+
   return {
     isLoggedIn: !!firebaseUser,
     isInitializing,
@@ -562,7 +587,8 @@ export function useAuth() {
       uid: firebaseUser.uid,
       emailOrPhone: firebaseUser.email || '', 
       fullName: firebaseUser.displayName || 'Người dùng',
-      isVerified: firebaseUser.emailVerified 
+      isVerified: firebaseUser.emailVerified,
+      desiredJob: userDataExtra.desiredJob
     } : null,
     employerData,
     jobs,
@@ -573,12 +599,14 @@ export function useAuth() {
     deleteJob,
     updateApplicationStatus,
     sendInvitation,
+    updateDesiredJob,
     login,
     signup,
     verifyAccount,
     registerEmployer,
     updateCompany,
-    upgradePackage,
+    upgradePackage: updatePackage,
+    updateDesiredJob,
     logout,
   };
 }
