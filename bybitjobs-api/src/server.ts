@@ -79,6 +79,44 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// API cập nhật công việc mong muốn
+app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any> => {
+  const { uid } = req.params;
+  const { job } = req.body;
+  if (!uid || !job) {
+    return res.status(400).json({ error: 'Thiếu thông tin uid hoặc job' });
+  }
+
+  try {
+    const db = admin.firestore();
+    await db.collection('users').doc(uid).set({ job }, { merge: true });
+    return res.status(200).json({ success: true, message: 'Cập nhật thành công' });
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật công việc:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu dữ liệu', details: error.message });
+  }
+});
+
+// API lấy thông tin chi tiết một người dùng (bao gồm job)
+app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
+  const { uid } = req.params;
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    const db = admin.firestore();
+    const doc = await db.collection('users').doc(uid).get();
+    const job = doc.exists ? doc.data()?.job : 'Ứng viên (Mobile App)';
+    
+    return res.status(200).json({
+      uid: userRecord.uid,
+      name: userRecord.displayName,
+      email: userRecord.email,
+      job: job
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
 // API xóa người dùng khỏi Firebase Auth
 app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {

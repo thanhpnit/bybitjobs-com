@@ -321,8 +321,6 @@ export function useAuth() {
   const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string }>({});
 
   React.useEffect(() => {
-    let firestoreUnsubscribe: (() => void) | undefined;
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
@@ -338,21 +336,24 @@ export function useAuth() {
           console.error('Lỗi lấy seqId:', err);
         }
         
-        // Listen to Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        firestoreUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setUserDataExtra({ desiredJob: docSnap.data().job });
-          } else {
-            setUserDataExtra({});
+        // Fetch job from API instead of Firestore client SDK
+        const fetchUserData = async () => {
+          try {
+            const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}`);
+            if (response.ok) {
+              const data = await response.json();
+              setUserDataExtra({ desiredJob: data.job });
+            }
+          } catch (err) {
+            console.error('Lỗi lấy thông tin user:', err);
           }
-        });
+        };
+        fetchUserData();
       } else {
         globalUserRole = null;
         globalEmployerData = null;
         setSeqId('000000');
         setUserDataExtra({});
-        if (firestoreUnsubscribe) firestoreUnsubscribe();
       }
       setUserRole(globalUserRole);
       setEmployerData(globalEmployerData);
@@ -370,7 +371,6 @@ export function useAuth() {
 
     return () => {
       unsubscribe();
-      if (firestoreUnsubscribe) firestoreUnsubscribe();
       listeners.delete(handleMockDataChange);
     };
   }, []);
@@ -573,8 +573,20 @@ export function useAuth() {
 
   const updateDesiredJob = async (newJob: string) => {
     if (firebaseUser) {
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      await setDoc(userDocRef, { job: newJob }, { merge: true });
+      try {
+        const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job: newJob })
+        });
+        if (!response.ok) {
+          throw new Error('Cập nhật thất bại từ Server');
+        }
+        setUserDataExtra(prev => ({ ...prev, desiredJob: newJob }));
+      } catch (error) {
+        console.error('Lỗi khi cập nhật công việc:', error);
+        throw error;
+      }
     }
   };
 
