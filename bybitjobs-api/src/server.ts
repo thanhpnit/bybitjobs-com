@@ -686,7 +686,7 @@ app.get('/api/employers', async (req: Request, res: Response): Promise<any> => {
 
 // GET 1 nhà tuyển dụng theo UID
 app.get('/api/employers/:uid', async (req: Request, res: Response): Promise<any> => {
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   try {
     const db = admin.firestore();
     const doc = await db.collection('employers').doc(uid).get();
@@ -701,7 +701,7 @@ app.get('/api/employers/:uid', async (req: Request, res: Response): Promise<any>
 
 // POST tạo/cập nhật nhà tuyển dụng
 app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any> => {
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   const data = req.body;
   try {
     const db = admin.firestore();
@@ -729,7 +729,7 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
 
 // PUT cập nhật trạng thái (Duyệt)
 app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promise<any> => {
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   const { status } = req.body;
   try {
     const db = admin.firestore();
