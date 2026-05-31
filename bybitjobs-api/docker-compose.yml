@@ -10,3 +10,5 @@ services:
     environment:
       - PORT=4000
       - NODE_ENV=production
+      - EMAIL_USER=thanhpnvpbq@gmail.com
+      - EMAIL_PASS=uuto vgwt hcms rnif
