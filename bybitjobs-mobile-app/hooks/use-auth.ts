@@ -7,6 +7,7 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  reload,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -381,7 +382,7 @@ export function useAuth() {
     const checkStatus = async () => {
       if (firebaseUser) {
         try {
-          await firebaseUser.reload();
+          await reload(firebaseUser);
         } catch (err: any) {
           console.error("Lỗi kiểm tra trạng thái tài khoản:", err);
           if (err.code === 'auth/user-disabled' || err.code === 'auth/user-not-found') {
