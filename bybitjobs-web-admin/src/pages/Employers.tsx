@@ -229,7 +229,7 @@ export const Employers: React.FC = () => {
             </View>
             <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
               {item.status === 'Chờ duyệt' && (
-                <TouchableOpacity onPress={() => handleApprove(item.id)} title="Duyệt">
+                <TouchableOpacity onPress={() => handleApprove(item.id)}>
                   <CheckCircle2 size={18} color={colors.successText} />
                 </TouchableOpacity>
               )}
