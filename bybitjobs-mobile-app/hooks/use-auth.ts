@@ -472,7 +472,26 @@ export function useAuth() {
     }
   };
 
-  const verifyAccount = async (): Promise<{ success: boolean; message: string }> => {
+  const sendOtp = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return { success: false, message: 'Chưa đăng nhập.' };
+      
+      const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email })
+      });
+      const result = await response.json();
+      
+      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi OTP.' };
+    } catch (error: any) {
+      console.error('Lỗi gọi API sendOtp:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const verifyAccount = async (otp: string): Promise<{ success: boolean; message: string }> => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -480,7 +499,9 @@ export function useAuth() {
       }
       
       const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/verify`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
       });
       const result = await response.json();
       
@@ -615,6 +636,7 @@ export function useAuth() {
     updateDesiredJob,
     login,
     signup,
+    sendOtp,
     verifyAccount,
     registerEmployer,
     updateCompany,

@@ -4,9 +4,19 @@ import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
 import path from 'path';
 import fs from 'fs';
+import nodemailer from 'nodemailer';
 
 // Khởi tạo biến môi trường
 dotenv.config();
+
+// Cấu hình Nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.EMAIL_PASS || 'your-app-password'
+  }
+});
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -165,20 +175,70 @@ app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<a
   }
 });
 
-// API xác minh tài khoản người dùng
+// API gửi OTP xác minh
+app.post('/api/users/:uid/send-otp', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  const { email } = req.body;
+  if (!uid || !email) {
+    return res.status(400).json({ error: 'Thiếu thông tin uid hoặc email.' });
+  }
+
+  try {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 phút
+
+    const db = admin.firestore();
+    await db.collection('otps').doc(uid).set({ otp, expiresAt });
+
+    await transporter.sendMail({
+      from: `"BybitJobs Admin" <${process.env.EMAIL_USER || 'no-reply@bybitjobs.com'}>`,
+      to: email,
+      subject: 'Mã xác minh tài khoản BybitJobs',
+      html: `<h3>Xin chào!</h3><p>Mã xác minh tài khoản của bạn là: <strong style="font-size:24px;">${otp}</strong></p><p>Mã này sẽ hết hạn trong vòng 5 phút.</p>`
+    });
+
+    return res.status(200).json({ success: true, message: 'Đã gửi mã OTP qua email.' });
+  } catch (error: any) {
+    console.error('Lỗi khi gửi OTP:', error);
+    return res.status(500).json({ error: 'Lỗi server khi gửi OTP', details: error.message });
+  }
+});
+
+// API xác minh tài khoản người dùng bằng OTP
 app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {
     return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
   }
 
-  const { uid } = req.params;
-  if (!uid) {
-    return res.status(400).json({ error: 'Thiếu UID người dùng.' });
+  const uid = req.params.uid as string;
+  const { otp } = req.body;
+
+  if (!uid || !otp) {
+    return res.status(400).json({ error: 'Thiếu UID người dùng hoặc mã OTP.' });
   }
 
   try {
+    const db = admin.firestore();
+    const otpDoc = await db.collection('otps').doc(uid).get();
+    
+    if (!otpDoc.exists) {
+      return res.status(400).json({ error: 'Mã OTP không tồn tại hoặc chưa được gửi.' });
+    }
+
+    const otpData = otpDoc.data();
+    if (Date.now() > (otpData?.expiresAt || 0)) {
+      return res.status(400).json({ error: 'Mã OTP đã hết hạn.' });
+    }
+
+    if (otpData?.otp !== otp) {
+      return res.status(400).json({ error: 'Mã OTP không chính xác.' });
+    }
+
+    // Xóa mã OTP sau khi dùng
+    await db.collection('otps').doc(uid).delete();
+
     // Cập nhật trạng thái emailVerified thành true trong Firebase Auth
-    await admin.auth().updateUser(uid as string, { emailVerified: true });
+    await admin.auth().updateUser(uid, { emailVerified: true });
     console.log(`🔥 Đã xác minh thành công tài khoản người dùng có UID: ${uid}`);
     return res.status(200).json({ success: true, message: `Xác minh tài khoản thành công.` });
   } catch (error: any) {

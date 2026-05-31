@@ -31,7 +31,8 @@ export default function ProfileScreen() {
     registerEmployer,
     verifyAccount,
     seqId,
-    updateDesiredJob
+    updateDesiredJob,
+    sendOtp
   } = useAuth();
 
   // Job seeking switch states
@@ -189,25 +190,30 @@ export default function ProfileScreen() {
     }, 1200);
   };
 
-  const handleSendVerificationEmail = () => {
-    Alert.alert(
-      'Gửi mã xác thực',
-      `Mã xác thực gồm 6 chữ số đã được gửi tới email ${userEmail}. Bạn có muốn nhập mã để xác thực tài khoản ngay không?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Nhập mã',
-          onPress: () => {
-            setIsVerificationVisible(true);
+  const handleSendVerificationEmail = async () => {
+    const result = await sendOtp();
+    if (result.success) {
+      Alert.alert(
+        'Gửi mã xác thực',
+        `Mã xác thực gồm 6 chữ số đã được gửi tới email ${userEmail}. Vui lòng kiểm tra hộp thư.`,
+        [
+          { text: 'Hủy', style: 'cancel' },
+          {
+            text: 'Nhập mã',
+            onPress: () => {
+              setIsVerificationVisible(true);
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } else {
+      Alert.alert('Lỗi', result.message);
+    }
   };
 
   const handleVerifySubmit = async () => {
-    if (verificationCode.trim() === '123456' || verificationCode.trim().length === 6) {
-      const result = await verifyAccount();
+    if (verificationCode.trim().length === 6) {
+      const result = await verifyAccount(verificationCode.trim());
       if (result.success) {
         setIsVerificationVisible(false);
         setVerificationCode('');
@@ -216,7 +222,7 @@ export default function ProfileScreen() {
         Alert.alert('Lỗi xác thực', result.message);
       }
     } else {
-      Alert.alert('Lỗi xác thực', 'Mã xác thực không đúng. Vui lòng nhập lại (Mã mẫu là 123456).');
+      Alert.alert('Lỗi xác thực', 'Mã xác thực không hợp lệ. Vui lòng nhập đúng 6 chữ số.');
     }
   };
 
@@ -1111,7 +1117,7 @@ export default function ProfileScreen() {
             </View>
 
             <Text style={[styles.verificationSubtitle, { color: isDark ? '#AAA' : '#5E6E7A', lineHeight: 18 }]}>
-              Hệ thống đã gửi mã xác thực gồm 6 chữ số tới liên hệ đăng ký của bạn. Nhập mã mẫu <Text style={{ fontWeight: 'bold', color: '#FF9500' }}>123456</Text> để hoàn tất xác minh.
+              Hệ thống đã gửi mã xác thực gồm 6 chữ số tới liên hệ đăng ký của bạn. Vui lòng kiểm tra hộp thư email để lấy mã OTP và hoàn tất xác minh.
             </Text>
 
             <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F5F5F5' }]}>
