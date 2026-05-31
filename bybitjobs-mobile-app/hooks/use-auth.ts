@@ -34,6 +34,7 @@ export interface EmployerData {
   branches?: BranchItem[];
   logo?: string;
   coverImage?: string;
+  status?: string;
 }
 
 export interface UserData {
@@ -350,14 +351,43 @@ export function useAuth() {
           }
         };
         fetchUserData();
+
+        // Fetch Employer Data from API
+        const fetchEmployerData = async () => {
+          try {
+            const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
+            if (response.ok) {
+              const data = await response.json();
+              globalEmployerData = {
+                companyName: data.company,
+                industry: data.industry,
+                address: data.address || '',
+                taxId: data.taxId || '',
+                phoneNumber: data.phone || '',
+                email: data.email || '',
+                servicePackage: 'Free',
+                status: data.status
+              };
+              globalUserRole = 'employer';
+            } else {
+              globalUserRole = 'candidate';
+              globalEmployerData = null;
+            }
+          } catch (err) {
+            console.error('Lỗi lấy thông tin employer:', err);
+          }
+          setUserRole(globalUserRole);
+          setEmployerData(globalEmployerData);
+        };
+        fetchEmployerData();
       } else {
         globalUserRole = null;
         globalEmployerData = null;
         setSeqId('000000');
         setUserDataExtra({});
+        setUserRole(null);
+        setEmployerData(null);
       }
-      setUserRole(globalUserRole);
-      setEmployerData(globalEmployerData);
       setIsInitializing(false);
     });
 
@@ -518,16 +548,67 @@ export function useAuth() {
     }
   };
 
-  const registerEmployer = (data: Omit<EmployerData, 'servicePackage'>) => {
-    globalUserRole = 'employer';
-    globalEmployerData = { ...data, servicePackage: 'Free' };
-    notifyAll();
+  const registerEmployer = async (data: Omit<EmployerData, 'servicePackage'>) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Chưa đăng nhập');
+      
+      const payload = {
+        company: data.companyName,
+        industry: data.industry || 'Khác',
+        address: data.address,
+        taxId: data.taxId,
+        phone: data.phoneNumber,
+        email: user.email,
+        status: 'Chờ duyệt'
+      };
+
+      const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        globalUserRole = 'employer';
+        globalEmployerData = { ...data, servicePackage: 'Free', status: result.employer.status };
+        notifyAll();
+      } else {
+        throw new Error('Lỗi từ server');
+      }
+    } catch (error) {
+      console.error('Lỗi đăng ký nhà tuyển dụng:', error);
+      throw error;
+    }
   };
 
-  const updateCompany = (data: Partial<EmployerData>) => {
+  const updateCompany = async (data: Partial<EmployerData>) => {
     if (globalEmployerData) {
-      globalEmployerData = { ...globalEmployerData, ...data };
-      notifyAll();
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error('Chưa đăng nhập');
+
+        const payload: any = {};
+        if (data.companyName) payload.company = data.companyName;
+        if (data.industry) payload.industry = data.industry;
+        if (data.address) payload.address = data.address;
+        if (data.taxId) payload.taxId = data.taxId;
+        if (data.phoneNumber) payload.phone = data.phoneNumber;
+
+        const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          globalEmployerData = { ...globalEmployerData, ...data };
+          notifyAll();
+        }
+      } catch (error) {
+        console.error('Lỗi cập nhật nhà tuyển dụng:', error);
+      }
     }
   };
 

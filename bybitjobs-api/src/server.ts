@@ -670,6 +670,76 @@ app.post('/api/invitations', (req: Request, res: Response): any => {
   });
 });
 
+// ---------------- EMPLOYERS API ---------------- //
+
+// GET danh sách nhà tuyển dụng
+app.get('/api/employers', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = admin.firestore();
+    const snapshot = await db.collection('employers').get();
+    const employers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return res.status(200).json(employers);
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi khi lấy danh sách nhà tuyển dụng', details: error.message });
+  }
+});
+
+// GET 1 nhà tuyển dụng theo UID
+app.get('/api/employers/:uid', async (req: Request, res: Response): Promise<any> => {
+  const { uid } = req.params;
+  try {
+    const db = admin.firestore();
+    const doc = await db.collection('employers').doc(uid).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Không tìm thấy nhà tuyển dụng.' });
+    }
+    return res.status(200).json({ id: doc.id, ...doc.data() });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
+// POST tạo/cập nhật nhà tuyển dụng
+app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any> => {
+  const { uid } = req.params;
+  const data = req.body;
+  try {
+    const db = admin.firestore();
+    const docRef = db.collection('employers').doc(uid);
+    const docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
+      await docRef.update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    } else {
+      await docRef.set({
+        ...data,
+        status: 'Chờ duyệt',
+        postsLimit: '0/10',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    const updatedDoc = await docRef.get();
+    return res.status(200).json({ success: true, employer: { id: updatedDoc.id, ...updatedDoc.data() } });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
+// PUT cập nhật trạng thái (Duyệt)
+app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promise<any> => {
+  const { uid } = req.params;
+  const { status } = req.body;
+  try {
+    const db = admin.firestore();
+    await db.collection('employers').doc(uid).update({ status });
+    return res.status(200).json({ success: true, message: 'Đã cập nhật trạng thái' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

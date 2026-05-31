@@ -12,14 +12,32 @@ import { useState } from 'react';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
+import { useEffect } from 'react';
 
 export const Employers: React.FC = () => {
   const { colors } = useTheme();
-  const { employers, setEmployers } = useData();
+  const [employers, setEmployers] = useState<any[]>([]);
+  const apiHost = window.location.hostname;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const fetchEmployers = async () => {
+    try {
+      const response = await fetch(`http://${apiHost}:4000/api/employers`);
+      if (response.ok) {
+        const data = await response.json();
+        setEmployers(data);
+      }
+    } catch (error) {
+      console.error('Lỗi lấy danh sách NTD:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployers();
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,8 +62,26 @@ export const Employers: React.FC = () => {
       visible: true,
       title: 'Xóa nhà tuyển dụng',
       message: 'Bạn có chắc chắn muốn xóa nhà tuyển dụng này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn.',
-      onConfirm: () => setEmployers(employers.filter(i => i.id !== id))
+      onConfirm: async () => {
+        // Thực tế có thể cần API DELETE, ở đây tạm update state cục bộ (giả định chưa có API delete)
+        setEmployers(employers.filter(i => i.id !== id));
+      }
     });
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const response = await fetch(`http://${apiHost}:4000/api/employers/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Xác thực' })
+      });
+      if (response.ok) {
+        fetchEmployers();
+      }
+    } catch (error) {
+      console.error('Lỗi duyệt:', error);
+    }
   };
 
   const handleSubmit = () => {
@@ -59,10 +95,10 @@ export const Employers: React.FC = () => {
   };
 
   const filteredData = employers.filter(emp => 
-    emp.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.phone.includes(searchQuery) ||
-    emp.industry.toLowerCase().includes(searchQuery.toLowerCase())
+    (emp.company || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (emp.phone || '').includes(searchQuery) ||
+    (emp.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -192,6 +228,11 @@ export const Employers: React.FC = () => {
               </Badge>
             </View>
             <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
+              {item.status === 'Chờ duyệt' && (
+                <TouchableOpacity onPress={() => handleApprove(item.id)} title="Duyệt">
+                  <CheckCircle2 size={18} color={colors.successText} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => handleOpenEdit(item)}>
                 <Edit2 size={18} color={colors.textSecondary} />
               </TouchableOpacity>

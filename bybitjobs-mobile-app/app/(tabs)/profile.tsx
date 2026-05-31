@@ -582,6 +582,9 @@ export default function ProfileScreen() {
                   <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#4CAF50', marginTop: 2 }}>
                     {employerData?.servicePackage || 'Free'}
                   </Text>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: employerData?.status === 'Chờ duyệt' ? '#FF9500' : '#0084FF', marginLeft: 12 }}>
+                    [{employerData?.status || 'Chưa rõ'}]
+                  </Text>
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => router.push('/recruiter/pricing')}
@@ -594,9 +597,15 @@ export default function ProfileScreen() {
 
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => router.push('/recruiter/dashboard')}
+                onPress={() => {
+                  if (employerData?.status === 'Chờ duyệt') {
+                    Alert.alert('Đang chờ duyệt', 'Hồ sơ doanh nghiệp của bạn đang được Admin xét duyệt. Vui lòng quay lại sau nhé!');
+                  } else {
+                    router.push('/recruiter/dashboard');
+                  }
+                }}
                 style={{
-                  backgroundColor: '#4CAF50',
+                  backgroundColor: employerData?.status === 'Chờ duyệt' ? '#FF9500' : '#4CAF50',
                   height: 44,
                   borderRadius: 10,
                   justifyContent: 'center',
