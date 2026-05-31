@@ -9,11 +9,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('isAdminAuth') === 'true';
+  });
 
   const login = (username: string, pass: string) => {
     if (username === 'admin' && pass === '123') {
       setIsAuthenticated(true);
+      sessionStorage.setItem('isAdminAuth', 'true');
       return true;
     }
     return false;
@@ -21,6 +24,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     setIsAuthenticated(false);
+    sessionStorage.removeItem('isAdminAuth');
   };
 
   return (
