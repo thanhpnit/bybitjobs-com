@@ -384,7 +384,7 @@ export function useAuth() {
         try {
           await reload(firebaseUser);
         } catch (err: any) {
-          console.error("Lỗi kiểm tra trạng thái tài khoản:", err);
+          console.log("Trạng thái tài khoản thay đổi (có thể bị khóa hoặc xóa):", err.message);
           if (err.code === 'auth/user-disabled' || err.code === 'auth/user-not-found') {
             if (intervalId) clearInterval(intervalId);
             const title = err.code === 'auth/user-disabled' ? 'Tài khoản bị khóa' : 'Tài khoản không tồn tại';
