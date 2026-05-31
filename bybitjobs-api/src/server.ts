@@ -81,7 +81,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
 
 // API cập nhật công việc mong muốn
 app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any> => {
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   const { job } = req.body;
   if (!uid || !job) {
     return res.status(400).json({ error: 'Thiếu thông tin uid hoặc job' });
@@ -99,7 +99,7 @@ app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any>
 
 // API lấy thông tin chi tiết một người dùng (bao gồm job)
 app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   try {
     const userRecord = await admin.auth().getUser(uid);
     const db = admin.firestore();
