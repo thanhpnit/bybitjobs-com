@@ -515,7 +515,6 @@ export function useAuth() {
     }
   };
 
-<<<<<<< HEAD
   const addJob = (job: Omit<JobItem, 'id' | 'createdAt'>) => {
     const newJob: JobItem = {
       ...job,

@@ -50,6 +50,14 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
     });
 
+    // Lấy thêm thông tin từ Firestore (ví dụ: công việc mong muốn)
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection('users').get();
+    const firestoreUsers: Record<string, any> = {};
+    usersSnapshot.forEach(doc => {
+      firestoreUsers[doc.id] = doc.data();
+    });
+
     // Chuyển đổi dữ liệu Firebase sang định dạng mà Web Admin đang dùng
     const users = sortedUsers.map((userRecord, index) => ({
       id: String(index).padStart(6, '0'), // Mã USER ID 6 số tuần tự (ví dụ: "000000", "000001")
@@ -57,7 +65,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       name: userRecord.displayName || 'Người dùng App',
       email: userRecord.email || '',
       phone: userRecord.phoneNumber || 'Chưa có',
-      job: 'Ứng viên (Mobile App)',
+      job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
       status: userRecord.disabled 
         ? 'Bị khóa' 
         : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
