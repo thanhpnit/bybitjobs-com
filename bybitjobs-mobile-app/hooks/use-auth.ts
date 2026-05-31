@@ -353,34 +353,55 @@ export function useAuth() {
         };
         fetchUserData();
 
-        // Listen to Employer Data from Firestore
-        if (globalEmployerUnsubscribe) globalEmployerUnsubscribe();
-        
-        const employerRef = doc(db, 'employers', user.uid);
-        globalEmployerUnsubscribe = onSnapshot(employerRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            globalEmployerData = {
-              companyName: data.company,
-              industry: data.industry,
-              address: data.address || '',
-              taxId: data.taxId || '',
-              phoneNumber: data.phone || '',
-              email: data.email || '',
-              servicePackage: 'Free',
-              status: data.status
-            };
-            globalUserRole = 'employer';
-          } else {
-            globalUserRole = 'candidate';
-            globalEmployerData = null;
+        let pollingInterval: NodeJS.Timeout | null = null;
+
+        const fetchEmployerData = async () => {
+          try {
+            const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
+            if (response.ok) {
+              const data = await response.json();
+              globalEmployerData = {
+                companyName: data.company,
+                industry: data.industry,
+                address: data.address || '',
+                taxId: data.taxId || '',
+                phoneNumber: data.phone || '',
+                email: data.email || '',
+                servicePackage: 'Free',
+                status: data.status
+              };
+              globalUserRole = 'employer';
+            } else {
+              globalUserRole = 'candidate';
+              globalEmployerData = null;
+            }
+          } catch (err) {
+            console.error('Lỗi lấy thông tin employer:', err);
           }
           setUserRole(globalUserRole);
           setEmployerData(globalEmployerData);
           notifyAll();
-        }, (err) => {
-          console.error('Lỗi lắng nghe employer:', err);
-        });
+
+          // Dừng polling nếu đã được duyệt
+          if (globalEmployerData?.status === 'Xác thực' && pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+        };
+
+        fetchEmployerData();
+        
+        // Polling 3 giây / lần để tránh lỗi Security Rules của Firestore Client
+        pollingInterval = setInterval(() => {
+          if (!globalEmployerData || globalEmployerData.status === 'Chờ duyệt') {
+            fetchEmployerData();
+          }
+        }, 3000);
+
+        // Lưu hàm cleanup
+        globalEmployerUnsubscribe = () => {
+          if (pollingInterval) clearInterval(pollingInterval);
+        };
       } else {
         if (globalEmployerUnsubscribe) {
           globalEmployerUnsubscribe();
