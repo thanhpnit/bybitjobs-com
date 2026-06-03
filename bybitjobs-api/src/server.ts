@@ -817,6 +817,44 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
             status: 'success',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
+          
+          const orderData = doc.data();
+          const employerId = orderData.employerId;
+          const packageId = orderData.packageId;
+          
+          if (employerId && packageId) {
+            const employerRef = db.collection('employers').doc(employerId);
+            const employerDoc = await employerRef.get();
+            if (employerDoc.exists) {
+              const empData = employerDoc.data();
+              const currentLimitStr = empData?.postsLimit || '0/1'; // Vd: '0/1'
+              
+              let used = 0;
+              let limit = 0;
+              if (currentLimitStr.includes('/')) {
+                const parts = currentLimitStr.split('/');
+                used = parseInt(parts[0], 10) || 0;
+                limit = parseInt(parts[1], 10) || 0;
+              } else {
+                limit = parseInt(currentLimitStr, 10) || 0;
+              }
+              
+              // Cộng thêm lượt bài tùy theo packageId
+              if (packageId === 'basic') {
+                limit += 1;
+              } else if (packageId === 'standard') {
+                limit += 5;
+              } else if (packageId === 'premium') {
+                limit = 9999; // Không giới hạn
+              }
+              
+              await employerRef.update({
+                postsLimit: `${used}/${limit}`,
+                isPremium: packageId === 'premium' ? true : (empData?.isPremium || false)
+              });
+              console.log(`Đã cập nhật bài đăng cho Employer ${employerId}: ${used}/${limit}`);
+            }
+          }
           console.log(`🔥 Đã duyệt thành công đơn hàng PayOS: ${orderCode}`);
         });
       }
