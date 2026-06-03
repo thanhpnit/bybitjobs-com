@@ -20,7 +20,7 @@ export default function RecruiterPaymentScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { upgradePackage } = useAuth();
+  const { upgradePackage, seqId } = useAuth();
 
   // Route Parameters
   const { packageId, packageName, packagePrice, packagePriceNum, packageDuration } = useLocalSearchParams<{
@@ -136,15 +136,15 @@ export default function RecruiterPaymentScreen() {
                 Quét mã để thanh toán nhanh hoặc nhập thông tin chuyển khoản bên dưới.
               </Text>
 
-              {/* QR Code Placeholder Graphic */}
+              {/* QR Code Graphic */}
               <View style={styles.qrFrame}>
                 <Image
-                  source={require('../../assets/images/small_jobs_banner.png')}
+                  source={{ uri: `https://img.vietqr.io/image/vcb-1031156481-compact.png?amount=${packagePriceNum}&addInfo=${encodeURIComponent(`ID ${seqId}`)}&accountName=${encodeURIComponent('PHAM NGOC THANH')}` }}
                   style={styles.qrImage}
                   resizeMode="cover"
                 />
                 <View style={styles.qrCodeLabelBox}>
-                  <Text style={styles.qrCodeLabelText}>QR THANH TOÁN MẪU</Text>
+                  <Text style={styles.qrCodeLabelText}>QUÉT MÃ ĐỂ THANH TOÁN</Text>
                 </View>
               </View>
 
@@ -157,14 +157,24 @@ export default function RecruiterPaymentScreen() {
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Chủ TK:</Text>
-                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>SMALL JOBS VIETNAM</Text>
+                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>PHAM NGOC THANH</Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Số TK:</Text>
                   <View style={styles.copyRow}>
-                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>1012398475</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy('1012398475')}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>1031156481</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy('1031156481')}>
+                      <Ionicons name="copy-outline" size={14} color="#0084FF" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={[styles.detailRow, { marginTop: 4 }]}>
+                  <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Nội dung:</Text>
+                  <View style={styles.copyRow}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>ID {seqId}</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy(`ID ${seqId}`)}>
                       <Ionicons name="copy-outline" size={14} color="#0084FF" />
                     </TouchableOpacity>
                   </View>

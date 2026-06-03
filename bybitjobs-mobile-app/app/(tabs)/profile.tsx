@@ -78,7 +78,7 @@ export default function ProfileScreen() {
 
   const handleConfirm2FAOTP = async () => {
     if (twoFACode.trim().length === 6) {
-      const result = await verifyAccount();
+      const result = await verifyAccount(twoFACode.trim());
       if (result.success) {
         setIs2FAEnabled(true);
         setTwoFAStep('enabled_info');

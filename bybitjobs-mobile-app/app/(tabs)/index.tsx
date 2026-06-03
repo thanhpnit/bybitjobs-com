@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/use-auth';
 
 
 
@@ -34,12 +35,14 @@ interface JobItem {
     icon: keyof typeof Ionicons.glyphMap;
   }[];
   price: string;
+  originalIndustry?: string;
 }
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
+  const { jobs } = useAuth();
 
   const [activeChip, setActiveChip] = React.useState('Hot');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
@@ -136,62 +139,24 @@ export default function HomeScreen() {
   const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
 
-  const jobListings: JobItem[] = [
-    {
-      id: 'job-1',
-      title: 'Cần phụ việc tại nhà hàng tiệc cưới Gò Vấp',
-      image: require('../../assets/images/wedding_banquet.png'),
-      author: {
-        name: 'Tiến Thắng',
-        verified: true,
-        rating: 4.5,
-        avatar: 'TT',
-      },
-      location: 'Phú Nhuận, TP. Hồ Chí Minh',
-      timeLeft: 'Còn 3 ngày, 3 giờ',
-      tags: [
-        { label: 'Nhà hàng', type: 'category', icon: 'restaurant-outline' },
-        { label: '500', type: 'points', icon: 'logo-usd' },
-      ],
-      price: '300.000đ',
+  const jobListings: JobItem[] = jobs.map(job => ({
+    id: job.id,
+    title: job.title,
+    image: null,
+    author: {
+      name: 'Nhà Tuyển Dụng',
+      verified: true,
+      rating: 5.0,
+      avatar: 'NT',
     },
-    {
-      id: 'job-2',
-      title: 'Tôi cần một người có chuyên môn phát triển app',
-      image: null, // Fallback profile vector graphic styled beautifully
-      author: {
-        name: 'Duyên',
-        verified: true,
-        rating: 4.5,
-        avatar: 'D',
-      },
-      location: 'Gò Vấp, TP. Hồ Chí Minh',
-      timeLeft: 'Còn 1 ngày, 5 giờ',
-      tags: [
-        { label: 'UI/UX', type: 'skills', icon: 'globe-outline' },
-        { label: '500', type: 'points', icon: 'logo-usd' },
-      ],
-      price: '1.000.000đ',
-    },
-    {
-      id: 'job-3',
-      title: 'Cần người ship hàng gấp khu vực Hoàn Kiếm, Hà Nội',
-      image: null,
-      author: {
-        name: 'Hoàng Long',
-        verified: false,
-        rating: 4.8,
-        avatar: 'HL',
-      },
-      location: 'Hoàn Kiếm, Hà Nội',
-      timeLeft: 'Còn 5 giờ',
-      tags: [
-        { label: 'Giao hàng', type: 'category', icon: 'bicycle-outline' },
-        { label: '200', type: 'points', icon: 'logo-usd' },
-      ],
-      price: '150.000đ',
-    },
-  ];
+    location: job.location,
+    timeLeft: job.isOpen ? `Hạn chót: ${job.deadline}` : 'Đã đóng',
+    tags: [
+      { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category', icon: 'briefcase-outline' },
+    ],
+    price: job.salary,
+    originalIndustry: job.industry,
+  }));
 
   const filteredJobs = jobListings.filter(job => {
     // Filter by Location
@@ -209,15 +174,7 @@ export default function HomeScreen() {
     // Filter by Industry
     let matchIndustry = true;
     if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
-      if (selectedIndustry === 'Nhà hàng / F&B') {
-        matchIndustry = job.tags.some(tag => tag.label === 'Nhà hàng');
-      } else if (selectedIndustry === 'UI/UX / Thiết kế') {
-        matchIndustry = job.tags.some(tag => tag.label === 'UI/UX');
-      } else if (selectedIndustry === 'Giao hàng / Vận chuyển') {
-        matchIndustry = job.tags.some(tag => tag.label === 'Giao hàng');
-      } else {
-        matchIndustry = false; // Mock other categories empty
-      }
+      matchIndustry = job.originalIndustry === selectedIndustry;
     }
 
     return matchLocation && matchIndustry;

@@ -10,7 +10,7 @@ import {
   reload,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 
 export type UserRole = 'candidate' | 'employer' | null;
 
@@ -55,6 +55,10 @@ export interface JobItem {
   deadline: string;
   isOpen: boolean;
   createdAt: string;
+  type?: string;
+  requiredCount?: number;
+  applicantsCount?: number;
+  employerId?: string;
 }
 
 export interface CandidateItem {
@@ -97,56 +101,23 @@ let globalEmployerUnsubscribe: (() => void) | null = null;
 const listeners = new Set<() => void>();
 const notifyAll = () => listeners.forEach((l) => l());
 
-let globalJobs: JobItem[] = [
-  {
-    id: 'job-1',
-    title: 'Thiết kế logo quán cafe',
-    industry: 'Thiết kế đồ họa',
-    salary: 'Thỏa thuận',
-    location: 'Phú Nhuận, TP.HCM',
-    description: 'Chào các bạn, mình đang cần tìm một bạn thiết kế logo cho quán cafe phong cách tối giản. Logo cần thể hiện được sự ấm cúng và hiện đại.',
-    requirements: '- Có ít nhất 1 năm kinh nghiệm thiết kế thương hiệu.\n- Giao file gốc chất lượng cao.\n- Có khả năng chỉnh sửa 2-3 lần.',
-    deadline: '11/30/2026',
-    isOpen: true,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'job-2',
-    title: 'Giao hàng nhanh nội thành',
-    industry: 'Vận chuyển',
-    salary: '300k/ngày',
-    location: 'Quận 7, TP.HCM',
-    description: 'Cần tuyển nhân viên giao hàng bằng xe máy khu vực Quận 7 và lân cận. Rành đường thành phố, trung thực, chịu khó.',
-    requirements: '- Có bằng lái xe máy.\n- Có điện thoại thông minh.\n- Chăm chỉ, đúng giờ.',
-    deadline: '05/20/2026',
-    isOpen: false,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'job-3',
-    title: 'Dọn dẹp căn hộ 2PN',
-    industry: 'Dịch vụ gia đình',
-    salary: '150k/giờ',
-    location: 'Bình Thạnh, TP.HCM',
-    description: 'Cần tìm người dọn dẹp, lau chùi căn hộ chung cư 2 phòng ngủ sạch sẽ, gọn gàng vào cuối tuần.',
-    requirements: '- Có kinh nghiệm dọn dẹp căn hộ.\n- Trung thực, cẩn thận.\n- Có mặt đúng giờ.',
-    deadline: '06/15/2026',
-    isOpen: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'job-4',
-    title: 'Lập trình viên React Native',
-    industry: 'Công nghệ thông tin',
-    salary: 'Cạnh tranh',
-    location: 'Cầu Giấy, Hà Nội',
-    description: 'Tuyển dụng kỹ sư lập trình di động React Native xây dựng các ứng dụng chất lượng cao cho khách hàng quốc tế.',
-    requirements: '- 2+ năm kinh nghiệm React Native.\n- Hiểu biết về Firebase, Redux, RESTful APIs.\n- Tinh thần làm việc đội nhóm tốt.',
-    deadline: '07/15/2026',
-    isOpen: true,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  }
-];
+let globalJobs: JobItem[] = [];
+let globalJobsUnsubscribe: (() => void) | null = null;
+
+const initJobsListener = () => {
+  if (globalJobsUnsubscribe) return;
+  const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
+  globalJobsUnsubscribe = onSnapshot(q, (snapshot) => {
+    globalJobs = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as JobItem[];
+    notifyAll();
+  }, (error) => {
+    console.error('Lỗi tải danh sách việc làm:', error);
+  });
+};
+initJobsListener();
 
 let globalCandidates: CandidateItem[] = [
   {
@@ -353,7 +324,7 @@ export function useAuth() {
         };
         fetchUserData();
 
-        let pollingInterval: NodeJS.Timeout | null = null;
+        let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
         const fetchEmployerData = async () => {
           try {
@@ -645,24 +616,38 @@ export function useAuth() {
     }
   };
 
-  const addJob = (job: Omit<JobItem, 'id' | 'createdAt'>) => {
-    const newJob: JobItem = {
-      ...job,
-      id: `job-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    globalJobs = [newJob, ...globalJobs];
-    notifyAll();
+  const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>) => {
+    try {
+      const jobId = `job-${Date.now()}`;
+      const newJob = {
+        ...job,
+        id: jobId,
+        createdAt: new Date().toISOString(),
+        employerId: auth.currentUser?.uid || ''
+      };
+      await setDoc(doc(db, 'jobs', jobId), newJob);
+    } catch (error) {
+      console.error('Lỗi khi thêm việc làm:', error);
+      Alert.alert('Lỗi', 'Không thể đăng tin lúc này.');
+    }
   };
 
-  const updateJob = (id: string, updatedFields: Partial<JobItem>) => {
-    globalJobs = globalJobs.map((j) => (j.id === id ? { ...j, ...updatedFields } : j));
-    notifyAll();
+  const updateJob = async (id: string, updatedFields: Partial<JobItem>) => {
+    try {
+      await updateDoc(doc(db, 'jobs', id), updatedFields);
+    } catch (error) {
+      console.error('Lỗi khi cập nhật việc làm:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật tin lúc này.');
+    }
   };
 
-  const deleteJob = (id: string) => {
-    globalJobs = globalJobs.filter((j) => j.id !== id);
-    notifyAll();
+  const deleteJob = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'jobs', id));
+    } catch (error) {
+      console.error('Lỗi khi xoá việc làm:', error);
+      Alert.alert('Lỗi', 'Không thể xoá tin lúc này.');
+    }
   };
 
   const updateApplicationStatus = (appId: string, status: 'Pending' | 'Approved' | 'Rejected') => {
@@ -748,7 +733,6 @@ export function useAuth() {
     registerEmployer,
     updateCompany,
     upgradePackage: updatePackage,
-    updateDesiredJob,
     logout,
   };
 }

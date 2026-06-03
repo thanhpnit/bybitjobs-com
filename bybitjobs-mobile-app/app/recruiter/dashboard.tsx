@@ -14,15 +14,7 @@ import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 
-interface JobItem {
-  id: string;
-  title: string;
-  isOpen: boolean;
-  type: string;
-  requiredCount: number;
-  applicantsCount: number;
-  salary: string;
-}
+
 
 export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
@@ -184,10 +176,10 @@ export default function RecruiterDashboardScreen() {
               {/* Row 2: Clock details */}
               <View style={styles.jobDetailsRow}>
                 <Ionicons name="time-outline" size={13} color="#8E8E93" />
-                <Text style={styles.jobDetailText}>{job.type}</Text>
+                <Text style={styles.jobDetailText}>{job.type || 'Toàn thời gian'}</Text>
                 <Text style={styles.bulletPoint}>•</Text>
                 <Ionicons name="people-outline" size={13} color="#8E8E93" />
-                <Text style={styles.jobDetailText}>Cần {job.requiredCount} người</Text>
+                <Text style={styles.jobDetailText}>Cần {job.requiredCount || 1} người</Text>
               </View>
 
               {/* Row 3: Avatars and salary badge */}
@@ -197,7 +189,7 @@ export default function RecruiterDashboardScreen() {
                   <View style={[styles.avatarBubble, { backgroundColor: '#ECEFF1', left: 0 }]} />
                   <View style={[styles.avatarBubble, { backgroundColor: '#CFD8DC', left: 14 }]} />
                   <View style={[styles.avatarCounter, { backgroundColor: '#EBF5FF', left: 28 }]}>
-                    <Text style={styles.avatarCounterText}>+{job.applicantsCount}</Text>
+                    <Text style={styles.avatarCounterText}>+{job.applicantsCount || 0}</Text>
                   </View>
                 </View>
 
