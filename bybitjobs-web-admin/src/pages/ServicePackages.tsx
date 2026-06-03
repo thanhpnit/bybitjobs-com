@@ -12,6 +12,8 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 import * as Icons from 'lucide-react-native';
 import { useState } from 'react';
+import { db } from '../config/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 const features = [
   { name: 'Gắn nhãn "Nổi bật"', starter: false, pro: '5 bài / tháng', premium: 'Không giới hạn' },
@@ -29,16 +31,16 @@ export const ServicePackages: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmProps, setConfirmProps] = useState({ visible: false, title: '', message: '', onConfirm: () => {} });
 
-  const [formData, setFormData] = useState({ name: '', price: '', period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
+  const [formData, setFormData] = useState({ name: '', price: '', priceNum: 0, period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
 
   const handleOpenAdd = () => {
-    setFormData({ name: '', price: '', period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
+    setFormData({ name: '', price: '', priceNum: 0, period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
     setEditingId(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (item: any) => {
-    setFormData({ name: item.name, price: item.price, period: item.period, posts: item.posts, cvs: item.cvs });
+    setFormData({ name: item.name, price: item.price, priceNum: item.priceNum || 0, period: item.period, posts: item.posts, cvs: item.cvs });
     setEditingId(item.id);
     setIsModalOpen(true);
   };
@@ -48,7 +50,14 @@ export const ServicePackages: React.FC = () => {
       visible: true,
       title: 'Xóa gói dịch vụ',
       message: 'Bạn có chắc chắn muốn xóa gói dịch vụ này không? Khách hàng hiện tại có thể bị ảnh hưởng.',
-      onConfirm: () => setPackages(packages.filter(i => i.id !== id))
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'packages', id));
+          setPackages(packages.filter(i => i.id !== id));
+        } catch (error) {
+          console.error("Lỗi xóa package", error);
+        }
+      }
     });
   };
 
@@ -245,10 +254,16 @@ export const ServicePackages: React.FC = () => {
           onChangeText={(text) => setFormData({...formData, name: text})}
         />
         <Input 
-          label="Mức giá (VNĐ)" 
-          placeholder="Nhập mức giá..." 
+          label="Mức giá (Hiển thị, VD: 50.000 VNĐ)" 
+          placeholder="Nhập mức giá hiển thị..." 
           value={formData.price}
           onChangeText={(text) => setFormData({...formData, price: text})}
+        />
+        <Input 
+          label="Giá tiền thật sự (Số nguyên, VD: 50000)" 
+          placeholder="Dùng để thanh toán PayOS..." 
+          value={String(formData.priceNum || '')}
+          onChangeText={(text) => setFormData({...formData, priceNum: parseInt(text, 10) || 0})}
         />
         <Input 
           label="Giới hạn bài đăng" 

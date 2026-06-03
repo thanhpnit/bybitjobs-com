@@ -839,15 +839,28 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
                 limit = parseInt(currentLimitStr, 10) || 0;
               }
               
-              // Cộng thêm lượt bài tùy theo packageId
-              if (packageId === 'basic') {
-                limit += 1;
-              } else if (packageId === 'standard') {
-                limit += 5;
-              } else if (packageId === 'premium') {
-                limit = 9999; // Không giới hạn
-              }
+              // Lấy cấu hình package từ Firebase để tính toán số bài đăng
+              const packageRef = db.collection('packages').doc(packageId);
+              const packageDoc = await packageRef.get();
               
+              if (packageDoc.exists) {
+                const pkgData = packageDoc.data();
+                // Giới hạn số bài đăng của gói
+                const postsStr = pkgData?.posts?.toString()?.toLowerCase() || '';
+                
+                if (postsStr.includes('không giới hạn')) {
+                  limit = 9999;
+                } else {
+                  // Lọc số từ chuỗi "5 bài", "25 bài"...
+                  const postCount = parseInt(postsStr.replace(/[^0-9]/g, ''), 10) || 0;
+                  limit += postCount;
+                }
+              } else {
+                // Fallback nếu không tìm thấy trên Firebase
+                if (packageId === 'basic' || packageId === 'starter') limit += 5;
+                else if (packageId === 'standard' || packageId === 'pro') limit += 25;
+                else if (packageId === 'premium') limit = 9999;
+              }
               await employerRef.update({
                 postsLimit: `${used}/${limit}`,
                 isPremium: packageId === 'premium' ? true : (empData?.isPremium || false)

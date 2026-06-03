@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 
 interface PackageItem {
   id: string;
@@ -30,54 +31,41 @@ export default function RecruiterPricingScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
 
-  const packages: PackageItem[] = [
-    {
-      id: 'basic',
-      name: 'Basic Package',
-      price: '50.000đ',
-      priceNum: 50000,
-      duration: '7 ngày',
-      tag: 'TRẠNG THÁI: CƠ BẢN',
-      features: [
-        'Số lượng: 1 bài đăng',
-        'Thời hạn: 7 ngày',
-        'Tin nổi bật: Không có',
-        'Mô tả: Phù hợp cho nhu cầu tuyển dụng nhỏ và vừa.',
-      ],
-    },
-    {
-      id: 'standard',
-      name: 'Standard Package',
-      price: '200.000đ',
-      priceNum: 200000,
-      duration: '30 ngày',
-      tag: 'TRẠNG THÁI: NÂNG CAO',
-      subTag: 'PHỔ BIẾN NHẤT',
-      isPopular: true,
-      features: [
-        'Số lượng: 5 bài đăng',
-        'Thời hạn: 30 ngày',
-        'Tin nổi bật: Có (Featured)',
-        'Mô tả: Tăng tương tác và hiệu quả tuyển dụng.',
-      ],
-    },
-    {
-      id: 'premium',
-      name: 'Premium Package',
-      price: '500.000đ',
-      priceNum: 500000,
-      duration: '365 ngày',
-      tag: 'ĐẶC QUYỀN VIP',
-      subTag: 'KHUYÊN DÙNG',
-      isVip: true,
-      features: [
-        'Số lượng: Không giới hạn',
-        'Thời hạn: 365 ngày',
-        'Tin nổi bật: Có (Premium)',
-        'Mô tả: Giải pháp tuyển dụng toàn diện và hỗ trợ 24/7.',
-      ],
-    },
-  ];
+  const [packages, setPackages] = React.useState<PackageItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const db = getFirestore();
+    const unsubscribe = onSnapshot(collection(db, 'packages'), (snapshot) => {
+      const data: PackageItem[] = [];
+      snapshot.forEach((doc) => {
+        const pkg = doc.data();
+        data.push({
+          id: pkg.id,
+          name: pkg.name,
+          price: pkg.price,
+          priceNum: pkg.priceNum || 0,
+          duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
+          tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
+          features: [
+            `Số lượng: ${pkg.posts || ''}`,
+            `Lượt nhận CV: ${pkg.cvs || ''}`,
+          ],
+          isPopular: pkg.isPopular,
+          isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
+        });
+      });
+      // Sort by priceNum to keep them in order
+      data.sort((a, b) => a.priceNum - b.priceNum);
+      setPackages(data);
+      setLoading(false);
+    }, (err) => {
+      console.log('Lỗi fetch packages:', err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const benefits = [
     {

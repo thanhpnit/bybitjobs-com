@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { db } from '../config/firebase';
+import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { 
   initialUsers, 
   initialEmployers, 
@@ -45,16 +47,54 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [users, setUsersState] = useState(() => loadData('bybitjobs_users', initialUsers));
   const [employers, setEmployersState] = useState(() => loadData('bybitjobs_employers', initialEmployers));
   const [jobPosts, setJobPostsState] = useState(() => loadData('bybitjobs_jobPosts', initialJobPosts));
-  const [packages, setPackagesState] = useState(() => loadData('bybitjobs_packages', initialPackages));
+  const [packages, setPackagesState] = useState<any[]>([]); // Sẽ load từ Firebase
   const [industries, setIndustriesState] = useState(() => loadData('bybitjobs_industries', initialIndustries));
   const [reports, setReportsState] = useState(() => loadData('bybitjobs_reports', initialReports));
   const [reviews, setReviewsState] = useState(() => loadData('bybitjobs_reviews', initialReviews));
   const [paymentMethods, setPaymentMethodsState] = useState(() => loadData('bybitjobs_paymentMethods', initialPaymentMethods));
 
+  useEffect(() => {
+    // Lắng nghe thay đổi từ Firestore collection 'packages'
+    const unsubscribe = onSnapshot(collection(db, 'packages'), (snapshot) => {
+      const data: any[] = [];
+      snapshot.forEach(d => data.push(d.data()));
+      
+      // Nếu chưa có package nào trên Firestore, khởi tạo bằng dữ liệu mẫu
+      if (data.length === 0) {
+        initialPackages.forEach(async (pkg) => {
+          await setDoc(doc(db, 'packages', pkg.id), pkg);
+        });
+        setPackagesState(initialPackages);
+      } else {
+        setPackagesState(data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const setUsers = (data: any[]) => { setUsersState(data); localStorage.setItem('bybitjobs_users', JSON.stringify(data)); };
   const setEmployers = (data: any[]) => { setEmployersState(data); localStorage.setItem('bybitjobs_employers', JSON.stringify(data)); };
   const setJobPosts = (data: any[]) => { setJobPostsState(data); localStorage.setItem('bybitjobs_jobPosts', JSON.stringify(data)); };
-  const setPackages = (data: any[]) => { setPackagesState(data); localStorage.setItem('bybitjobs_packages', JSON.stringify(data)); };
+  const setPackages = async (data: any[]) => {
+    // UI optimistic update
+    setPackagesState(data);
+    
+    // Sync to Firestore
+    try {
+      const batch = data.map(async (pkg) => {
+        await setDoc(doc(db, 'packages', pkg.id), pkg);
+      });
+      await Promise.all(batch);
+      
+      // Handle deletions (nếu có package bị xóa)
+      // Để đơn giản, ta không xử lý xóa ở đây nếu data truyền vào thiếu phần tử. 
+      // Trong thực tế, hàm deletePackages sẽ tốt hơn. Ở quy mô này, setDoc đè lên là đủ.
+    } catch (e) {
+      console.error('Error syncing packages to Firestore', e);
+    }
+  };
+
   const setIndustries = (data: any[]) => { setIndustriesState(data); localStorage.setItem('bybitjobs_industries', JSON.stringify(data)); };
   const setReports = (data: any[]) => { setReportsState(data); localStorage.setItem('bybitjobs_reports', JSON.stringify(data)); };
   const setReviews = (data: any[]) => { setReviewsState(data); localStorage.setItem('bybitjobs_reviews', JSON.stringify(data)); };
