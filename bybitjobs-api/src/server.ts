@@ -777,7 +777,7 @@ app.post('/api/payment/create', async (req: Request, res: Response): Promise<any
   };
 
   try {
-    const paymentLinkRes = await payos.createPaymentLink(body);
+    const paymentLinkRes = await payos.paymentRequests.create(body);
     return res.status(200).json({
       success: true,
       data: {
