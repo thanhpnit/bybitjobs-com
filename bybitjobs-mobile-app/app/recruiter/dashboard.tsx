@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   Image,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -21,6 +23,10 @@ export default function RecruiterDashboardScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { employerData, jobs, logout } = useAuth();
+
+  const [isMenuVisible, setIsMenuVisible] = React.useState(false);
+  const handleOpenMenu = () => setIsMenuVisible(true);
+  const handleCloseMenu = () => setIsMenuVisible(false);
 
   const handlePostJob = () => {
     router.push({
@@ -71,7 +77,7 @@ export default function RecruiterDashboardScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
       {/* Header Bar */}
       <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
-        <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
+        <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={handleOpenMenu}>
           <Ionicons name="menu-outline" size={26} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerBarTitle}>BybitJobs</Text>
@@ -237,6 +243,44 @@ export default function RecruiterDashboardScreen() {
           <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Hamburger Bottom Sheet Menu */}
+      <Modal
+        visible={isMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseMenu}
+      >
+        <TouchableWithoutFeedback onPress={handleCloseMenu}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.menuSheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                <View style={styles.menuSheetHeader}>
+                  <Text style={[styles.menuSheetTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Tùy chọn</Text>
+                  <TouchableOpacity onPress={handleCloseMenu}>
+                    <Ionicons name="close" size={24} color="#8E8E93" />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => { handleCloseMenu(); router.push('/recruiter/profile'); }}>
+                  <Ionicons name="business-outline" size={22} color={isDark ? '#FFF' : '#11181C'} />
+                  <Text style={[styles.menuItemText, { color: isDark ? '#FFF' : '#11181C' }]}>Thông tin công ty</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => { handleCloseMenu(); router.push('/recruiter/transactions' as any); }}>
+                  <Ionicons name="receipt-outline" size={22} color={isDark ? '#FFF' : '#11181C'} />
+                  <Text style={[styles.menuItemText, { color: isDark ? '#FFF' : '#11181C' }]}>Lịch sử giao dịch</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={() => { handleCloseMenu(); handleNavItemPress('Cá nhân'); }}>
+                  <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
+                  <Text style={[styles.menuItemText, { color: '#FF3B30' }]}>Đăng xuất</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -547,5 +591,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#8E8E93',
     marginTop: 3,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  menuSheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  menuSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  menuSheetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(142, 142, 147, 0.2)',
+  },
+  menuItemText: {
+    fontSize: 16,
+    marginLeft: 12,
   },
 });

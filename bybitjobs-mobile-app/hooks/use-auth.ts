@@ -10,7 +10,7 @@ import {
   reload,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where } from 'firebase/firestore';
 
 export type UserRole = 'candidate' | 'employer' | null;
 
@@ -21,11 +21,13 @@ export interface BranchItem {
 }
 
 export interface EmployerData {
+  id?: string;
   companyName: string;
   taxId: string;
   phoneNumber: string;
   address: string;
   servicePackage: 'Free' | 'Gold' | 'Diamond';
+  currentPackage?: string;
   website?: string;
   email?: string;
   industry?: string;
@@ -118,6 +120,19 @@ const initJobsListener = () => {
   });
 };
 initJobsListener();
+
+export interface OrderItem {
+  id: string;
+  employerId: string;
+  packageId: string;
+  packageName: string;
+  price: string | number;
+  status: 'pending' | 'success' | 'failed';
+  createdAt: string;
+}
+
+let globalOrders: OrderItem[] = [];
+let globalOrdersUnsubscribe: (() => void) | null = null;
 
 let globalCandidates: CandidateItem[] = [
   {
@@ -288,8 +303,8 @@ export function useAuth() {
   
   const [userRole, setUserRole] = React.useState<UserRole>(globalUserRole);
   const [employerData, setEmployerData] = React.useState<EmployerData | null>(globalEmployerData);
-  
   const [jobs, setJobs] = React.useState<JobItem[]>(globalJobs);
+  const [orders, setOrders] = React.useState<OrderItem[]>(globalOrders);
   const [candidates, setCandidates] = React.useState<CandidateItem[]>(globalCandidates);
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
   const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string }>({});
@@ -328,19 +343,44 @@ export function useAuth() {
 
         const fetchEmployerData = async () => {
           try {
-            const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
-            if (response.ok) {
-              const data = await response.json();
+            const empResponse = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
+            if (empResponse.ok) {
+              const empData = await empResponse.json();
               globalEmployerData = {
-                companyName: data.company,
-                industry: data.industry,
-                address: data.address || '',
-                taxId: data.taxId || '',
-                phoneNumber: data.phone || '',
-                email: data.email || '',
+                id: empData.id || empData.user_id,
+                companyName: empData.company_name,
+                taxId: empData.tax_code,
+                phoneNumber: empData.phone,
+                address: empData.address,
                 servicePackage: 'Free',
-                status: data.status
+                currentPackage: empData.current_package || 'basic',
+                status: empData.status || 'Chờ duyệt',
+                industry: empData.industry || 'Khác',
+                scale: empData.scale || '1-10 nhân viên',
+                description: empData.description || 'Chưa có mô tả',
+                logo: empData.logo_url || null,
+                email: user.email || ''
               };
+
+              // Start listening to orders
+              if (globalOrdersUnsubscribe) globalOrdersUnsubscribe();
+              const qOrders = query(collection(db, 'orders'), where('employerId', '==', user.uid), orderBy('createdAt', 'desc'));
+              globalOrdersUnsubscribe = onSnapshot(qOrders, (snapshot) => {
+                globalOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderItem[];
+                
+                // Auto update package if there is a successful order
+                const latestSuccessOrder = globalOrders.find(o => o.status === 'success');
+                if (globalEmployerData) {
+                  globalEmployerData = {
+                    ...globalEmployerData,
+                    currentPackage: latestSuccessOrder ? latestSuccessOrder.packageId : (empData.current_package || 'basic')
+                  };
+                }
+                notifyAll();
+              }, (error) => {
+                console.error('Lỗi tải danh sách đơn hàng:', error);
+              });
+              
               globalUserRole = 'employer';
             } else {
               globalUserRole = 'candidate';
@@ -378,6 +418,10 @@ export function useAuth() {
           globalEmployerUnsubscribe();
           globalEmployerUnsubscribe = null;
         }
+        if (globalOrdersUnsubscribe) {
+          globalOrdersUnsubscribe();
+          globalOrdersUnsubscribe = null;
+        }
         globalUserRole = null;
         globalEmployerData = null;
         setSeqId('000000');
@@ -392,6 +436,7 @@ export function useAuth() {
       setUserRole(globalUserRole);
       setEmployerData(globalEmployerData);
       setJobs([...globalJobs]);
+      setOrders([...globalOrders]);
       setCandidates([...globalCandidates]);
       setApplications([...globalApplications]);
     };
@@ -616,6 +661,28 @@ export function useAuth() {
     }
   };
 
+  const createOrder = async (packageId: string, packageName: string, price: string, orderCode: string) => {
+    if (!auth.currentUser) return;
+    try {
+      const orderId = `order-${Date.now()}`;
+      const newOrder = {
+        employerId: auth.currentUser.uid,
+        packageId,
+        packageName,
+        price,
+        orderCode,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'orders', orderId), newOrder);
+      return orderId;
+    } catch (error) {
+      console.error('Lỗi khi tạo đơn hàng:', error);
+      Alert.alert('Lỗi', 'Không thể tạo đơn hàng lúc này.');
+      return null;
+    }
+  };
+
   const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>) => {
     try {
       const jobId = `job-${Date.now()}`;
@@ -718,6 +785,7 @@ export function useAuth() {
     } : null,
     employerData,
     jobs,
+    orders,
     candidates,
     applications,
     addJob,
@@ -733,6 +801,7 @@ export function useAuth() {
     registerEmployer,
     updateCompany,
     upgradePackage: updatePackage,
+    createOrder,
     logout,
   };
 }

@@ -64,8 +64,16 @@ export const Employers: React.FC = () => {
       title: 'Xóa nhà tuyển dụng',
       message: 'Bạn có chắc chắn muốn xóa nhà tuyển dụng này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn.',
       onConfirm: async () => {
-        // Thực tế có thể cần API DELETE, ở đây tạm update state cục bộ (giả định chưa có API delete)
-        setEmployers(employers.filter(i => i.id !== id));
+        try {
+          const response = await fetch(`http://${apiHost}:4000/api/employers/${id}`, {
+            method: 'DELETE'
+          });
+          if (response.ok) {
+            fetchEmployers();
+          }
+        } catch (error) {
+          console.error('Lỗi khi xóa:', error);
+        }
       }
     });
   };
@@ -85,14 +93,21 @@ export const Employers: React.FC = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (editingId) {
-      setEmployers(employers.map(i => i.id === editingId ? { ...i, ...formData } : i));
-    } else {
-      const newId = `#EM-${Math.floor(1000 + Math.random() * 9000)}`;
-      setEmployers([...employers, { id: newId, isVerified: true, ...formData }]);
+  const handleSubmit = async () => {
+    const id = editingId || `EM-${Math.floor(1000 + Math.random() * 9000)}`;
+    try {
+      const response = await fetch(`http://${apiHost}:4000/api/employers/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (response.ok) {
+        fetchEmployers();
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Lỗi lưu NTD:', error);
     }
-    setIsModalOpen(false);
   };
 
   const filteredData = employers.filter(emp => 

@@ -5,6 +5,13 @@ import * as admin from 'firebase-admin';
 import path from 'path';
 import fs from 'fs';
 import nodemailer from 'nodemailer';
+import { PayOS } from '@payos/node';
+
+const payos = new PayOS({
+  clientId: '535dac20-5fd1-4df2-9f3b-c126ea23a3f0',
+  apiKey: '3c30066e-15ef-49f6-b92b-1d232214abf8',
+  checksumKey: 'b50ddd7debe96cd2e63744fc802764a6693ea0722eee6742ade17f7b5da9e6f5'
+});
 
 // Khởi tạo biến môi trường
 dotenv.config();
@@ -727,6 +734,18 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
   }
 });
 
+// DELETE xóa nhà tuyển dụng
+app.delete('/api/employers/:uid', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  try {
+    const db = admin.firestore();
+    await db.collection('employers').doc(uid).delete();
+    return res.status(200).json({ success: true, message: 'Đã xóa nhà tuyển dụng' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
 // PUT cập nhật trạng thái (Duyệt)
 app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
@@ -737,6 +756,76 @@ app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promi
     return res.status(200).json({ success: true, message: 'Đã cập nhật trạng thái' });
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
+});
+
+// ---------------- PAYOS PAYMENT API ---------------- //
+
+app.post('/api/payment/create', async (req: Request, res: Response): Promise<any> => {
+  const { amount, description, orderCode } = req.body;
+  if (!amount || !orderCode) {
+    return res.status(400).json({ error: 'Thiếu số tiền hoặc mã đơn hàng' });
+  }
+
+  const body = {
+    orderCode: Number(orderCode),
+    amount: Number(amount),
+    description: description || 'Thanh toan don hang',
+    items: [],
+    cancelUrl: 'https://bybitjobs.com/cancel',
+    returnUrl: 'https://bybitjobs.com/success',
+  };
+
+  try {
+    const paymentLinkRes = await payos.createPaymentLink(body);
+    return res.status(200).json({
+      success: true,
+      data: {
+        bin: paymentLinkRes.bin,
+        accountNumber: paymentLinkRes.accountNumber,
+        accountName: paymentLinkRes.accountName,
+        amount: paymentLinkRes.amount,
+        description: paymentLinkRes.description,
+        orderCode: paymentLinkRes.orderCode,
+        qrCode: paymentLinkRes.qrCode,
+        checkoutUrl: paymentLinkRes.checkoutUrl
+      }
+    });
+  } catch (error: any) {
+    console.error('Lỗi tạo link thanh toán PayOS:', error);
+    return res.status(500).json({ error: 'Lỗi tạo link thanh toán', details: error.message });
+  }
+});
+
+// Webhook xử lý thanh toán tự động từ PayOS
+app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const webhookData = await payos.webhooks.verify(req.body);
+    
+    if (webhookData && webhookData.orderCode) {
+      const orderCode = String(webhookData.orderCode);
+      
+      const db = admin.firestore();
+      const ordersRef = db.collection('orders');
+      const q = ordersRef.where('orderCode', '==', orderCode);
+      const snapshot = await q.get();
+      
+      if (!snapshot.empty) {
+        // Cập nhật trạng thái đơn hàng thành success
+        snapshot.forEach(async (doc) => {
+          await doc.ref.update({
+            status: 'success',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          console.log(`🔥 Đã duyệt thành công đơn hàng PayOS: ${orderCode}`);
+        });
+      }
+    }
+    
+    return res.status(200).json({ success: true });
+  } catch (error: any) {
+    console.error('Lỗi xử lý webhook PayOS:', error);
+    return res.status(400).json({ success: false, error: error.message });
   }
 });
 

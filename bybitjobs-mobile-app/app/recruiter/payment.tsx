@@ -20,7 +20,7 @@ export default function RecruiterPaymentScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { upgradePackage, seqId } = useAuth();
+  const { upgradePackage, seqId, createOrder } = useAuth();
 
   // Route Parameters
   const { packageId, packageName, packagePrice, packagePriceNum, packageDuration } = useLocalSearchParams<{
@@ -33,38 +33,55 @@ export default function RecruiterPaymentScreen() {
 
   // Local payment method state manager
   const [activeMethod, setActiveMethod] = React.useState<PaymentMethod>('bank');
+  const [payosData, setPayosData] = React.useState<any>(null);
+  const [orderCode] = React.useState(String(Date.now()));
+
+  React.useEffect(() => {
+    const fetchPayOS = async () => {
+      try {
+        const response = await fetch('http://160.250.246.119:4000/api/payment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: packagePriceNum,
+            description: 'Thanh toan goi BybitJobs',
+            orderCode: orderCode
+          })
+        });
+        const result = await response.json();
+        if (result.success) {
+          setPayosData(result.data);
+        }
+      } catch (e) {
+        console.log('Lỗi fetch PayOS', e);
+      }
+    };
+    if (packagePriceNum) {
+      fetchPayOS();
+    }
+  }, [packagePriceNum, orderCode]);
 
   // Copy helper
   const handleCopy = (text: string) => {
     Alert.alert('Sao chép', `Đã sao chép thành công: ${text}`);
   };
 
-  const handleConfirmPayment = () => {
-    // 1. Simulating payment validation logic
-    let apiPackageName: 'Free' | 'Gold' | 'Diamond' = 'Free';
-    if (packageName?.includes('Standard')) {
-      apiPackageName = 'Gold';
-    } else if (packageName?.includes('Premium')) {
-      apiPackageName = 'Diamond';
+  const handleConfirmPayment = async () => {
+    const orderId = await createOrder(packageId, packageName, packagePriceNum, orderCode);
+    if (orderId) {
+      Alert.alert(
+        'Đã gửi xác nhận',
+        'Đơn hàng của bạn đang được xử lý. Khi hệ thống nhận được tiền, gói dịch vụ sẽ tự động kích hoạt.',
+        [
+          {
+            text: 'Đồng ý',
+            onPress: () => {
+              router.push('/recruiter/transactions' as any);
+            }
+          }
+        ]
+      );
     }
-
-    // 2. Perform Mock Upgrade in Context Storage
-    upgradePackage(apiPackageName);
-
-    // 3. Trigger Modal Success Dialog
-    Alert.alert(
-      'Giao dịch thành công',
-      `Bạn đã thanh toán thành công đơn hàng ${packageName || 'Standard Package'}. Gói dịch vụ đã được kích hoạt trực tiếp trên tài khoản của bạn.`,
-      [
-        {
-          text: 'Vào Dashboard quản lý',
-          onPress: () => {
-            // Navigate to Recruiter Dashboard Screen
-            router.push('/recruiter/dashboard');
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -138,11 +155,17 @@ export default function RecruiterPaymentScreen() {
 
               {/* QR Code Graphic */}
               <View style={styles.qrFrame}>
-                <Image
-                  source={{ uri: `https://img.vietqr.io/image/vcb-1031156481-compact.png?amount=${packagePriceNum}&addInfo=${encodeURIComponent(`ID ${seqId}`)}&accountName=${encodeURIComponent('PHAM NGOC THANH')}` }}
-                  style={styles.qrImage}
-                  resizeMode="cover"
-                />
+                {payosData ? (
+                  <Image
+                    source={{ uri: `https://img.vietqr.io/image/${payosData.bin}-${payosData.accountNumber}-compact.png?amount=${payosData.amount}&addInfo=${encodeURIComponent(payosData.description)}&accountName=${encodeURIComponent(payosData.accountName)}` }}
+                    style={styles.qrImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#E5E5EA' }}>
+                    <Text style={{ fontSize: 10, color: '#8E8E93' }}>Đang tạo mã QR...</Text>
+                  </View>
+                )}
                 <View style={styles.qrCodeLabelBox}>
                   <Text style={styles.qrCodeLabelText}>QUÉT MÃ ĐỂ THANH TOÁN</Text>
                 </View>
@@ -152,19 +175,19 @@ export default function RecruiterPaymentScreen() {
               <View style={styles.detailsList}>
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Ngân hàng:</Text>
-                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>Vietcombank</Text>
+                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.bin : 'Đang lấy...'}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Chủ TK:</Text>
-                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>PHAM NGOC THANH</Text>
+                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.accountName : '...'}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Số TK:</Text>
                   <View style={styles.copyRow}>
-                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>1031156481</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy('1031156481')}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.accountNumber : '...'}</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => payosData && handleCopy(payosData.accountNumber)}>
                       <Ionicons name="copy-outline" size={14} color="#0084FF" />
                     </TouchableOpacity>
                   </View>
@@ -173,8 +196,8 @@ export default function RecruiterPaymentScreen() {
                 <View style={[styles.detailRow, { marginTop: 4 }]}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Nội dung:</Text>
                   <View style={styles.copyRow}>
-                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>ID {seqId}</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy(`ID ${seqId}`)}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.description : '...'}</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => payosData && handleCopy(payosData.description)}>
                       <Ionicons name="copy-outline" size={14} color="#0084FF" />
                     </TouchableOpacity>
                   </View>
