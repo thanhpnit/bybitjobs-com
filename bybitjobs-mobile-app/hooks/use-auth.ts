@@ -373,7 +373,7 @@ export function useAuth() {
                 if (globalEmployerData) {
                   globalEmployerData = {
                     ...globalEmployerData,
-                    currentPackage: latestSuccessOrder ? latestSuccessOrder.packageId : (empData.current_package || 'basic')
+                    currentPackage: latestSuccessOrder ? latestSuccessOrder.packageName : (empData.current_package || 'basic')
                   };
                 }
                 notifyAll();

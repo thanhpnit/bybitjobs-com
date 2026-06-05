@@ -56,7 +56,7 @@ export default function RecruiterTransactionsScreen() {
       <View style={[styles.navBar, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => router.back()}
+          onPress={() => router.navigate('/recruiter/dashboard' as any)}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#11181C'} />

@@ -210,7 +210,7 @@ export default function RecruiterDashboardScreen() {
         <View style={[styles.upgradePlanPromoCard, { backgroundColor: isDark ? '#1C1C1E' : '#EBF5FF', borderColor: isDark ? '#2C2C2E' : '#BFDBFE' }]}>
           <Ionicons name="ribbon-outline" size={24} color="#0084FF" />
           <View style={styles.promoTextGroup}>
-            <Text style={[styles.promoTitle, { color: isDark ? '#FFF' : '#0F47A1' }]}>Gói dịch vụ hiện tại: {employerData?.servicePackage || 'Free'}</Text>
+            <Text style={[styles.promoTitle, { color: isDark ? '#FFF' : '#0F47A1' }]}>Gói dịch vụ hiện tại: {employerData?.currentPackage || 'Miễn phí'}</Text>
             <Text style={[styles.promoDesc, { color: isDark ? '#9BA1A6' : '#1976D2' }]}>Nâng cấp lên gói VIP để mở rộng hạn mức đăng tin tuyển dụng.</Text>
           </View>
           <TouchableOpacity activeOpacity={0.7} onPress={handleSelectPlan} style={styles.promoBuyBtn}>

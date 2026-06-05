@@ -873,7 +873,8 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
               }
               await employerRef.update({
                 postsLimit: `${used}/${limit}`,
-                isPremium: packageId === 'premium' ? true : (empData?.isPremium || false)
+                isPremium: packageId === 'premium' ? true : (empData?.isPremium || false),
+                current_package: orderData.packageName || packageId
               });
               console.log(`Đã cập nhật bài đăng cho Employer ${employerId}: ${used}/${limit}`);
             }
