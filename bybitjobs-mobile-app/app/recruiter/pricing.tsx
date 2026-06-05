@@ -11,7 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../../src/config/firebase';
 
 interface PackageItem {
   id: string;
@@ -35,7 +36,6 @@ export default function RecruiterPricingScreen() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const db = getFirestore();
     const unsubscribe = onSnapshot(collection(db, 'packages'), (snapshot) => {
       const data: PackageItem[] = [];
       snapshot.forEach((doc) => {

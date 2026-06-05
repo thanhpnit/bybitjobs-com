@@ -799,8 +799,18 @@ app.post('/api/payment/create', async (req: Request, res: Response): Promise<any
 
 // Webhook xử lý thanh toán tự động từ PayOS
 app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any> => {
+  console.log("PayOS Webhook received:", JSON.stringify(req.body, null, 2));
+  
+  let webhookData;
   try {
-    const webhookData = await payos.webhooks.verify(req.body);
+    webhookData = await payos.webhooks.verify(req.body);
+  } catch (err: any) {
+    console.error("PayOS Verification failed:", err.message);
+    // Trả về 200 OK để PayOS dashboard có thể lưu cấu hình webhook thành công
+    return res.status(200).json({ success: true, message: "Webhook received but verification failed (Test request?)" });
+  }
+
+  try {
     
     if (webhookData && webhookData.orderCode) {
       const orderCode = String(webhookData.orderCode);
