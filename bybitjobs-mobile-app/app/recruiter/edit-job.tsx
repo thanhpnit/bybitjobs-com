@@ -51,7 +51,7 @@ export default function RecruiterEditJobScreen() {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       Alert.alert('Cảnh báo', 'Tiêu đề công việc không được để trống.');
       return;
@@ -77,15 +77,17 @@ export default function RecruiterEditJobScreen() {
     };
 
     if (isNew) {
-      addJob(jobData);
-      Alert.alert('Thành công', 'Đã thêm mới tin tuyển dụng thành công.', [
-        {
-          text: 'Đồng ý',
-          onPress: () => {
-            router.replace('/recruiter/jobs');
+      const success = await addJob(jobData);
+      if (success) {
+        Alert.alert('Thành công', 'Đã thêm mới tin tuyển dụng thành công.', [
+          {
+            text: 'Đồng ý',
+            onPress: () => {
+              router.replace('/recruiter/jobs');
+            },
           },
-        },
-      ]);
+        ]);
+      }
     } else {
       updateJob(id as string, jobData);
       Alert.alert('Thành công', 'Đã cập nhật tin tuyển dụng thành công.', [

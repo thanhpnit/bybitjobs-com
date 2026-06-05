@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import { auth, db } from '../src/config/firebase';
 import { 
   signInWithEmailAndPassword, 
@@ -37,6 +38,7 @@ export interface EmployerData {
   logo?: string;
   coverImage?: string;
   status?: string;
+  postsLimit?: string;
 }
 
 export interface UserData {
@@ -359,7 +361,8 @@ export function useAuth() {
                 scale: empData.scale || '1-10 nhân viên',
                 description: empData.description || 'Chưa có mô tả',
                 logo: empData.logo_url || null,
-                email: user.email || ''
+                email: user.email || '',
+                postsLimit: empData.postsLimit || '0/1'
               };
 
               // Start listening to orders
@@ -683,8 +686,33 @@ export function useAuth() {
     }
   };
 
-  const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>) => {
+  const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>): Promise<boolean> => {
     try {
+      if (globalEmployerData && globalEmployerData.postsLimit) {
+        const [usedStr, limitStr] = globalEmployerData.postsLimit.split('/');
+        const used = parseInt(usedStr, 10) || 0;
+        const limit = parseInt(limitStr, 10) || 0;
+        
+        if (used >= limit) {
+          Alert.alert(
+            'Hết lượt đăng bài',
+            `Gói ${globalEmployerData.currentPackage || 'Miễn phí'} của bạn cho phép đăng tối đa ${limit} bài. Bạn đã dùng hết số lượt này. Vui lòng nâng cấp gói để tiếp tục đăng tin.`,
+            [
+              { text: 'Đóng', style: 'cancel' },
+              { text: 'Nâng cấp ngay', onPress: () => router.push('/recruiter/pricing' as any) }
+            ]
+          );
+          return false; // Not allowed
+        }
+        
+        // Cập nhật lượt đăng bài
+        const newPostsLimit = `${used + 1}/${limit}`;
+        globalEmployerData.postsLimit = newPostsLimit;
+        if (auth.currentUser) {
+          await updateDoc(doc(db, 'employers', auth.currentUser.uid), { postsLimit: newPostsLimit });
+        }
+      }
+
       const jobId = `job-${Date.now()}`;
       const newJob = {
         ...job,
@@ -693,9 +721,11 @@ export function useAuth() {
         employerId: auth.currentUser?.uid || ''
       };
       await setDoc(doc(db, 'jobs', jobId), newJob);
+      return true;
     } catch (error) {
       console.error('Lỗi khi thêm việc làm:', error);
       Alert.alert('Lỗi', 'Không thể đăng tin lúc này.');
+      return false;
     }
   };
 
