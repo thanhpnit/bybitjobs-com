@@ -36,8 +36,16 @@ export default function RecruiterPaymentScreen() {
   const [payosData, setPayosData] = React.useState<any>(null);
   const [orderCode] = React.useState(String(Date.now()));
 
+  const [createdOrderId, setCreatedOrderId] = React.useState<string | null>(null);
+
   React.useEffect(() => {
-    const fetchPayOS = async () => {
+    const initPayment = async () => {
+      if (!packagePriceNum) return;
+
+      // Tạo đơn hàng ở trạng thái pending trước để webhook PayOS có thể tìm thấy
+      const oId = await createOrder(packageId, packageName, packagePriceNum, orderCode);
+      setCreatedOrderId(oId || null);
+
       try {
         const response = await fetch('http://160.250.246.119:4000/api/payment/create', {
           method: 'POST',
@@ -56,9 +64,8 @@ export default function RecruiterPaymentScreen() {
         console.log('Lỗi fetch PayOS', e);
       }
     };
-    if (packagePriceNum) {
-      fetchPayOS();
-    }
+    
+    initPayment();
   }, [packagePriceNum, orderCode]);
 
   // Copy helper
@@ -67,21 +74,19 @@ export default function RecruiterPaymentScreen() {
   };
 
   const handleConfirmPayment = async () => {
-    const orderId = await createOrder(packageId, packageName, packagePriceNum, orderCode);
-    if (orderId) {
-      Alert.alert(
-        'Đã gửi xác nhận',
-        'Đơn hàng của bạn đang được xử lý. Khi hệ thống nhận được tiền, gói dịch vụ sẽ tự động kích hoạt.',
-        [
-          {
-            text: 'Đồng ý',
-            onPress: () => {
-              router.push('/recruiter/transactions' as any);
-            }
+    // Đơn hàng đã được tạo từ lúc load trang, chỉ cần thông báo và chuyển hướng
+    Alert.alert(
+      'Đã gửi xác nhận',
+      'Đơn hàng của bạn đang được xử lý. Khi hệ thống nhận được tiền, gói dịch vụ sẽ tự động kích hoạt.',
+      [
+        {
+          text: 'Đồng ý',
+          onPress: () => {
+            router.push('/recruiter/transactions' as any);
           }
-        ]
-      );
-    }
+        }
+      ]
+    );
   };
 
   return (
