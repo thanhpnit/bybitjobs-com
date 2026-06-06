@@ -19,20 +19,22 @@ export const Reports: React.FC = () => {
   const { colors } = useTheme();
   
   const [reportData, setReportData] = useState<any[]>([]);
+  const [totalReports, setTotalReports] = useState(0);
+  const [acceptedReports, setAcceptedReports] = useState(0);
   const [reviewData, setReviewData] = useState(reviews);
 
   useEffect(() => {
     const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot: any) => {
-      const data = snapshot.docs.map((doc: any) => {
-        const item = doc.data();
+      const data = snapshot.docs.map((docSnap: any) => {
+        const item = docSnap.data();
         let timeString = 'Vừa xong';
         if (item.createdAt) {
           const date = item.createdAt.toDate();
           timeString = date.toLocaleString('vi-VN');
         }
         return {
-          id: doc.id,
+          id: docSnap.id,
           type: item.type || 'Báo cáo vi phạm',
           time: timeString,
           desc: item.desc || '',
@@ -41,6 +43,8 @@ export const Reports: React.FC = () => {
           status: item.status || 'pending'
         };
       });
+      setTotalReports(data.length);
+      setAcceptedReports(data.filter((r: any) => r.status === 'accepted').length);
       // Only show pending reports
       setReportData(data.filter((r: any) => r.status === 'pending'));
     });
@@ -87,16 +91,16 @@ export const Reports: React.FC = () => {
 
         <Card style={styles.statCardSmall}>
           <View style={[styles.iconBox, { backgroundColor: colors.dangerBg, marginBottom: 16 }]}><AlertTriangle color={colors.dangerText} size={24} /></View>
-          <Typography variant="subtitle2" color="secondary">Báo cáo mới</Typography>
-          <Typography variant="h1" style={{ marginVertical: 8 }}>24</Typography>
-          <Typography variant="caption" color="danger">+12% so với tuần trước</Typography>
+          <Typography variant="subtitle2" color="secondary">Báo cáo chờ duyệt</Typography>
+          <Typography variant="h1" style={{ marginVertical: 8 }}>{reportData.length}</Typography>
+          <Typography variant="caption" color="danger">{totalReports} tổng báo cáo | đã duyệt: {acceptedReports}</Typography>
         </Card>
 
         <Card style={styles.statCardSmall}>
           <View style={[styles.iconBox, { backgroundColor: colors.infoBg, marginBottom: 16 }]}><FileCheck2 color={colors.infoText} size={24} /></View>
-          <Typography variant="subtitle2" color="secondary">Đánh giá tháng</Typography>
-          <Typography variant="h1" style={{ marginVertical: 8 }}>1,240</Typography>
-          <Typography variant="caption" color="info">+5% lượt mới</Typography>
+          <Typography variant="subtitle2" color="secondary">Đã xử lý</Typography>
+          <Typography variant="h1" style={{ marginVertical: 8 }}>{acceptedReports}</Typography>
+          <Typography variant="caption" color="info">{totalReports > 0 ? Math.round((acceptedReports / totalReports) * 100) : 0}% tỷ lệ duyệt</Typography>
         </Card>
       </View>
 
@@ -110,28 +114,35 @@ export const Reports: React.FC = () => {
             </TouchableOpacity>
           </View>
           
-          {reportData.map((item: any) => (
-            <Card key={item.id} style={styles.reportCard}>
-              <View style={styles.reportHeader}>
-                <View style={[styles.chip, { backgroundColor: colors.dangerBg }]}>
-                  <Typography variant="caption" color="danger" style={{ fontWeight: '700' }}>{item.type}</Typography>
-                </View>
-                <Typography variant="caption" color="muted">{item.time}</Typography>
-              </View>
-              <Typography variant="body1" style={{ fontStyle: 'italic', marginVertical: 16 }}>{item.desc}</Typography>
-              <View style={[styles.targetBox, { backgroundColor: colors.bgPrimary }]}>
-                <View style={[styles.targetIcon, { backgroundColor: colors.primaryColor }]} />
-                <View>
-                  <Typography variant="subtitle2">{item.target}</Typography>
-                  <Typography variant="caption" color="secondary">{item.targetBy}</Typography>
-                </View>
-              </View>
-              <View style={styles.actionRow}>
-                <Button style={{ flex: 1 }} onPress={() => handleAcceptReport(item.id)}>Chấp nhận</Button>
-                <Button variant="outline" style={{ flex: 1 }} onPress={() => handleRejectReport(item.id)}>Bác bỏ</Button>
-              </View>
+          {reportData.length === 0 ? (
+            <Card style={[styles.reportCard, { alignItems: 'center', paddingVertical: 40 }]}>
+              <FileCheck2 color={colors.infoText} size={40} />
+              <Typography variant="subtitle2" color="secondary" style={{ marginTop: 12 }}>Không có báo cáo nào chờ duyệt</Typography>
             </Card>
-          ))}
+          ) : (
+            reportData.map((item: any) => (
+              <Card key={item.id} style={styles.reportCard}>
+                <View style={styles.reportHeader}>
+                  <View style={[styles.chip, { backgroundColor: colors.dangerBg }]}>
+                    <Typography variant="caption" color="danger" style={{ fontWeight: '700' }}>{item.type}</Typography>
+                  </View>
+                  <Typography variant="caption" color="muted">{item.time}</Typography>
+                </View>
+                <Typography variant="body1" style={{ fontStyle: 'italic', marginVertical: 16 }}>{item.desc}</Typography>
+                <View style={[styles.targetBox, { backgroundColor: colors.bgPrimary }]}>
+                  <View style={[styles.targetIcon, { backgroundColor: colors.primaryColor }]} />
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="subtitle2">{item.target}</Typography>
+                    <Typography variant="caption" color="secondary">{item.targetBy}</Typography>
+                  </View>
+                </View>
+                <View style={styles.actionRow}>
+                  <Button style={{ flex: 1 }} onPress={() => handleAcceptReport(item.id)}>Chấp nhận</Button>
+                  <Button variant="outline" style={{ flex: 1 }} onPress={() => handleRejectReport(item.id)}>Bác bỏ</Button>
+                </View>
+              </Card>
+            ))
+          )}
         </View>
 
         <View style={styles.colRight}>
