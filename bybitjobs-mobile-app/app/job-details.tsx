@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '../src/config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function JobDetailsScreen() {
   const colorScheme = useColorScheme();
@@ -460,10 +462,24 @@ export default function JobDetailsScreen() {
               <TouchableOpacity 
                 style={[styles.modalButton, styles.sendButton]}
                 activeOpacity={0.85}
-                onPress={() => {
-                  Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');
-                  setReportModalVisible(false);
-                  setReportForm({ fullName: '', phone: '', address: '', email: '', content: '' });
+                onPress={async () => {
+                  try {
+                    await addDoc(collection(db, 'reports'), {
+                      type: 'Phản ánh tin tuyển dụng',
+                      desc: reportForm.content,
+                      target: displayTitle,
+                      targetBy: `Họ tên: ${reportForm.fullName} - SĐT: ${reportForm.phone} - Email: ${reportForm.email}`,
+                      address: reportForm.address,
+                      status: 'pending',
+                      createdAt: serverTimestamp()
+                    });
+                    Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');
+                    setReportModalVisible(false);
+                    setReportForm({ fullName: '', phone: '', address: '', email: '', content: '' });
+                  } catch (e) {
+                    console.error(e);
+                    Alert.alert('Lỗi', 'Không thể gửi báo cáo lúc này. Vui lòng thử lại sau.');
+                  }
                 }}
               >
                 <Text style={styles.sendButtonText}>Gửi báo cáo</Text>

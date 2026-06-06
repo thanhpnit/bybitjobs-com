@@ -4,13 +4,10 @@ import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { ArrowRight, AlertTriangle, FileCheck2, MoreVertical, Star, Trash2 } from 'lucide-react-native';
-import { useState } from 'react';
-
-const reports = [
-  { id: 1, type: 'Nội dung không phù hợp', time: '10 phút trước', desc: '"Mô tả bài đăng chứa các liên kết lừa đảo và hình ảnh nhạy cảm không liên quan đến công việc."', target: 'Lập trình viên React Native', targetBy: 'Người đăng: TechCorp JSC' },
-  { id: 2, type: 'Thông tin sai lệch', time: '2 giờ trước', desc: '"Lương thực tế thấp hơn nhiều so với mô tả trong bài đăng."', target: 'Nhân viên Marketing Online', targetBy: 'Người đăng: Global Trade Ltd' },
-];
+import { ArrowRight, AlertTriangle, FileCheck2, Star, Trash2 } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { db } from '../config/firebase';
+import { collection, onSnapshot, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 
 const reviews = [
   { id: 1, name: 'Nguyễn Văn A', company: 'Đánh giá cho: FPT Software', rating: 5, comment: 'Môi trường làm việc chuyên nghiệp, đồng nghiệp thân thiện. Chế độ đãi ngộ rất tốt cho sinh viên mới ra trường.', date: 'Đăng ngày 12/10/2023' },
@@ -21,19 +18,53 @@ const reviews = [
 export const Reports: React.FC = () => {
   const { colors } = useTheme();
   
-  const [reportData, setReportData] = useState(reports);
+  const [reportData, setReportData] = useState<any[]>([]);
   const [reviewData, setReviewData] = useState(reviews);
 
-  const handleAcceptReport = (id: number) => {
-    setReportData(reportData.filter(i => i.id !== id));
+  useEffect(() => {
+    const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot: any) => {
+      const data = snapshot.docs.map((doc: any) => {
+        const item = doc.data();
+        let timeString = 'Vừa xong';
+        if (item.createdAt) {
+          const date = item.createdAt.toDate();
+          timeString = date.toLocaleString('vi-VN');
+        }
+        return {
+          id: doc.id,
+          type: item.type || 'Báo cáo vi phạm',
+          time: timeString,
+          desc: item.desc || '',
+          target: item.target || '',
+          targetBy: item.targetBy || '',
+          status: item.status || 'pending'
+        };
+      });
+      // Only show pending reports
+      setReportData(data.filter((r: any) => r.status === 'pending'));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleAcceptReport = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'reports', id), { status: 'accepted' });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleRejectReport = (id: number) => {
-    setReportData(reportData.filter(i => i.id !== id));
+  const handleRejectReport = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'reports', id), { status: 'rejected' });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteReview = (id: number) => {
-    setReviewData(reviewData.filter(i => i.id !== id));
+    setReviewData(reviewData.filter((i: any) => i.id !== id));
   };
 
   return (
@@ -79,7 +110,7 @@ export const Reports: React.FC = () => {
             </TouchableOpacity>
           </View>
           
-          {reportData.map((item) => (
+          {reportData.map((item: any) => (
             <Card key={item.id} style={styles.reportCard}>
               <View style={styles.reportHeader}>
                 <View style={[styles.chip, { backgroundColor: colors.dangerBg }]}>
@@ -112,7 +143,7 @@ export const Reports: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {reviewData.map((item) => (
+          {reviewData.map((item: any) => (
             <Card key={item.id} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
