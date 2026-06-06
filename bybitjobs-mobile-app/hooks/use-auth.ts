@@ -93,8 +93,29 @@ export interface ApplicationItem {
   id: string;
   candidateId: string;
   jobId: string;
+  jobTitle?: string;
+  jobSalary?: string;
+  jobLocation?: string;
+  applicantName?: string;
+  applicantPhone?: string;
+  applicantEmail?: string;
+  message?: string;
+  companyRating?: number;
+  companyComment?: string;
+  reviewedAt?: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   appliedAt: string;
+}
+
+export interface SubmitApplicationPayload {
+  jobId?: string;
+  jobTitle: string;
+  jobSalary?: string;
+  jobLocation?: string;
+  applicantName: string;
+  applicantPhone: string;
+  applicantEmail?: string;
+  message?: string;
 }
 
 // Giữ lại trạng thái mock cho Employer Data vì Firebase Auth không lưu phần này
@@ -273,6 +294,7 @@ let globalApplications: ApplicationItem[] = [
     appliedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   }
 ];
+let globalApplicationsUnsubscribe: (() => void) | null = null;
 
 export function getRelativeTime(dateString: string, isOpen: boolean): string {
   const date = new Date(dateString);
@@ -340,6 +362,28 @@ export function useAuth() {
           }
         };
         fetchUserData();
+
+        if (globalApplicationsUnsubscribe) globalApplicationsUnsubscribe();
+        const qApplications = query(
+          collection(db, 'applications'),
+          where('candidateId', '==', user.uid)
+        );
+        globalApplicationsUnsubscribe = onSnapshot(qApplications, (snapshot) => {
+          const userApplications = (snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as ApplicationItem[]).sort(
+            (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+          );
+          globalApplications = [
+            ...globalApplications.filter((app) => app.candidateId !== user.uid),
+            ...userApplications,
+          ];
+          setApplications([...globalApplications]);
+          notifyAll();
+        }, (error) => {
+          console.error('Lỗi tải danh sách việc đã ứng tuyển:', error);
+        });
 
         let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -424,6 +468,10 @@ export function useAuth() {
         if (globalOrdersUnsubscribe) {
           globalOrdersUnsubscribe();
           globalOrdersUnsubscribe = null;
+        }
+        if (globalApplicationsUnsubscribe) {
+          globalApplicationsUnsubscribe();
+          globalApplicationsUnsubscribe = null;
         }
         globalUserRole = null;
         globalEmployerData = null;
@@ -771,6 +819,99 @@ export function useAuth() {
     notifyAll();
   };
 
+  const submitApplication = async (payload: SubmitApplicationPayload): Promise<{ success: boolean; message: string }> => {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, message: 'Vui lòng đăng nhập để ứng tuyển.' };
+    }
+
+    const jobId = payload.jobId || `job-${payload.jobTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
+    const hasApplied = globalApplications.some(
+      (app) => app.candidateId === user.uid && app.jobId === jobId
+    );
+
+    if (hasApplied) {
+      return { success: false, message: 'Bạn đã ứng tuyển công việc này rồi.' };
+    }
+
+    const newApplication: ApplicationItem = {
+      id: `app-${Date.now()}`,
+      candidateId: user.uid,
+      jobId,
+      jobTitle: payload.jobTitle,
+      jobSalary: payload.jobSalary,
+      jobLocation: payload.jobLocation,
+      applicantName: payload.applicantName,
+      applicantPhone: payload.applicantPhone,
+      applicantEmail: payload.applicantEmail,
+      message: payload.message,
+      status: 'Pending',
+      appliedAt: new Date().toISOString(),
+    };
+
+    globalApplications = [newApplication, ...globalApplications];
+    try {
+      await setDoc(doc(db, 'applications', newApplication.id), newApplication);
+    } catch (error) {
+      console.error('Lỗi lưu việc đã ứng tuyển lên Firestore:', error);
+    }
+    setApplications([...globalApplications]);
+    notifyAll();
+
+    return { success: true, message: 'Hồ sơ ứng tuyển của bạn đã được gửi đi thành công!' };
+  };
+
+  const cancelApplication = async (appId: string): Promise<{ success: boolean; message: string }> => {
+    const targetApplication = globalApplications.find((app) => app.id === appId);
+    if (!targetApplication) {
+      return { success: false, message: 'Không tìm thấy hồ sơ ứng tuyển.' };
+    }
+
+    globalApplications = globalApplications.filter((app) => app.id !== appId);
+    setApplications([...globalApplications]);
+    notifyAll();
+
+    try {
+      await deleteDoc(doc(db, 'applications', appId));
+    } catch (error) {
+      console.error('Lỗi hủy ứng tuyển trên Firestore:', error);
+    }
+
+    return { success: true, message: 'Đã hủy ứng tuyển công việc này.' };
+  };
+
+  const updateApplicationFeedback = async (
+    appId: string,
+    feedback: { companyRating: number; companyComment: string }
+  ): Promise<{ success: boolean; message: string }> => {
+    const reviewedAt = new Date().toISOString();
+    globalApplications = globalApplications.map((app) => {
+      if (app.id === appId) {
+        return {
+          ...app,
+          companyRating: feedback.companyRating,
+          companyComment: feedback.companyComment,
+          reviewedAt,
+        };
+      }
+      return app;
+    });
+    setApplications([...globalApplications]);
+    notifyAll();
+
+    try {
+      await updateDoc(doc(db, 'applications', appId), {
+        companyRating: feedback.companyRating,
+        companyComment: feedback.companyComment,
+        reviewedAt,
+      });
+    } catch (error) {
+      console.error('Lỗi lưu đánh giá công ty:', error);
+    }
+
+    return { success: true, message: 'Đã lưu đánh giá công ty.' };
+  };
+
   const sendInvitation = (candidateId: string, jobId: string) => {
     const targetCandidate = globalCandidates.find((c) => c.id === candidateId);
     const targetJob = globalJobs.find((j) => j.id === jobId);
@@ -818,6 +959,9 @@ export function useAuth() {
     orders,
     candidates,
     applications,
+    submitApplication,
+    cancelApplication,
+    updateApplicationFeedback,
     addJob,
     updateJob,
     deleteJob,

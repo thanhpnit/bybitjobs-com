@@ -36,8 +36,15 @@ export default function JobDetailsScreen() {
   });
 
   // Get dynamic title from homepage navigation
-  const { title } = useLocalSearchParams<{ title: string }>();
+  const { title, jobId, salary, location } = useLocalSearchParams<{
+    title: string;
+    jobId?: string;
+    salary?: string;
+    location?: string;
+  }>();
   const displayTitle = title || 'Nhân viên phục vụ quán cà phê The Coffee House';
+  const displaySalary = salary || '300.000đ /ngày';
+  const displayLocation = location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
 
   const handleCall = () => {
     Linking.openURL('tel:0901234567').catch(() => {
@@ -54,7 +61,12 @@ export default function JobDetailsScreen() {
     } else {
       router.push({
         pathname: '/apply-job',
-        params: { title: displayTitle }
+        params: {
+          title: displayTitle,
+          jobId: jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
+          salary: displaySalary,
+          location: displayLocation,
+        }
       });
     }
   };
@@ -114,7 +126,7 @@ export default function JobDetailsScreen() {
                 <View style={styles.pricePillRow}>
                   <View style={[styles.pricePill, { backgroundColor: isDark ? '#152E47' : '#E6F4FE' }]}>
                     <Text style={styles.priceText}>
-                      300.000đ <Text style={styles.pricePeriod}>/ngày</Text>
+                      {displaySalary}
                     </Text>
                   </View>
                 </View>
@@ -308,7 +320,7 @@ export default function JobDetailsScreen() {
               <View style={styles.metaTextCol}>
                 <Text style={[styles.metaLabel, { color: isDark ? '#9BA1A6' : '#687076' }]}>Địa điểm làm việc</Text>
                 <Text style={[styles.metaValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM
+                  {displayLocation}
                 </Text>
               </View>
             </View>

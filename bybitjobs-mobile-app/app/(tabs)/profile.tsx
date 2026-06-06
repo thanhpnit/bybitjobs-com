@@ -28,6 +28,10 @@ export default function ProfileScreen() {
     userData,
     userRole,
     employerData,
+    jobs,
+    applications,
+    cancelApplication,
+    updateApplicationFeedback,
     registerEmployer,
     verifyAccount,
     seqId,
@@ -45,6 +49,10 @@ export default function ProfileScreen() {
   // Edit Job State
   const [isEditJobModalVisible, setIsEditJobModalVisible] = React.useState(false);
   const [editJobInput, setEditJobInput] = React.useState('');
+  const [isAppliedJobsModalVisible, setIsAppliedJobsModalVisible] = React.useState(false);
+  const [selectedAppliedJobId, setSelectedAppliedJobId] = React.useState<string | null>(null);
+  const [companyRating, setCompanyRating] = React.useState(0);
+  const [companyComment, setCompanyComment] = React.useState('');
 
   // 2-Step Verification Flow States
   const [is2FAModalVisible, setIs2FAModalVisible] = React.useState(false);
@@ -278,6 +286,95 @@ export default function ProfileScreen() {
       ? userData.emailOrPhone
       : '090 1234 567')
     : 'Chưa liên kết';
+
+  const appliedJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return applications
+      .filter((application) => application.candidateId === userData.uid)
+      .map((application) => {
+        const matchedJob = jobs.find((job) => job.id === application.jobId);
+        return {
+          ...application,
+          title: application.jobTitle || matchedJob?.title || 'Công việc đã ứng tuyển',
+          salary: application.jobSalary || matchedJob?.salary || 'Đang cập nhật',
+          location: application.jobLocation || matchedJob?.location || 'Đang cập nhật',
+        };
+      });
+  }, [applications, jobs, userData?.uid]);
+
+  const selectedAppliedJob = React.useMemo(() => {
+    return appliedJobs.find((application) => application.id === selectedAppliedJobId) || null;
+  }, [appliedJobs, selectedAppliedJobId]);
+
+  const formatAppliedDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Vừa ứng tuyển';
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const getApplicationStatusLabel = (status: 'Pending' | 'Approved' | 'Rejected') => {
+    if (status === 'Approved') return 'Đã duyệt';
+    if (status === 'Rejected') return 'Từ chối';
+    return 'Đang chờ';
+  };
+
+  const getApplicationStatusColor = (status: 'Pending' | 'Approved' | 'Rejected') => {
+    if (status === 'Approved') return '#4CAF50';
+    if (status === 'Rejected') return '#FF3B30';
+    return '#FF9500';
+  };
+
+  const handleOpenAppliedJobDetail = (applicationId: string) => {
+    const application = appliedJobs.find((item) => item.id === applicationId);
+    setCompanyRating(application?.companyRating || 0);
+    setCompanyComment(application?.companyComment || '');
+    setSelectedAppliedJobId(applicationId);
+  };
+
+  const handleCloseAppliedJobsModal = () => {
+    setIsAppliedJobsModalVisible(false);
+    setSelectedAppliedJobId(null);
+    setCompanyRating(0);
+    setCompanyComment('');
+  };
+
+  const handleCancelApplication = () => {
+    if (!selectedAppliedJob) return;
+    Alert.alert(
+      'Hủy ứng tuyển',
+      `Bạn có chắc muốn hủy ứng tuyển công việc "${selectedAppliedJob.title}" không?`,
+      [
+        { text: 'Không', style: 'cancel' },
+        {
+          text: 'Hủy ứng tuyển',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await cancelApplication(selectedAppliedJob.id);
+            setSelectedAppliedJobId(null);
+            Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveCompanyReview = async () => {
+    if (!selectedAppliedJob) return;
+    if (companyRating < 1) {
+      Alert.alert('Thông báo', 'Vui lòng chọn số sao đánh giá từ 1 đến 5.');
+      return;
+    }
+
+    const result = await updateApplicationFeedback(selectedAppliedJob.id, {
+      companyRating,
+      companyComment: companyComment.trim(),
+    });
+    Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message);
+  };
 
   // Dynamic dates
   const creationDate = isLoggedIn
@@ -862,7 +959,17 @@ export default function ProfileScreen() {
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-            {renderSettingRow('checkmark-circle-outline', 'Việc làm đã ứng tuyển', () => handleFeaturePress('Việc làm đã ứng tuyển', () => triggerFeatureMock('Việc làm đã ứng tuyển')))}
+            {renderSettingRow(
+              'checkmark-circle-outline',
+              'Việc làm đã ứng tuyển',
+              () => handleFeaturePress('Việc làm đã ứng tuyển', () => setIsAppliedJobsModalVisible(true)),
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.twoFactorBadge, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Text style={[styles.twoFactorBadgeText, { color: '#0084FF' }]}>{appliedJobs.length}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
+              </View>
+            )}
             {renderSettingRow('heart-outline', 'Việc làm đã lưu', () => handleFeaturePress('Việc làm đã lưu', () => triggerFeatureMock('Việc làm đã lưu')))}
             {renderSettingRow('eye-outline', 'Việc làm đã xem', () => handleFeaturePress('Việc làm đã xem', () => triggerFeatureMock('Việc làm đã xem')))}
             {renderSettingRow('mail-outline', 'Lời mời làm việc', () => handleFeaturePress('Lời mời làm việc', () => triggerFeatureMock('Lời mời làm việc')))}
@@ -948,6 +1055,202 @@ export default function ProfileScreen() {
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAppliedJobsModalVisible}
+        onRequestClose={handleCloseAppliedJobsModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.appliedJobsModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                {selectedAppliedJob ? (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedAppliedJobId(null);
+                      setCompanyRating(0);
+                      setCompanyComment('');
+                    }}
+                    style={styles.appliedBackButton}
+                  >
+                    <Ionicons name="arrow-back" size={22} color={isDark ? '#FFF' : '#11181C'} />
+                  </TouchableOpacity>
+                ) : (
+                  <Ionicons name="checkmark-circle-outline" size={22} color="#0084FF" style={{ marginRight: 8 }} />
+                )}
+                <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {selectedAppliedJob ? 'Chi tiết ứng tuyển' : 'Việc làm đã ứng tuyển'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleCloseAppliedJobsModal}
+                style={styles.closeExplorerBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.appliedJobsModalContent}>
+              {selectedAppliedJob ? (
+                <View>
+                  <View style={[styles.appliedDetailCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                    <View style={styles.appliedJobTopRow}>
+                      <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                        <Ionicons name="briefcase" size={20} color="#0084FF" />
+                      </View>
+                      <View style={styles.appliedJobTextCol}>
+                        <Text style={[styles.appliedDetailTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                          {selectedAppliedJob.title}
+                        </Text>
+                        <Text style={styles.appliedJobMeta}>
+                          {selectedAppliedJob.salary}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.detailInfoGrid}>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="location-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          {selectedAppliedJob.location}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="calendar-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          Ứng tuyển ngày {formatAppliedDate(selectedAppliedJob.appliedAt)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="person-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          Hồ sơ: {selectedAppliedJob.applicantName || displayName}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.appliedActionsRow}>
+                      <View style={[styles.appliedStatusButton, { backgroundColor: '#E8F5E9' }]}>
+                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                        <Text style={styles.appliedStatusButtonText}>Đã ứng tuyển</Text>
+                      </View>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleCancelApplication}
+                        style={styles.cancelApplicationButton}
+                      >
+                        <Ionicons name="close-circle-outline" size={16} color="#FF3B30" />
+                        <Text style={styles.cancelApplicationButtonText}>Hủy ứng tuyển</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={[styles.appliedDetailCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                    <Text style={[styles.reviewTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      Đánh giá công ty
+                    </Text>
+                    <View style={styles.ratingRow}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <TouchableOpacity
+                          key={star}
+                          activeOpacity={0.75}
+                          onPress={() => setCompanyRating(star)}
+                          style={styles.starButton}
+                        >
+                          <Ionicons
+                            name={star <= companyRating ? 'star' : 'star-outline'}
+                            size={30}
+                            color={star <= companyRating ? '#FFB300' : (isDark ? '#555' : '#B0BEC5')}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <TextInput
+                      style={[
+                        styles.companyCommentInput,
+                        {
+                          color: isDark ? '#FFF' : '#11181C',
+                          borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                          backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                        },
+                      ]}
+                      placeholder="Nhập nhận xét của bạn về công ty..."
+                      placeholderTextColor={isDark ? '#6B7280' : '#8E8E93'}
+                      multiline
+                      textAlignVertical="top"
+                      value={companyComment}
+                      onChangeText={setCompanyComment}
+                    />
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={handleSaveCompanyReview}
+                      style={styles.saveReviewButton}
+                    >
+                      <Text style={styles.saveReviewButtonText}>Lưu đánh giá</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : appliedJobs.length === 0 ? (
+                <View style={styles.emptyAppliedBox}>
+                  <Ionicons name="briefcase-outline" size={36} color={isDark ? '#6B7280' : '#B0BEC5'} />
+                  <Text style={[styles.emptyAppliedTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Bạn chưa ứng tuyển công việc nào
+                  </Text>
+                  <Text style={styles.emptyAppliedText}>
+                    Các công việc đã gửi hồ sơ sẽ được lưu tại đây.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.appliedList}>
+                  {appliedJobs.map((application) => (
+                    <TouchableOpacity
+                      key={application.id}
+                      activeOpacity={0.8}
+                      onPress={() => handleOpenAppliedJobDetail(application.id)}
+                      style={[
+                        styles.appliedJobItem,
+                        {
+                          backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                          borderColor: isDark ? '#2C2C2E' : '#ECEFF1',
+                        },
+                      ]}
+                    >
+                      <View style={styles.appliedJobTopRow}>
+                        <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                          <Ionicons name="briefcase" size={18} color="#0084FF" />
+                        </View>
+                        <View style={styles.appliedJobTextCol}>
+                          <Text style={[styles.appliedJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                            {application.title}
+                          </Text>
+                          <Text style={styles.appliedJobMeta} numberOfLines={1}>
+                            {application.salary} • {application.location}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.appliedJobBottomRow}>
+                        <Text style={styles.appliedDateText}>
+                          Ứng tuyển: {formatAppliedDate(application.appliedAt)}
+                        </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: `${getApplicationStatusColor(application.status)}20` }]}>
+                          <Text style={[styles.statusBadgeText, { color: getApplicationStatusColor(application.status) }]}>
+                            {getApplicationStatusLabel(application.status)}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Edit Job Modal */}
       <Modal
@@ -1682,6 +1985,211 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   upgradeButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
+  appliedCountBadge: {
+    marginLeft: 'auto',
+    minWidth: 26,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appliedCountText: {
+    color: '#0084FF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  appliedJobsModalContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '70%',
+    width: '100%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  appliedJobsModalContent: {
+    padding: 16,
+    paddingBottom: 28,
+  },
+  appliedBackButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  emptyAppliedBox: {
+    alignItems: 'center',
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+  },
+  emptyAppliedTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  emptyAppliedText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  appliedList: {
+    gap: 10,
+  },
+  appliedJobItem: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  appliedJobTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  appliedJobIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  appliedJobTextCol: {
+    flex: 1,
+  },
+  appliedJobTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    lineHeight: 18,
+  },
+  appliedJobMeta: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  appliedJobBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  appliedDateText: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  appliedDetailCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+  },
+  appliedDetailTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 22,
+  },
+  detailInfoGrid: {
+    gap: 10,
+    marginTop: 14,
+  },
+  detailInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  detailInfoText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  appliedActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  appliedStatusButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  appliedStatusButtonText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  cancelApplicationButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  cancelApplicationButtonText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  reviewTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  starButton: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  companyCommentInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    minHeight: 96,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  saveReviewButton: {
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#0084FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  saveReviewButtonText: {
     color: '#FFF',
     fontSize: 13,
     fontWeight: 'bold',

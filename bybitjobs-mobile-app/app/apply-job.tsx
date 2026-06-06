@@ -13,15 +13,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ApplyJobScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
+  const { submitApplication, userData } = useAuth();
 
   // Get dynamic title from parameters
-  const { title } = useLocalSearchParams<{ title: string }>();
+  const { title, jobId, salary, location } = useLocalSearchParams<{
+    title: string;
+    jobId?: string;
+    salary?: string;
+    location?: string;
+  }>();
   const displayTitle = title || 'Nhân viên phục vụ quán cà phê The Coffee House';
+  const displaySalary = salary || '25k - 30k / giờ';
+  const displayLocation = location || 'Quận 1, TP. Hồ Chí Minh';
 
   // Form states
   const [fullName, setFullName] = React.useState('');
@@ -36,7 +45,18 @@ export default function ApplyJobScreen() {
     Alert.alert('Thành công', 'Đã tải lên hồ sơ năng lực thành công!');
   };
 
-  const handleSubmit = () => {
+  React.useEffect(() => {
+    if (userData?.fullName) {
+      setFullName(userData.fullName);
+    }
+    if (userData?.emailOrPhone?.includes('@')) {
+      setEmail(userData.emailOrPhone);
+    } else if (userData?.emailOrPhone) {
+      setPhoneNumber(userData.emailOrPhone);
+    }
+  }, [userData]);
+
+  const handleSubmit = async () => {
     if (!fullName.trim()) {
       Alert.alert('Thông báo', 'Vui lòng nhập họ và tên của bạn.');
       return;
@@ -50,13 +70,29 @@ export default function ApplyJobScreen() {
       return;
     }
 
+    const result = await submitApplication({
+      jobId,
+      jobTitle: displayTitle,
+      jobSalary: displaySalary,
+      jobLocation: displayLocation,
+      applicantName: fullName.trim(),
+      applicantPhone: phoneNumber.trim(),
+      applicantEmail: email.trim(),
+      message: message.trim(),
+    });
+
+    if (!result.success) {
+      Alert.alert('Thông báo', result.message);
+      return;
+    }
+
     Alert.alert(
       'Thành công',
-      'Hồ sơ ứng tuyển của bạn đã được gửi đi thành công!',
+      result.message,
       [
         {
-          text: 'Đồng ý',
-          onPress: () => router.dismissAll(), // Go back to Home
+          text: 'Xem trong trang cá nhân',
+          onPress: () => router.replace('/(tabs)/profile'),
         },
       ]
     );
@@ -96,7 +132,7 @@ export default function ApplyJobScreen() {
                 </Text>
                 <View style={styles.locationRow}>
                   <Ionicons name="location-sharp" size={14} color="#8E8E93" />
-                  <Text style={styles.locationText}>Quận 1, TP. Hồ Chí Minh</Text>
+                  <Text style={styles.locationText}>{displayLocation}</Text>
                 </View>
               </View>
             </View>
@@ -106,7 +142,7 @@ export default function ApplyJobScreen() {
               <Text style={[styles.salaryLabel, { color: isDark ? '#9BA1A6' : '#687076' }]}>
                 Mức lương dự kiến
               </Text>
-              <Text style={styles.salaryValue}>25k - 30k / giờ</Text>
+              <Text style={styles.salaryValue}>{displaySalary}</Text>
             </View>
           </View>
 
