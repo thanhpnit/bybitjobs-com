@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,6 +10,9 @@ import {
   Platform,
   Linking,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,6 +24,14 @@ export default function JobDetailsScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { isLoggedIn } = useAuth();
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    email: '',
+    content: ''
+  });
 
   // Get dynamic title from homepage navigation
   const { title } = useLocalSearchParams<{ title: string }>();
@@ -43,6 +54,23 @@ export default function JobDetailsScreen() {
         pathname: '/apply-job',
         params: { title: displayTitle }
       });
+    }
+  };
+
+  const handleReport = () => {
+    if (!isLoggedIn) {
+      Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để có thể báo cáo công việc này.', [
+        { text: 'Hủy', style: 'cancel' },
+        { 
+          text: 'Đăng nhập', 
+          onPress: () => router.push({
+            pathname: '/login',
+            params: { redirectTitle: displayTitle }
+          })
+        }
+      ]);
+    } else {
+      setReportModalVisible(true);
     }
   };
 
@@ -310,6 +338,16 @@ export default function JobDetailsScreen() {
             </View>
           </View>
 
+          {/* Report Job Text */}
+          <View style={styles.reportTextContainer}>
+            <Text style={[styles.reportText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+              Báo cáo tin tuyển dụng: Nếu bạn thấy rằng tin tuyển dụng này không đúng hoặc có dấu hiệu lừa đảo,{' '}
+              <Text style={styles.reportTextLink} onPress={handleReport}>
+                hãy phản ánh với chúng tôi.
+              </Text>
+            </Text>
+          </View>
+
           {/* Padding bottom so it doesn't get covered by sticky footer */}
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
@@ -326,6 +364,116 @@ export default function JobDetailsScreen() {
           <Ionicons name="arrow-forward" size={18} color="#FFF" style={styles.applyIcon} />
         </TouchableOpacity>
       </View>
+
+      {/* Report Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={reportModalVisible}
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                style={styles.headerCloseButton}
+                onPress={() => setReportModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Phản ánh tin tuyển dụng</Text>
+              <Text style={[styles.modalSubtext, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                Vui lòng tìm hiểu kỹ nhà tuyển dụng. Nếu phát hiện công việc có dấu hiệu lừa đảo, hãy phản ánh để chúng tôi xử lý.
+              </Text>
+            </View>
+
+            <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+              <View style={styles.formRow}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Tin tuyển dụng:</Text>
+                <Text style={[styles.formValue, { color: isDark ? '#ECEDEE' : '#333' }]}>{displayTitle}</Text>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Họ và tên <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                  placeholder="Nhập họ và tên"
+                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                  value={reportForm.fullName}
+                  onChangeText={(text) => setReportForm({...reportForm, fullName: text})}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Số điện thoại <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                  placeholder="0123xxxxxxx"
+                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                  keyboardType="phone-pad"
+                  value={reportForm.phone}
+                  onChangeText={(text) => setReportForm({...reportForm, phone: text})}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Địa chỉ <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                  placeholder="Nhập địa chỉ"
+                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                  value={reportForm.address}
+                  onChangeText={(text) => setReportForm({...reportForm, address: text})}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Địa chỉ email <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                  placeholder="Nhập email"
+                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                  keyboardType="email-address"
+                  value={reportForm.email}
+                  onChangeText={(text) => setReportForm({...reportForm, email: text})}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Nội dung <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.textArea, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                  placeholder="Bạn vui lòng cung cấp rõ thông tin hoặc bằng chứng..."
+                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                  multiline={true}
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  value={reportForm.content}
+                  onChangeText={(text) => setReportForm({...reportForm, content: text})}
+                />
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.sendButton]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');
+                  setReportModalVisible(false);
+                  setReportForm({ fullName: '', phone: '', address: '', email: '', content: '' });
+                }}
+              >
+                <Text style={styles.sendButtonText}>Gửi báo cáo</Text>
+              </TouchableOpacity>
+              {/* Extra spacing at bottom for scrolling */}
+              <View style={{ height: 20 }} />
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -667,5 +815,117 @@ const styles = StyleSheet.create({
   },
   applyIcon: {
     marginTop: 1,
+  },
+  reportTextContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  reportText: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  reportTextLink: {
+    color: '#0084FF',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    borderRadius: 24,
+    maxHeight: '90%',
+    overflow: 'hidden',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  modalHeader: {
+    padding: 24,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  headerCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 1,
+    padding: 4,
+    backgroundColor: 'rgba(150, 150, 150, 0.15)',
+    borderRadius: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0084FF',
+    textAlign: 'center',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  modalSubtext: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  modalForm: {
+    padding: 20,
+  },
+  formRow: {
+    marginBottom: 16,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  formValue: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  requiredStar: {
+    color: '#FF3D00',
+  },
+  input: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+  },
+  textArea: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    minHeight: 100,
+  },
+  modalButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  sendButton: {
+    backgroundColor: '#0084FF',
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sendButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
