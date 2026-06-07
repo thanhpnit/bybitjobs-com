@@ -99,6 +99,7 @@ export interface ApplicationItem {
   candidateId: string;
   jobId: string;
   jobTitle?: string;
+  companyName?: string;
   jobSalary?: string;
   jobLocation?: string;
   applicantName?: string;
@@ -115,6 +116,7 @@ export interface ApplicationItem {
 export interface SubmitApplicationPayload {
   jobId?: string;
   jobTitle: string;
+  companyName?: string;
   jobSalary?: string;
   jobLocation?: string;
   applicantName: string;
@@ -846,6 +848,7 @@ export function useAuth() {
       candidateId: user.uid,
       jobId,
       jobTitle: payload.jobTitle,
+      companyName: payload.companyName,
       jobSalary: payload.jobSalary,
       jobLocation: payload.jobLocation,
       applicantName: payload.applicantName,

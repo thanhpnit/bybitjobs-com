@@ -149,6 +149,7 @@ export default function JobDetailsScreen() {
         params: {
           title: displayTitle,
           jobId: currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
+          companyName: employerName,
           salary: displaySalary,
           location: displayLocation,
         }

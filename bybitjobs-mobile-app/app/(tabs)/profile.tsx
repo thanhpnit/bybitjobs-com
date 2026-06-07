@@ -296,6 +296,7 @@ export default function ProfileScreen() {
         return {
           ...application,
           title: application.jobTitle || matchedJob?.title || 'Công việc đã ứng tuyển',
+          company: application.companyName || 'Nhà tuyển dụng',
           salary: application.jobSalary || matchedJob?.salary || 'Đang cập nhật',
           location: application.jobLocation || matchedJob?.location || 'Đang cập nhật',
         };
@@ -1113,6 +1114,12 @@ export default function ProfileScreen() {
                     </View>
 
                     <View style={styles.detailInfoGrid}>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="business-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          Công ty: {selectedAppliedJob.company}
+                        </Text>
+                      </View>
                       <View style={styles.detailInfoRow}>
                         <Ionicons name="location-outline" size={16} color="#0084FF" />
                         <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
