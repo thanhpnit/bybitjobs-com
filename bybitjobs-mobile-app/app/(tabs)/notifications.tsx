@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '../../src/config/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 interface NotificationItem {
   id: string;
@@ -21,15 +24,32 @@ interface NotificationItem {
   isRead: boolean;
 }
 
+const getRelativeTimeLabel = (date: Date) => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (60 * 1000));
+  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays === 1) return 'Hôm qua';
+  return `${diffDays} ngày trước`;
+};
+
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { userData } = useAuth();
 
   const [activeSegment, setActiveSegment] = React.useState<'all' | 'unread'>('all');
+  const [dbNotifications, setDbNotifications] = React.useState<any[]>([]);
+  const [readIds, setReadIds] = React.useState<string[]>([]);
 
-  const [notifications, setNotifications] = React.useState<NotificationItem[]>([
+  const mockNotifications: NotificationItem[] = [
     {
-      id: '1',
+      id: 'mock-1',
       category: 'job',
       title: 'Nhà tuyển dụng đã xem hồ sơ',
       description: 'Công ty Bybit Việt Nam đã xem CV_Web_Developer_VN.pdf của bạn.',
@@ -37,7 +57,7 @@ export default function NotificationsScreen() {
       isRead: false,
     },
     {
-      id: '2',
+      id: 'mock-2',
       category: 'security',
       title: 'Xác thực tài khoản thành công',
       description: 'Chúc mừng! Tài khoản của bạn đã được xác thực chính chủ và cấp tích xanh.',
@@ -45,7 +65,7 @@ export default function NotificationsScreen() {
       isRead: false,
     },
     {
-      id: '3',
+      id: 'mock-3',
       category: 'job',
       title: 'Tin tuyển dụng phù hợp mới',
       description: 'Việc làm "Senior React Native Developer - Bybit" đang tìm ứng viên phù hợp với bạn.',
@@ -53,7 +73,7 @@ export default function NotificationsScreen() {
       isRead: false,
     },
     {
-      id: '4',
+      id: 'mock-4',
       category: 'community',
       title: 'Lượt tương tác mới trong Cộng đồng',
       description: 'Nguyễn Văn A và 5 người khác đã thích bài viết chia sẻ kinh nghiệm phỏng vấn của bạn.',
@@ -61,26 +81,56 @@ export default function NotificationsScreen() {
       isRead: true,
     },
     {
-      id: '5',
+      id: 'mock-5',
       category: 'system',
       title: 'Chào mừng bạn đến với BybitJobs',
       description: 'Khám phá ngay hàng ngàn công việc chất lượng và tạo CV chuyên nghiệp miễn phí.',
       time: '2 ngày trước',
       isRead: true,
     },
-  ]);
+  ];
+
+  // Fetch database notifications realtime
+  useEffect(() => {
+    const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          const date = data.createdAt ? data.createdAt.toDate() : new Date();
+          return {
+            id: doc.id,
+            category: (data.target === 'ALL' ? 'system' : 'security') as any,
+            title: data.title || '',
+            description: data.body || '',
+            time: getRelativeTimeLabel(date),
+            isRead: false,
+            target: data.target || 'ALL',
+          };
+        })
+        .filter((item) => item.target === 'ALL' || item.target === userData?.uid);
+      setDbNotifications(items);
+    }, (error) => {
+      console.error('Error fetching mobile notifications realtime:', error);
+    });
+
+    return () => unsubscribe();
+  }, [userData?.uid]);
+
+  // Merge database notifications with mock fallbacks and local read state
+  const notifications = [...dbNotifications, ...mockNotifications].map((item) => ({
+    ...item,
+    isRead: readIds.includes(item.id) || item.isRead
+  }));
 
   const handleMarkAllRead = () => {
-    setNotifications(
-      notifications.map((n) => ({ ...n, isRead: true }))
-    );
+    setReadIds(notifications.map((n) => n.id));
     Alert.alert('Thành công', 'Đã đánh dấu tất cả thông báo là đã đọc!');
   };
 
   const handleNotificationPress = (id: string) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+    setReadIds((prev) => [...prev, id]);
     const item = notifications.find((n) => n.id === id);
     if (item) {
       Alert.alert(item.title, item.description);
