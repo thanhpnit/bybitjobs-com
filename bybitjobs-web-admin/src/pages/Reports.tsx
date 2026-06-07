@@ -7,13 +7,25 @@ import { useTheme } from '../context/ThemeContext';
 import { ArrowRight, AlertTriangle, FileCheck2, Star, Trash2 } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { db } from '../config/firebase';
-import { collection, onSnapshot, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, deleteField, onSnapshot, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 
-const reviews = [
-  { id: 1, name: 'Nguyễn Văn A', company: 'Đánh giá cho: FPT Software', rating: 5, comment: 'Môi trường làm việc chuyên nghiệp, đồng nghiệp thân thiện. Chế độ đãi ngộ rất tốt cho sinh viên mới ra trường.', date: 'Đăng ngày 12/10/2023' },
-  { id: 2, name: 'Trần Thị B', company: 'Đánh giá cho: Viettel Group', rating: 4, comment: 'Công việc khá áp lực nhưng bù lại lương thưởng xứng đáng. Cần cải thiện quy trình làm việc nội bộ.', date: 'Đăng ngày 11/10/2023' },
-  { id: 3, name: 'Lê Văn C', company: 'Đánh giá cho: VinGroup', rating: 5, comment: 'Địa điểm làm việc hơi xa trung tâm, nhưng cơ sở vật chất hiện đại bậc nhất.', date: 'Đăng ngày 10/10/2023' },
-];
+interface ApprovedReview {
+  id: string;
+  name: string;
+  company: string;
+  jobTitle: string;
+  rating: number;
+  comment: string;
+  date: string;
+  reviewedAt: string;
+}
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'Chưa có thời gian';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Chưa có thời gian';
+  return `Đăng ngày ${date.toLocaleDateString('vi-VN')}`;
+};
 
 export const Reports: React.FC = () => {
   const { colors } = useTheme();
@@ -21,7 +33,7 @@ export const Reports: React.FC = () => {
   const [reportData, setReportData] = useState<any[]>([]);
   const [totalReports, setTotalReports] = useState(0);
   const [acceptedReports, setAcceptedReports] = useState(0);
-  const [reviewData, setReviewData] = useState(reviews);
+  const [reviewData, setReviewData] = useState<ApprovedReview[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
@@ -51,6 +63,41 @@ export const Reports: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
+      const approvedReviews = snapshot.docs
+        .map((docSnap) => {
+          const item = docSnap.data();
+          return {
+            id: docSnap.id,
+            name: item.applicantName || item.candidateName || 'Người dùng',
+            company: item.companyName || 'Nhà tuyển dụng',
+            jobTitle: item.jobTitle || 'Công việc đã ứng tuyển',
+            rating: Number(item.companyRating || 0),
+            comment: item.companyComment || '',
+            date: formatDate(item.reviewedAt || item.appliedAt),
+            reviewedAt: item.reviewedAt || item.appliedAt || '',
+            status: item.reviewStatus || 'Chờ duyệt',
+          };
+        })
+        .filter((item) => item.status === 'Đã phê duyệt' && (item.rating > 0 || item.comment.trim().length > 0))
+        .sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+
+      setReviewData(approvedReviews);
+    }, (error) => {
+      console.error('Lỗi tải đánh giá đã phê duyệt:', error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const averageRating = reviewData.length > 0
+    ? reviewData.reduce((sum, item) => sum + item.rating, 0) / reviewData.length
+    : 0;
+  const fiveStarRate = reviewData.length > 0
+    ? Math.round((reviewData.filter((item) => item.rating === 5).length / reviewData.length) * 100)
+    : 0;
+
   const handleAcceptReport = async (id: string) => {
     try {
       await updateDoc(doc(db, 'reports', id), { status: 'accepted' });
@@ -67,8 +114,18 @@ export const Reports: React.FC = () => {
     }
   };
 
-  const handleDeleteReview = (id: number) => {
-    setReviewData(reviewData.filter((i: any) => i.id !== id));
+  const handleDeleteReview = async (id: string) => {
+    setReviewData(reviewData.filter((i) => i.id !== id));
+    try {
+      await updateDoc(doc(db, 'applications', id), {
+        companyRating: deleteField(),
+        companyComment: deleteField(),
+        reviewedAt: deleteField(),
+        reviewStatus: deleteField(),
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -77,16 +134,19 @@ export const Reports: React.FC = () => {
         <Card style={styles.statCardMain}>
           <Typography variant="subtitle2" color="secondary">THỐNG KÊ ĐÁNH GIÁ</Typography>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginVertical: 12 }}>
-            <Typography variant="h1" style={{ fontSize: 48, color: colors.primaryColor }}>4.8</Typography>
+            <Typography variant="h1" style={{ fontSize: 48, color: colors.primaryColor }}>{averageRating.toFixed(1)}</Typography>
             <Typography variant="h3" color="secondary">/ 5.0</Typography>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
             <Typography variant="caption" color="secondary">Tỷ lệ hài lòng (5 sao)</Typography>
-            <Typography variant="caption" style={{ fontWeight: '700' }}>82%</Typography>
+            <Typography variant="caption" style={{ fontWeight: '700' }}>{fiveStarRate}%</Typography>
           </View>
           <View style={[styles.progressBar, { backgroundColor: colors.borderLight }]}>
-            <View style={[styles.progressFill, { backgroundColor: colors.primaryColor, width: '82%' }]} />
+            <View style={[styles.progressFill, { backgroundColor: colors.primaryColor, width: `${fiveStarRate}%` }]} />
           </View>
+          <Typography variant="caption" color="secondary" style={{ marginTop: 10 }}>
+            Dựa trên {reviewData.length} đánh giá đã phê duyệt
+          </Typography>
         </Card>
 
         <Card style={styles.statCardSmall}>
@@ -147,21 +207,29 @@ export const Reports: React.FC = () => {
 
         <View style={styles.colRight}>
           <View style={styles.sectionHeader}>
-            <Typography variant="h4">Đánh giá công ty</Typography>
+            <Typography variant="h4">Đánh giá đã phê duyệt</Typography>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Typography variant="subtitle2" color="brand">Xem tất cả</Typography>
               <ArrowRight color={colors.primaryColor} size={16} />
             </TouchableOpacity>
           </View>
 
-          {reviewData.map((item: any) => (
+          {reviewData.length === 0 ? (
+            <Card style={[styles.reviewCard, { alignItems: 'center', paddingVertical: 40 }]}>
+              <Star color={colors.textSecondary} size={40} />
+              <Typography variant="subtitle2" color="secondary" style={{ marginTop: 12 }}>
+                Chưa có đánh giá nào đã được phê duyệt
+              </Typography>
+            </Card>
+          ) : reviewData.map((item) => (
             <Card key={item.id} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
                   <View>
                     <Typography variant="subtitle2">{item.name}</Typography>
-                    <Typography variant="caption" color="secondary">{item.company}</Typography>
+                    <Typography variant="caption" color="secondary">Đánh giá cho: {item.company}</Typography>
+                    <Typography variant="caption" color="secondary">Việc: {item.jobTitle}</Typography>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row' }}>
