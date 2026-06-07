@@ -254,6 +254,97 @@ app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<
   }
 });
 
+// API gửi OTP quên mật khẩu qua email
+app.post('/api/auth/forgot-password/send-otp', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
+  }
+
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Thiếu email.' });
+  }
+
+  try {
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000;
+
+    const db = admin.firestore();
+    await db.collection('passwordResetOtps').doc(userRecord.uid).set({
+      otp,
+      email: normalizedEmail,
+      uid: userRecord.uid,
+      expiresAt
+    });
+
+    await transporter.sendMail({
+      from: `"BybitJobs Admin" <${process.env.EMAIL_USER || 'no-reply@bybitjobs.com'}>`,
+      to: normalizedEmail,
+      subject: 'Mã OTP đặt lại mật khẩu BybitJobs',
+      html: `<h3>Xin chào!</h3><p>Mã OTP đặt lại mật khẩu của bạn là: <strong style="font-size:24px;">${otp}</strong></p><p>Mã này sẽ hết hạn trong vòng 5 phút. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>`
+    });
+
+    return res.status(200).json({ success: true, message: 'Đã gửi mã OTP đặt lại mật khẩu qua email.' });
+  } catch (error: any) {
+    console.error('Lỗi gửi OTP quên mật khẩu:', error);
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'Không tìm thấy tài khoản với email này.' });
+    }
+    return res.status(500).json({ error: 'Lỗi server khi gửi OTP quên mật khẩu', details: error.message });
+  }
+});
+
+// API xác nhận OTP quên mật khẩu và đổi mật khẩu
+app.post('/api/auth/forgot-password/reset', async (req: Request, res: Response): Promise<any> => {
+  if (!admin.apps.length) {
+    return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
+  }
+
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ error: 'Thiếu email, mã OTP hoặc mật khẩu mới.' });
+  }
+  if (String(newPassword).length < 6) {
+    return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+  }
+
+  try {
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const userRecord = await admin.auth().getUserByEmail(normalizedEmail);
+    const db = admin.firestore();
+    const otpRef = db.collection('passwordResetOtps').doc(userRecord.uid);
+    const otpDoc = await otpRef.get();
+
+    if (!otpDoc.exists) {
+      return res.status(400).json({ error: 'Mã OTP không tồn tại hoặc chưa được gửi.' });
+    }
+
+    const otpData = otpDoc.data();
+    if (otpData?.email !== normalizedEmail) {
+      return res.status(400).json({ error: 'Email không khớp với mã OTP.' });
+    }
+    if (Date.now() > (otpData?.expiresAt || 0)) {
+      return res.status(400).json({ error: 'Mã OTP đã hết hạn.' });
+    }
+    if (otpData?.otp !== String(otp).trim()) {
+      return res.status(400).json({ error: 'Mã OTP không chính xác.' });
+    }
+
+    await admin.auth().updateUser(userRecord.uid, { password: String(newPassword) });
+    await otpRef.delete();
+
+    return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.' });
+  } catch (error: any) {
+    console.error('Lỗi đổi mật khẩu bằng OTP:', error);
+    if (error.code === 'auth/user-not-found') {
+      return res.status(404).json({ error: 'Không tìm thấy tài khoản với email này.' });
+    }
+    return res.status(500).json({ error: 'Lỗi server khi đổi mật khẩu', details: error.message });
+  }
+});
+
 // API lấy mã USER ID tuần tự (6 số) của một người dùng dựa vào UID
 app.get('/api/users/:uid/seq', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {

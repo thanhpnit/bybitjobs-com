@@ -640,6 +640,48 @@ export function useAuth() {
     }
   };
 
+  const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/auth/forgot-password/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const responseText = await response.text();
+      const result = responseText ? JSON.parse(responseText) : {};
+      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi OTP đặt lại mật khẩu.' };
+    } catch (error: any) {
+      console.error('Lỗi gọi API gửi OTP quên mật khẩu:', error);
+      return {
+        success: false,
+        message: 'API gửi OTP quên mật khẩu chưa phản hồi đúng định dạng. Vui lòng kiểm tra backend đã deploy/restart route mới chưa.',
+      };
+    }
+  };
+
+  const confirmResetPassword = async (
+    email: string,
+    otp: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/auth/forgot-password/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, newPassword })
+      });
+      const responseText = await response.text();
+      const result = responseText ? JSON.parse(responseText) : {};
+      return { success: response.ok, message: result.message || result.error || 'Lỗi đổi mật khẩu.' };
+    } catch (error: any) {
+      console.error('Lỗi gọi API đổi mật khẩu bằng OTP:', error);
+      return {
+        success: false,
+        message: 'API đổi mật khẩu chưa phản hồi đúng định dạng. Vui lòng kiểm tra backend đã deploy/restart route mới chưa.',
+      };
+    }
+  };
+
   const signup = async (emailOrPhone: string, fullName: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
@@ -1169,6 +1211,8 @@ export function useAuth() {
     updateDesiredJob,
     login,
     signup,
+    resetPassword,
+    confirmResetPassword,
     sendOtp,
     verifyAccount,
     registerEmployer,
