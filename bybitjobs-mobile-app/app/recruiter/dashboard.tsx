@@ -5,13 +5,13 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   Alert,
   Modal,
   TouchableWithoutFeedback,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -356,7 +356,15 @@ export default function RecruiterDashboardScreen() {
                     if (job.id.startsWith('market-job')) {
                       Alert.alert('Chi tiết', `Chi tiết yêu cầu công việc: ${job.title}`);
                     } else {
-                      router.push({ pathname: '/job-details', params: { title: job.title } });
+                      router.push({
+                        pathname: '/job-details',
+                        params: {
+                          jobId: job.id,
+                          title: job.title,
+                          salary: job.price,
+                          location: job.location,
+                        },
+                      });
                     }
                   }}
                   style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}

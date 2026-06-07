@@ -6,27 +6,33 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
-  Linking,
   Alert,
   Modal,
   TextInput,
   KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '../src/config/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+
+const getFirstText = (...values: unknown[]) => {
+  const value = values.find((item) => typeof item === 'string' && item.trim());
+  return typeof value === 'string' ? value.trim() : '';
+};
 
 export default function JobDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, jobs } = useAuth();
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
   const [reportForm, setReportForm] = useState({
     fullName: '',
     phone: '',
@@ -42,14 +48,93 @@ export default function JobDetailsScreen() {
     salary?: string;
     location?: string;
   }>();
-  const displayTitle = title || 'Nhân viên phục vụ quán cà phê The Coffee House';
-  const displaySalary = salary || '300.000đ /ngày';
-  const displayLocation = location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
+  const currentJob = React.useMemo(() => {
+    if (jobId) {
+      const matchById = jobs.find((job) => job.id === jobId);
+      if (matchById) return matchById;
+    }
 
-  const handleCall = () => {
-    Linking.openURL('tel:0901234567').catch(() => {
-      Alert.alert('Lỗi', 'Không thể khởi chạy ứng dụng gọi điện trên thiết bị này.');
-    });
+    if (title) {
+      return jobs.find((job) => job.title === title);
+    }
+
+    return undefined;
+  }, [jobId, jobs, title]);
+
+  const displayTitle = currentJob?.title || title || 'Nhân viên phục vụ quán cà phê The Coffee House';
+  const displaySalary = currentJob?.salary || salary || '300.000đ /ngày';
+  const displayLocation = currentJob?.location || location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
+  const storedPosterName =
+    currentJob?.posterName ||
+    currentJob?.posterFullName ||
+    currentJob?.postedByName ||
+    currentJob?.authorName;
+
+  React.useEffect(() => {
+    let isActive = true;
+
+    const loadEmployerName = async () => {
+      if (typeof storedPosterName === 'string' && storedPosterName.trim()) {
+        if (isActive) setEmployerName(storedPosterName.trim());
+        return;
+      }
+
+      if (!currentJob?.employerId) {
+        if (isActive) setEmployerName('Nhà tuyển dụng');
+        return;
+      }
+
+      try {
+        const userResponse = await fetch(`http://160.250.246.119:4000/api/users/${currentJob.employerId}`);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const userName = getFirstText(
+            userData.fullName,
+            userData.full_name,
+            userData.displayName,
+            userData.name
+          );
+
+          if (userName) {
+            if (isActive) setEmployerName(userName);
+            return;
+          }
+        }
+
+        const employerSnapshot = await getDoc(doc(db, 'employers', currentJob.employerId));
+        const employerData = employerSnapshot.exists() ? employerSnapshot.data() : null;
+        const name = getFirstText(
+          employerData?.posterName,
+          employerData?.fullName,
+          employerData?.contactName,
+          employerData?.ownerName,
+          employerData?.name,
+          employerData?.companyName
+        ) || 'Nhà tuyển dụng';
+
+        if (isActive) setEmployerName(name);
+      } catch (error) {
+        console.error('Lỗi lấy thông tin nhà tuyển dụng:', error);
+        if (isActive) setEmployerName('Nhà tuyển dụng');
+      }
+    };
+
+    loadEmployerName();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentJob?.employerId, storedPosterName]);
+
+  const handleSaveJob = () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+    Alert.alert('Thông báo', nextSaved ? 'Đã lưu công việc.' : 'Đã bỏ lưu công việc.');
   };
 
   const handleApply = () => {
@@ -63,7 +148,7 @@ export default function JobDetailsScreen() {
         pathname: '/apply-job',
         params: {
           title: displayTitle,
-          jobId: jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
+          jobId: currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
           salary: displaySalary,
           location: displayLocation,
         }
@@ -167,7 +252,7 @@ export default function JobDetailsScreen() {
               <View style={styles.employerInfo}>
                 <View style={styles.employerNameRow}>
                   <Text style={[styles.employerNameText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    Nguyễn Văn Nam
+                    {employerName}
                   </Text>
                   <Ionicons name="checkmark-circle" size={16} color="#0084FF" style={styles.verifiedIcon} />
                 </View>
@@ -181,10 +266,6 @@ export default function JobDetailsScreen() {
                 </View>
               </View>
             </View>
-
-            <TouchableOpacity activeOpacity={0.7} style={styles.chatButton}>
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0084FF" />
-            </TouchableOpacity>
           </View>
 
           {/* Job Description (Mô tả công việc) */}
@@ -369,8 +450,16 @@ export default function JobDetailsScreen() {
 
       {/* Sticky Action Footer */}
       <View style={[styles.fixedFooter, isDark && styles.darkFooter]}>
-        <TouchableOpacity activeOpacity={0.8} onPress={handleCall} style={styles.phoneButton}>
-          <Ionicons name="call-outline" size={22} color="#0084FF" />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleSaveJob}
+          style={[styles.saveJobButton, isSaved && styles.saveJobButtonActive]}
+        >
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            size={22}
+            color={isSaved ? '#FFF' : '#0084FF'}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.85} onPress={handleApply} style={styles.applyButton}>
@@ -701,21 +790,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#8E8E93',
     marginHorizontal: 6,
   },
-  chatButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
   sectionCard: {
     padding: 16,
   },
@@ -812,7 +886,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1C1C1E',
     borderTopColor: '#2C2C2E',
   },
-  phoneButton: {
+  saveJobButton: {
     width: 48,
     height: 48,
     borderRadius: 12,
@@ -820,6 +894,9 @@ const styles = StyleSheet.create({
     borderColor: '#0084FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  saveJobButtonActive: {
+    backgroundColor: '#0084FF',
   },
   applyButton: {
     flex: 1,

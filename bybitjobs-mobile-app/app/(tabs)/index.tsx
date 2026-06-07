@@ -6,10 +6,10 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
@@ -46,6 +46,7 @@ export default function HomeScreen() {
 
   const [activeChip, setActiveChip] = React.useState('Hot');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
+  const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
 
   const toggleBookmark = (id: string) => {
     if (bookmarkedJobs.includes(id)) {
@@ -54,6 +55,53 @@ export default function HomeScreen() {
       setBookmarkedJobs([...bookmarkedJobs, id]);
     }
   };
+
+  React.useEffect(() => {
+    let isActive = true;
+    const employerIds = Array.from(new Set(
+      jobs
+        .filter((job) => !job.posterName && job.employerId && !posterNamesByEmployerId[job.employerId])
+        .map((job) => job.employerId as string)
+    ));
+
+    if (employerIds.length === 0) return;
+
+    const loadPosterNames = async () => {
+      const entries = await Promise.all(employerIds.map(async (employerId) => {
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
+          if (!response.ok) return null;
+
+          const userData = await response.json();
+          const name =
+            userData.fullName ||
+            userData.full_name ||
+            userData.displayName ||
+            userData.name;
+
+          return typeof name === 'string' && name.trim()
+            ? [employerId, name.trim()] as const
+            : null;
+        } catch (error) {
+          console.error('Lỗi lấy tên người đăng tin:', error);
+          return null;
+        }
+      }));
+
+      if (!isActive) return;
+
+      const nextNames = Object.fromEntries(entries.filter(Boolean) as [string, string][]);
+      if (Object.keys(nextNames).length > 0) {
+        setPosterNamesByEmployerId((prev) => ({ ...prev, ...nextNames }));
+      }
+    };
+
+    loadPosterNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [jobs, posterNamesByEmployerId]);
 
   const provinces = [
     'Tất cả địa điểm',
@@ -139,24 +187,49 @@ export default function HomeScreen() {
   const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
 
-  const jobListings: JobItem[] = jobs.map(job => ({
-    id: job.id,
-    title: job.title,
-    image: null,
-    author: {
-      name: 'Nhà Tuyển Dụng',
-      verified: true,
-      rating: 5.0,
-      avatar: 'NT',
-    },
-    location: job.location,
-    timeLeft: job.isOpen ? `Hạn chót: ${job.deadline}` : 'Đã đóng',
-    tags: [
-      { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category', icon: 'briefcase-outline' },
-    ],
-    price: job.salary,
-    originalIndustry: job.industry,
-  }));
+  const getPosterName = (job: (typeof jobs)[number]) => {
+    return (
+      job.posterName ||
+      job.posterFullName ||
+      job.postedByName ||
+      job.authorName ||
+      (job.employerId ? posterNamesByEmployerId[job.employerId] : undefined) ||
+      'Nhà tuyển dụng'
+    ).trim();
+  };
+
+  const getPosterAvatar = (name: string) => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'NT';
+  };
+
+  const jobListings: JobItem[] = jobs.map(job => {
+    const posterName = getPosterName(job);
+
+    return {
+      id: job.id,
+      title: job.title,
+      image: null,
+      author: {
+        name: posterName,
+        verified: true,
+        rating: 5.0,
+        avatar: getPosterAvatar(posterName),
+      },
+      location: job.location,
+      timeLeft: job.isOpen ? `Hạn chót: ${job.deadline}` : 'Đã đóng',
+      tags: [
+        { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category', icon: 'briefcase-outline' },
+      ],
+      price: job.salary,
+      originalIndustry: job.industry,
+    };
+  });
 
   const filteredJobs = jobListings.filter(job => {
     // Filter by Location
@@ -234,10 +307,10 @@ export default function HomeScreen() {
           <View style={[styles.bannerCard, { backgroundColor: isDark ? '#1C2E3D' : '#EAF4FC' }]}>
             <View style={styles.bannerLeft}>
               <Text style={[styles.bannerTitle, { color: isDark ? '#82C1F5' : '#0B59A4' }]}>
-                Thúc đẩy hiệu quả chiến dịch bằng quảng cáo banner trên Small Jobs
+                Thúc đẩy hiệu quả chiến dịch bằng quảng cáo banner trên BybitJobs
               </Text>
               <Text style={[styles.bannerDescription, { color: isDark ? '#A9C6E2' : '#5A6B82' }]}>
-                Từ ngày 15/12/2025 đến hết 30/1/2026, Small Jobs cam kết đồng hành cùng Doanh nghiệp trích 15% phí booking quảng cáo đóng góp quỹ MTTQ Việt Nam để giúp đỡ nhiều hoàn cảnh khó khăn dịp Tết 2026.
+                Từ ngày 15/12/2025 đến hết 30/1/2026, BybitJobs cam kết đồng hành cùng Doanh nghiệp trích 15% phí booking quảng cáo đóng góp quỹ MTTQ Việt Nam để giúp đỡ nhiều hoàn cảnh khó khăn dịp Tết 2026.
               </Text>
             </View>
             <View style={styles.bannerRight}>
@@ -306,7 +379,15 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     key={job.id}
                     activeOpacity={0.9}
-                    onPress={() => router.push({ pathname: '/job-details', params: { title: job.title } })}
+                    onPress={() => router.push({
+                      pathname: '/job-details',
+                      params: {
+                        jobId: job.id,
+                        title: job.title,
+                        salary: job.price,
+                        location: job.location,
+                      },
+                    })}
                     style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
                   >
                     <View style={styles.jobCardTop}>
