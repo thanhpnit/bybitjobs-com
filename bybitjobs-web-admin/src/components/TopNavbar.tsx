@@ -2,9 +2,11 @@ import React from 'react';
 import { View, TextInput, TouchableOpacity, Text, Image, StyleSheet } from 'react-native';
 import { Search, PlusCircle, Bell, HelpCircle, Moon, Sun } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 export const TopNavbar: React.FC = () => {
   const { theme, toggleTheme, colors } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <View style={[styles.topNavbar, { backgroundColor: colors.bgSecondary, borderBottomColor: colors.borderColor }]}>
@@ -18,7 +20,10 @@ export const TopNavbar: React.FC = () => {
       </View>
 
       <View style={styles.navbarActions}>
-        <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: colors.primaryColor }]}>
+        <TouchableOpacity 
+          style={[styles.btnPrimary, { backgroundColor: colors.primaryColor }]}
+          onPress={() => navigate('/notifications')}
+        >
           <PlusCircle color="#FFFFFF" size={18} />
           <Text style={styles.btnPrimaryText}>Tạo thông báo</Text>
         </TouchableOpacity>

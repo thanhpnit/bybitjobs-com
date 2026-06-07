@@ -12,7 +12,8 @@ import {
   AlertOctagon,
   MessageSquare,
   Settings,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +28,7 @@ const navItems = [
   { id: 'payments', label: 'Quản lý thanh toán', icon: CreditCard, path: '/payments' },
   { id: 'reports', label: 'Báo cáo vi phạm', icon: AlertOctagon, path: '/reports' },
   { id: 'reviews', label: 'Đánh giá công ty', icon: MessageSquare, path: '/reviews' },
+  { id: 'notifications', label: 'Quản lý thông báo', icon: Bell, path: '/notifications' },
 ];
 
 export const Sidebar: React.FC = () => {
