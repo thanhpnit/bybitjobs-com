@@ -63,6 +63,11 @@ export interface JobItem {
   requiredCount?: number;
   applicantsCount?: number;
   employerId?: string;
+  posterName?: string;
+  posterFullName?: string;
+  postedByName?: string;
+  authorName?: string;
+  posterEmail?: string;
 }
 
 export interface CandidateItem {
@@ -766,7 +771,9 @@ export function useAuth() {
         ...job,
         id: jobId,
         createdAt: new Date().toISOString(),
-        employerId: auth.currentUser?.uid || ''
+        employerId: auth.currentUser?.uid || '',
+        posterName: auth.currentUser?.displayName || globalEmployerData?.companyName || 'Nhà tuyển dụng',
+        posterEmail: auth.currentUser?.email || ''
       };
       await setDoc(doc(db, 'jobs', jobId), newJob);
       return true;
