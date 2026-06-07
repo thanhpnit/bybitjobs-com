@@ -480,24 +480,27 @@ export function useAuth() {
                 postsLimit: empData.postsLimit || '0/1'
               };
 
-              // Start listening to orders
-              if (globalOrdersUnsubscribe) globalOrdersUnsubscribe();
-              const qOrders = query(collection(db, 'orders'), where('employerId', '==', user.uid), orderBy('createdAt', 'desc'));
-              globalOrdersUnsubscribe = onSnapshot(qOrders, (snapshot) => {
-                globalOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderItem[];
-                
-                // Auto update package if there is a successful order
-                const latestSuccessOrder = globalOrders.find(o => o.status === 'success');
-                if (globalEmployerData) {
-                  globalEmployerData = {
-                    ...globalEmployerData,
-                    currentPackage: latestSuccessOrder ? latestSuccessOrder.packageName : (empData.current_package || 'basic')
-                  };
-                }
-                notifyAll();
-              }, (error) => {
-                console.error('Lỗi tải danh sách đơn hàng:', error);
-              });
+              // Listen for orders once per user session
+              if (!globalOrdersUnsubscribe) {
+                const qOrders = query(collection(db, 'orders'), where('employerId', '==', user.uid), orderBy('createdAt', 'desc'));
+                globalOrdersUnsubscribe = onSnapshot(qOrders, (snapshot) => {
+                  globalOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderItem[];
+                  
+                  // Auto update package if there is a successful order
+                  const latestSuccessOrder = globalOrders.find(o => o.status === 'success');
+                  if (globalEmployerData) {
+                    globalEmployerData = {
+                      ...globalEmployerData,
+                      currentPackage: latestSuccessOrder ? latestSuccessOrder.packageName : (globalEmployerData.currentPackage || 'basic')
+                    };
+                    setEmployerData({...globalEmployerData});
+                  }
+                  setOrders([...globalOrders]);
+                  notifyAll();
+                }, (error) => {
+                  console.error('Lỗi tải danh sách đơn hàng:', error);
+                });
+              }
               
               globalUserRole = 'employer';
             } else {
@@ -611,7 +614,7 @@ export function useAuth() {
 
     if (firebaseUser) {
       checkStatus();
-      intervalId = setInterval(checkStatus, 5000);
+      intervalId = setInterval(checkStatus, 60000); // Check every 60s instead of 5s
     }
 
     return () => {

@@ -82,7 +82,7 @@ export default function RecruiterPaymentScreen() {
         {
           text: 'Đồng ý',
           onPress: () => {
-            router.push('/recruiter/transactions' as any);
+            router.replace('/recruiter/transactions' as any);
           }
         }
       ]
