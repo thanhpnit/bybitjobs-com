@@ -14,6 +14,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '../../src/config/firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useRouter } from 'expo-router';
 
 interface NotificationItem {
   id: string;
@@ -42,6 +43,7 @@ export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { userData } = useAuth();
+  const router = useRouter();
 
   const [activeSegment, setActiveSegment] = React.useState<'all' | 'unread'>('all');
   const [dbNotifications, setDbNotifications] = React.useState<any[]>([]);
@@ -92,6 +94,11 @@ export default function NotificationsScreen() {
 
   // Fetch database notifications realtime
   useEffect(() => {
+    if (!userData?.uid) {
+      setDbNotifications([]);
+      return;
+    }
+
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -119,10 +126,12 @@ export default function NotificationsScreen() {
   }, [userData?.uid]);
 
   // Merge database notifications with mock fallbacks and local read state
-  const notifications = [...dbNotifications, ...mockNotifications].map((item) => ({
-    ...item,
-    isRead: readIds.includes(item.id) || item.isRead
-  }));
+  const notifications = userData?.uid
+    ? [...dbNotifications, ...mockNotifications].map((item) => ({
+        ...item,
+        isRead: readIds.includes(item.id) || item.isRead
+      }))
+    : [];
 
   const handleMarkAllRead = () => {
     setReadIds(notifications.map((n) => n.id));
@@ -207,7 +216,26 @@ export default function NotificationsScreen() {
 
         {/* List of Notifications */}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {filteredNotifications.length > 0 ? (
+          {!userData?.uid ? (
+            <View style={styles.emptyContainer}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? '#1C1C1E' : '#E6F4FE' }]}>
+                <Ionicons name="lock-closed-outline" size={48} color="#0084FF" />
+              </View>
+              <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Yêu cầu đăng nhập
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                Vui lòng đăng nhập để xem thông báo cá nhân, tin tức việc làm và các cập nhật mới nhất từ hệ thống.
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push('/login')}
+                style={styles.loginButton}
+              >
+                <Text style={styles.loginButtonText}>Đăng nhập ngay</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredNotifications.length > 0 ? (
             filteredNotifications.map((item) => {
               const iconData = getCategoryIcon(item.category);
               return (
@@ -427,5 +455,20 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  loginButton: {
+    backgroundColor: '#0084FF',
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 24,
+    width: '100%',
+  },
+  loginButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

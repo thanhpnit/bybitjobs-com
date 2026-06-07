@@ -250,9 +250,9 @@ export default function RecruiterJobsScreen() {
           <Text style={styles.navItemText}>Trang chủ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
-          <Ionicons name="briefcase" size={24} color="#0084FF" />
-          <Text style={[styles.navItemText, { color: '#0084FF' }]}>Việc của tôi</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+          <Ionicons name="people-outline" size={24} color="#8E8E93" />
+          <Text style={styles.navItemText}>Quản lý ứng viên</Text>
         </TouchableOpacity>
 
         {/* Center Raised FAB */}
@@ -263,9 +263,9 @@ export default function RecruiterJobsScreen() {
           <Text style={styles.fabItemText}>Đăng tin</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
-          <Ionicons name="people-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Cộng đồng</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
+          <Ionicons name="briefcase" size={24} color="#0084FF" />
+          <Text style={[styles.navItemText, { color: '#0084FF' }]}>Quản lý tin tuyển dụng</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
