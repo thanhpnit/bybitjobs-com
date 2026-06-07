@@ -169,7 +169,7 @@ export default function JobDetailsScreen() {
         pathname: '/apply-job',
         params: {
           title: displayTitle,
-          jobId: currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
+          jobId: displayJobId,
           companyName: employerName,
           salary: displaySalary,
           location: displayLocation,
