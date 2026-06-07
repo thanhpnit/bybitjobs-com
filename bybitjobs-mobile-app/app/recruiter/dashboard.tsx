@@ -79,9 +79,9 @@ export default function RecruiterDashboardScreen() {
       router.push('/recruiter/profile');
     } else if (item === 'Trang chủ') {
       router.push('/recruiter/dashboard');
-    } else if (item === 'Việc của tôi') {
+    } else if (item === 'Quản lý tin tuyển dụng') {
       router.push('/recruiter/jobs');
-    } else if (item === 'Cộng đồng') {
+    } else if (item === 'Quản lý ứng viên') {
       router.push('/recruiter/candidates');
     } else if (item === 'Đăng tin') {
       handlePostJob();
@@ -498,9 +498,9 @@ export default function RecruiterDashboardScreen() {
           <Text style={[styles.navItemText, { color: '#0084FF' }]}>Trang chủ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Việc của tôi')} style={styles.navItem}>
-          <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Việc của tôi</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Quản lý ứng viên')} style={styles.navItem}>
+          <Ionicons name="people-outline" size={24} color="#8E8E93" />
+          <Text style={styles.navItemText}>Quản lý ứng viên</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.85} onPress={() => handleNavItemPress('Đăng tin')} style={styles.fabNavItem}>
@@ -510,9 +510,9 @@ export default function RecruiterDashboardScreen() {
           <Text style={styles.fabItemText}>Đăng tin</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Cộng đồng')} style={styles.navItem}>
-          <Ionicons name="people-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Cộng đồng</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Quản lý tin tuyển dụng')} style={styles.navItem}>
+          <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
+          <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Cá nhân')} style={styles.navItem}>
