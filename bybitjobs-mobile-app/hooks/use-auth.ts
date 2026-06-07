@@ -123,6 +123,26 @@ export interface SubmitApplicationPayload {
   message?: string;
 }
 
+export interface SavedJobItem {
+  id: string;
+  userId: string;
+  jobId: string;
+  jobTitle: string;
+  jobSalary?: string;
+  jobLocation?: string;
+  savedAt: string;
+}
+
+export interface ViewedJobItem {
+  id: string;
+  userId: string;
+  jobId: string;
+  jobTitle: string;
+  jobSalary?: string;
+  jobLocation?: string;
+  viewedAt: string;
+}
+
 // Giữ lại trạng thái mock cho Employer Data vì Firebase Auth không lưu phần này
 // Trong thực tế, dữ liệu này sẽ được lưu ở Firestore hoặc Node.js MongoDB Backend
 let globalEmployerData: EmployerData | null = null;
@@ -301,6 +321,12 @@ let globalApplications: ApplicationItem[] = [
 ];
 let globalApplicationsUnsubscribe: (() => void) | null = null;
 
+let globalSavedJobs: SavedJobItem[] = [];
+let globalSavedJobsUnsubscribe: (() => void) | null = null;
+
+let globalViewedJobs: ViewedJobItem[] = [];
+let globalViewedJobsUnsubscribe: (() => void) | null = null;
+
 export function getRelativeTime(dateString: string, isOpen: boolean): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -336,6 +362,8 @@ export function useAuth() {
   const [orders, setOrders] = React.useState<OrderItem[]>(globalOrders);
   const [candidates, setCandidates] = React.useState<CandidateItem[]>(globalCandidates);
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
+  const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
+  const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
   const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string }>({});
 
   React.useEffect(() => {
@@ -388,6 +416,42 @@ export function useAuth() {
           notifyAll();
         }, (error) => {
           console.error('Lỗi tải danh sách việc đã ứng tuyển:', error);
+        });
+
+        if (globalSavedJobsUnsubscribe) globalSavedJobsUnsubscribe();
+        const qSavedJobs = query(
+          collection(db, 'savedJobs'),
+          where('userId', '==', user.uid)
+        );
+        globalSavedJobsUnsubscribe = onSnapshot(qSavedJobs, (snapshot) => {
+          globalSavedJobs = (snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as SavedJobItem[]).sort(
+            (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+          );
+          setSavedJobs([...globalSavedJobs]);
+          notifyAll();
+        }, (error) => {
+          console.error('Lỗi tải danh sách việc đã lưu:', error);
+        });
+
+        if (globalViewedJobsUnsubscribe) globalViewedJobsUnsubscribe();
+        const qViewedJobs = query(
+          collection(db, 'viewedJobs'),
+          where('userId', '==', user.uid)
+        );
+        globalViewedJobsUnsubscribe = onSnapshot(qViewedJobs, (snapshot) => {
+          globalViewedJobs = (snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as ViewedJobItem[]).sort(
+            (a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime()
+          );
+          setViewedJobs([...globalViewedJobs]);
+          notifyAll();
+        }, (error) => {
+          console.error('Lỗi tải danh sách việc đã xem:', error);
         });
 
         let pollingInterval: ReturnType<typeof setInterval> | null = null;
@@ -478,12 +542,24 @@ export function useAuth() {
           globalApplicationsUnsubscribe();
           globalApplicationsUnsubscribe = null;
         }
+        if (globalSavedJobsUnsubscribe) {
+          globalSavedJobsUnsubscribe();
+          globalSavedJobsUnsubscribe = null;
+        }
+        if (globalViewedJobsUnsubscribe) {
+          globalViewedJobsUnsubscribe();
+          globalViewedJobsUnsubscribe = null;
+        }
         globalUserRole = null;
         globalEmployerData = null;
+        globalSavedJobs = [];
+        globalViewedJobs = [];
         setSeqId('000000');
         setUserDataExtra({});
         setUserRole(null);
         setEmployerData(null);
+        setSavedJobs([]);
+        setViewedJobs([]);
       }
       setIsInitializing(false);
     });
@@ -495,6 +571,8 @@ export function useAuth() {
       setOrders([...globalOrders]);
       setCandidates([...globalCandidates]);
       setApplications([...globalApplications]);
+      setSavedJobs([...globalSavedJobs]);
+      setViewedJobs([...globalViewedJobs]);
     };
     listeners.add(handleMockDataChange);
 
@@ -919,6 +997,115 @@ export function useAuth() {
     return { success: true, message: 'Đã lưu đánh giá công ty.' };
   };
 
+  const toggleSavedJob = async (payload: {
+    jobId: string;
+    jobTitle: string;
+    jobSalary?: string;
+    jobLocation?: string;
+  }): Promise<{ success: boolean; isSaved: boolean; message: string }> => {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, isSaved: false, message: 'Vui lòng đăng nhập để lưu công việc.' };
+    }
+
+    const existingSavedJob = globalSavedJobs.find(
+      (item) => item.userId === user.uid && item.jobId === payload.jobId
+    );
+
+    if (existingSavedJob) {
+      globalSavedJobs = globalSavedJobs.filter((item) => item.id !== existingSavedJob.id);
+      setSavedJobs([...globalSavedJobs]);
+      notifyAll();
+
+      try {
+        await deleteDoc(doc(db, 'savedJobs', existingSavedJob.id));
+      } catch (error) {
+        console.error('Lỗi bỏ lưu công việc:', error);
+      }
+
+      return { success: true, isSaved: false, message: 'Đã bỏ lưu công việc.' };
+    }
+
+    const savedJobId = `${user.uid}_${encodeURIComponent(payload.jobId)}`;
+    const newSavedJob: SavedJobItem = {
+      id: savedJobId,
+      userId: user.uid,
+      jobId: payload.jobId,
+      jobTitle: payload.jobTitle,
+      jobSalary: payload.jobSalary,
+      jobLocation: payload.jobLocation,
+      savedAt: new Date().toISOString(),
+    };
+
+    globalSavedJobs = [newSavedJob, ...globalSavedJobs];
+    setSavedJobs([...globalSavedJobs]);
+    notifyAll();
+
+    try {
+      await setDoc(doc(db, 'savedJobs', savedJobId), newSavedJob);
+    } catch (error) {
+      console.error('Lỗi lưu công việc:', error);
+    }
+
+    return { success: true, isSaved: true, message: 'Đã lưu công việc.' };
+  };
+
+  const addViewedJob = async (payload: {
+    jobId: string;
+    jobTitle: string;
+    jobSalary?: string;
+    jobLocation?: string;
+  }): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const viewedJobId = `${user.uid}_${encodeURIComponent(payload.jobId)}`;
+    const viewedAt = new Date().toISOString();
+    const viewedJob: ViewedJobItem = {
+      id: viewedJobId,
+      userId: user.uid,
+      jobId: payload.jobId,
+      jobTitle: payload.jobTitle,
+      jobSalary: payload.jobSalary,
+      jobLocation: payload.jobLocation,
+      viewedAt,
+    };
+
+    globalViewedJobs = [
+      viewedJob,
+      ...globalViewedJobs.filter((item) => item.id !== viewedJobId),
+    ];
+    setViewedJobs([...globalViewedJobs]);
+    notifyAll();
+
+    try {
+      await setDoc(doc(db, 'viewedJobs', viewedJobId), viewedJob);
+    } catch (error) {
+      console.error('Lỗi lưu lịch sử xem công việc:', error);
+    }
+  };
+
+  const removeViewedJob = async (
+    viewedJobId: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const targetViewedJob = globalViewedJobs.find((item) => item.id === viewedJobId);
+    if (!targetViewedJob) {
+      return { success: false, message: 'Không tìm thấy công việc đã xem.' };
+    }
+
+    globalViewedJobs = globalViewedJobs.filter((item) => item.id !== viewedJobId);
+    setViewedJobs([...globalViewedJobs]);
+    notifyAll();
+
+    try {
+      await deleteDoc(doc(db, 'viewedJobs', viewedJobId));
+    } catch (error) {
+      console.error('Lỗi xóa lịch sử xem công việc:', error);
+    }
+
+    return { success: true, message: 'Đã xóa khỏi việc làm đã xem.' };
+  };
+
   const sendInvitation = (candidateId: string, jobId: string) => {
     const targetCandidate = globalCandidates.find((c) => c.id === candidateId);
     const targetJob = globalJobs.find((j) => j.id === jobId);
@@ -966,9 +1153,14 @@ export function useAuth() {
     orders,
     candidates,
     applications,
+    savedJobs,
+    viewedJobs,
     submitApplication,
     cancelApplication,
     updateApplicationFeedback,
+    toggleSavedJob,
+    addViewedJob,
+    removeViewedJob,
     addJob,
     updateJob,
     deleteJob,

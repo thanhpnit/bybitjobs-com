@@ -30,8 +30,12 @@ export default function ProfileScreen() {
     employerData,
     jobs,
     applications,
+    savedJobs,
+    viewedJobs,
     cancelApplication,
     updateApplicationFeedback,
+    toggleSavedJob,
+    removeViewedJob,
     registerEmployer,
     verifyAccount,
     seqId,
@@ -51,6 +55,10 @@ export default function ProfileScreen() {
   const [editJobInput, setEditJobInput] = React.useState('');
   const [isAppliedJobsModalVisible, setIsAppliedJobsModalVisible] = React.useState(false);
   const [selectedAppliedJobId, setSelectedAppliedJobId] = React.useState<string | null>(null);
+  const [isSavedJobsModalVisible, setIsSavedJobsModalVisible] = React.useState(false);
+  const [selectedSavedJobId, setSelectedSavedJobId] = React.useState<string | null>(null);
+  const [isViewedJobsModalVisible, setIsViewedJobsModalVisible] = React.useState(false);
+  const [selectedViewedJobId, setSelectedViewedJobId] = React.useState<string | null>(null);
   const [companyRating, setCompanyRating] = React.useState(0);
   const [companyComment, setCompanyComment] = React.useState('');
 
@@ -306,6 +314,48 @@ export default function ProfileScreen() {
     return appliedJobs.find((application) => application.id === selectedAppliedJobId) || null;
   }, [appliedJobs, selectedAppliedJobId]);
 
+  const savedJobDetails = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return savedJobs
+      .filter((savedJob) => savedJob.userId === userData.uid)
+      .map((savedJob) => {
+        const matchedJob = jobs.find((job) => job.id === savedJob.jobId);
+        return {
+          ...savedJob,
+          title: savedJob.jobTitle || matchedJob?.title || 'Công việc đã lưu',
+          salary: savedJob.jobSalary || matchedJob?.salary || 'Đang cập nhật',
+          location: savedJob.jobLocation || matchedJob?.location || 'Đang cập nhật',
+          isOpen: matchedJob?.isOpen,
+          deadline: matchedJob?.deadline,
+        };
+      });
+  }, [jobs, savedJobs, userData?.uid]);
+
+  const selectedSavedJob = React.useMemo(() => {
+    return savedJobDetails.find((savedJob) => savedJob.id === selectedSavedJobId) || null;
+  }, [savedJobDetails, selectedSavedJobId]);
+
+  const viewedJobDetails = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return viewedJobs
+      .filter((viewedJob) => viewedJob.userId === userData.uid)
+      .map((viewedJob) => {
+        const matchedJob = jobs.find((job) => job.id === viewedJob.jobId);
+        return {
+          ...viewedJob,
+          title: viewedJob.jobTitle || matchedJob?.title || 'Công việc đã xem',
+          salary: viewedJob.jobSalary || matchedJob?.salary || 'Đang cập nhật',
+          location: viewedJob.jobLocation || matchedJob?.location || 'Đang cập nhật',
+          isOpen: matchedJob?.isOpen,
+          deadline: matchedJob?.deadline,
+        };
+      });
+  }, [jobs, userData?.uid, viewedJobs]);
+
+  const selectedViewedJob = React.useMemo(() => {
+    return viewedJobDetails.find((viewedJob) => viewedJob.id === selectedViewedJobId) || null;
+  }, [selectedViewedJobId, viewedJobDetails]);
+
   const formatAppliedDate = (dateString: string) => {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return 'Vừa ứng tuyển';
@@ -340,6 +390,109 @@ export default function ProfileScreen() {
     setSelectedAppliedJobId(null);
     setCompanyRating(0);
     setCompanyComment('');
+  };
+
+  const handleOpenSavedJobDetail = (savedJobId: string) => {
+    setSelectedSavedJobId(savedJobId);
+  };
+
+  const handleCloseSavedJobsModal = () => {
+    setIsSavedJobsModalVisible(false);
+    setSelectedSavedJobId(null);
+  };
+
+  const handleViewSavedJob = () => {
+    if (!selectedSavedJob) return;
+    setIsSavedJobsModalVisible(false);
+    setSelectedSavedJobId(null);
+    router.push({
+      pathname: '/job-details',
+      params: {
+        jobId: selectedSavedJob.jobId,
+        title: selectedSavedJob.title,
+        salary: selectedSavedJob.salary,
+        location: selectedSavedJob.location,
+      },
+    });
+  };
+
+  const formatSavedDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Vừa lưu';
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const handleRemoveSavedJob = () => {
+    if (!selectedSavedJob) return;
+    Alert.alert(
+      'Bỏ lưu công việc',
+      `Bạn có chắc muốn bỏ lưu công việc "${selectedSavedJob.title}" không?`,
+      [
+        { text: 'Không', style: 'cancel' },
+        {
+          text: 'Bỏ lưu',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await toggleSavedJob({
+              jobId: selectedSavedJob.jobId,
+              jobTitle: selectedSavedJob.title,
+              jobSalary: selectedSavedJob.salary,
+              jobLocation: selectedSavedJob.location,
+            });
+            setSelectedSavedJobId(null);
+            Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOpenViewedJobDetail = (viewedJobId: string) => {
+    setSelectedViewedJobId(viewedJobId);
+  };
+
+  const handleCloseViewedJobsModal = () => {
+    setIsViewedJobsModalVisible(false);
+    setSelectedViewedJobId(null);
+  };
+
+  const handleViewViewedJob = () => {
+    if (!selectedViewedJob) return;
+    setIsViewedJobsModalVisible(false);
+    setSelectedViewedJobId(null);
+    router.push({
+      pathname: '/job-details',
+      params: {
+        jobId: selectedViewedJob.jobId,
+        title: selectedViewedJob.title,
+        salary: selectedViewedJob.salary,
+        location: selectedViewedJob.location,
+      },
+    });
+  };
+
+  const handleRemoveViewedJob = () => {
+    if (!selectedViewedJob) return;
+    Alert.alert(
+      'Xóa khỏi việc làm đã xem',
+      `Bạn có chắc muốn xóa công việc "${selectedViewedJob.title}" khỏi lịch sử xem không?`,
+      [
+        { text: 'Không', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await removeViewedJob(selectedViewedJob.id);
+            setSelectedViewedJobId(null);
+            Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message);
+          },
+        },
+      ]
+    );
   };
 
   const handleCancelApplication = () => {
@@ -970,8 +1123,28 @@ export default function ProfileScreen() {
                 <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
               </View>
             )}
-            {renderSettingRow('heart-outline', 'Việc làm đã lưu', () => handleFeaturePress('Việc làm đã lưu', () => triggerFeatureMock('Việc làm đã lưu')))}
-            {renderSettingRow('eye-outline', 'Việc làm đã xem', () => handleFeaturePress('Việc làm đã xem', () => triggerFeatureMock('Việc làm đã xem')))}
+            {renderSettingRow(
+              'heart-outline',
+              'Việc làm đã lưu',
+              () => handleFeaturePress('Việc làm đã lưu', () => setIsSavedJobsModalVisible(true)),
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.twoFactorBadge, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Text style={[styles.twoFactorBadgeText, { color: '#0084FF' }]}>{savedJobDetails.length}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
+              </View>
+            )}
+            {renderSettingRow(
+              'eye-outline',
+              'Việc làm đã xem',
+              () => handleFeaturePress('Việc làm đã xem', () => setIsViewedJobsModalVisible(true)),
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.twoFactorBadge, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  <Text style={[styles.twoFactorBadgeText, { color: '#0084FF' }]}>{viewedJobDetails.length}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#555' : '#CCC'} />
+              </View>
+            )}
             {renderSettingRow('mail-outline', 'Lời mời làm việc', () => handleFeaturePress('Lời mời làm việc', () => triggerFeatureMock('Lời mời làm việc')))}
           </View>
 
@@ -1240,6 +1413,308 @@ export default function ProfileScreen() {
                         <View style={[styles.statusBadge, { backgroundColor: `${getApplicationStatusColor(application.status)}20` }]}>
                           <Text style={[styles.statusBadgeText, { color: getApplicationStatusColor(application.status) }]}>
                             {getApplicationStatusLabel(application.status)}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isSavedJobsModalVisible}
+        onRequestClose={handleCloseSavedJobsModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.appliedJobsModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                {selectedSavedJob ? (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setSelectedSavedJobId(null)}
+                    style={styles.appliedBackButton}
+                  >
+                    <Ionicons name="arrow-back" size={22} color={isDark ? '#FFF' : '#11181C'} />
+                  </TouchableOpacity>
+                ) : (
+                  <Ionicons name="heart-outline" size={22} color="#0084FF" style={{ marginRight: 8 }} />
+                )}
+                <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {selectedSavedJob ? 'Chi tiết việc đã lưu' : 'Việc làm đã lưu'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleCloseSavedJobsModal}
+                style={styles.closeExplorerBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.appliedJobsModalContent}>
+              {selectedSavedJob ? (
+                <View>
+                  <View style={[styles.appliedDetailCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                    <View style={styles.appliedJobTopRow}>
+                      <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                        <Ionicons name="heart" size={20} color="#0084FF" />
+                      </View>
+                      <View style={styles.appliedJobTextCol}>
+                        <Text style={[styles.appliedDetailTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                          {selectedSavedJob.title}
+                        </Text>
+                        <Text style={styles.appliedJobMeta}>
+                          {selectedSavedJob.salary}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.detailInfoGrid}>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="location-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          {selectedSavedJob.location}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="calendar-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          Lưu ngày {formatSavedDate(selectedSavedJob.savedAt)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="time-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          {selectedSavedJob.deadline ? `Hạn chót: ${selectedSavedJob.deadline}` : 'Hạn chót: Đang cập nhật'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.appliedActionsRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleViewSavedJob}
+                        style={[styles.appliedStatusButton, { backgroundColor: '#E8F5E9' }]}
+                      >
+                        <Ionicons name="open-outline" size={16} color="#4CAF50" />
+                        <Text style={styles.appliedStatusButtonText}>Xem tin</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleRemoveSavedJob}
+                        style={styles.cancelApplicationButton}
+                      >
+                        <Ionicons name="heart-dislike-outline" size={16} color="#FF3B30" />
+                        <Text style={styles.cancelApplicationButtonText}>Bỏ lưu</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              ) : savedJobDetails.length === 0 ? (
+                <View style={styles.emptyAppliedBox}>
+                  <Ionicons name="heart-outline" size={36} color={isDark ? '#6B7280' : '#B0BEC5'} />
+                  <Text style={[styles.emptyAppliedTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Bạn chưa lưu công việc nào
+                  </Text>
+                  <Text style={styles.emptyAppliedText}>
+                    Các công việc bạn bấm lưu sẽ được hiển thị tại đây.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.appliedList}>
+                  {savedJobDetails.map((savedJob) => (
+                    <TouchableOpacity
+                      key={savedJob.id}
+                      activeOpacity={0.8}
+                      onPress={() => handleOpenSavedJobDetail(savedJob.id)}
+                      style={[
+                        styles.appliedJobItem,
+                        {
+                          backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                          borderColor: isDark ? '#2C2C2E' : '#ECEFF1',
+                        },
+                      ]}
+                    >
+                      <View style={styles.appliedJobTopRow}>
+                        <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                          <Ionicons name="heart" size={18} color="#0084FF" />
+                        </View>
+                        <View style={styles.appliedJobTextCol}>
+                          <Text style={[styles.appliedJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                            {savedJob.title}
+                          </Text>
+                          <Text style={styles.appliedJobMeta} numberOfLines={1}>
+                            {savedJob.salary} • {savedJob.location}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.appliedJobBottomRow}>
+                        <Text style={styles.appliedDateText}>
+                          Lưu: {formatSavedDate(savedJob.savedAt)}
+                        </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: '#E6F4FE' }]}>
+                          <Text style={[styles.statusBadgeText, { color: '#0084FF' }]}>
+                            Đã lưu
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isViewedJobsModalVisible}
+        onRequestClose={handleCloseViewedJobsModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.appliedJobsModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                {selectedViewedJob ? (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setSelectedViewedJobId(null)}
+                    style={styles.appliedBackButton}
+                  >
+                    <Ionicons name="arrow-back" size={22} color={isDark ? '#FFF' : '#11181C'} />
+                  </TouchableOpacity>
+                ) : (
+                  <Ionicons name="eye-outline" size={22} color="#0084FF" style={{ marginRight: 8 }} />
+                )}
+                <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {selectedViewedJob ? 'Chi tiết việc đã xem' : 'Việc làm đã xem'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleCloseViewedJobsModal}
+                style={styles.closeExplorerBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.appliedJobsModalContent}>
+              {selectedViewedJob ? (
+                <View>
+                  <View style={[styles.appliedDetailCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                    <View style={styles.appliedJobTopRow}>
+                      <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                        <Ionicons name="eye" size={20} color="#0084FF" />
+                      </View>
+                      <View style={styles.appliedJobTextCol}>
+                        <Text style={[styles.appliedDetailTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                          {selectedViewedJob.title}
+                        </Text>
+                        <Text style={styles.appliedJobMeta}>
+                          {selectedViewedJob.salary}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.detailInfoGrid}>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="location-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          {selectedViewedJob.location}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="calendar-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          Xem ngày {formatSavedDate(selectedViewedJob.viewedAt)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailInfoRow}>
+                        <Ionicons name="time-outline" size={16} color="#0084FF" />
+                        <Text style={[styles.detailInfoText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                          {selectedViewedJob.deadline ? `Hạn chót: ${selectedViewedJob.deadline}` : 'Hạn chót: Đang cập nhật'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.appliedActionsRow}>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleViewViewedJob}
+                        style={[styles.appliedStatusButton, { backgroundColor: '#E8F5E9' }]}
+                      >
+                        <Ionicons name="open-outline" size={16} color="#4CAF50" />
+                        <Text style={styles.appliedStatusButtonText}>Xem tin</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={handleRemoveViewedJob}
+                        style={styles.cancelApplicationButton}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#FF3B30" />
+                        <Text style={styles.cancelApplicationButtonText}>Xóa</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              ) : viewedJobDetails.length === 0 ? (
+                <View style={styles.emptyAppliedBox}>
+                  <Ionicons name="eye-outline" size={36} color={isDark ? '#6B7280' : '#B0BEC5'} />
+                  <Text style={[styles.emptyAppliedTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Bạn chưa xem công việc nào
+                  </Text>
+                  <Text style={styles.emptyAppliedText}>
+                    Các công việc bạn đã mở chi tiết sẽ được hiển thị tại đây.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.appliedList}>
+                  {viewedJobDetails.map((viewedJob) => (
+                    <TouchableOpacity
+                      key={viewedJob.id}
+                      activeOpacity={0.8}
+                      onPress={() => handleOpenViewedJobDetail(viewedJob.id)}
+                      style={[
+                        styles.appliedJobItem,
+                        {
+                          backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                          borderColor: isDark ? '#2C2C2E' : '#ECEFF1',
+                        },
+                      ]}
+                    >
+                      <View style={styles.appliedJobTopRow}>
+                        <View style={[styles.appliedJobIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                          <Ionicons name="eye" size={18} color="#0084FF" />
+                        </View>
+                        <View style={styles.appliedJobTextCol}>
+                          <Text style={[styles.appliedJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                            {viewedJob.title}
+                          </Text>
+                          <Text style={styles.appliedJobMeta} numberOfLines={1}>
+                            {viewedJob.salary} • {viewedJob.location}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.appliedJobBottomRow}>
+                        <Text style={styles.appliedDateText}>
+                          Xem: {formatSavedDate(viewedJob.viewedAt)}
+                        </Text>
+                        <View style={[styles.statusBadge, { backgroundColor: '#E6F4FE' }]}>
+                          <Text style={[styles.statusBadgeText, { color: '#0084FF' }]}>
+                            Đã xem
                           </Text>
                         </View>
                       </View>
