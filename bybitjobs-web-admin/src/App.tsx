@@ -14,6 +14,7 @@ import { Industries } from './pages/Industries';
 import { Payments } from './pages/Payments';
 import { Reports } from './pages/Reports';
 import { Reviews } from './pages/Reviews';
+import { Notifications } from './pages/Notifications';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAuth();
@@ -41,6 +42,7 @@ function App() {
               <Route path="payments" element={<Payments />} />
               <Route path="reports" element={<Reports />} />
               <Route path="reviews" element={<Reviews />} />
+              <Route path="notifications" element={<Notifications />} />
             </Route>
           </Routes>
         </BrowserRouter>

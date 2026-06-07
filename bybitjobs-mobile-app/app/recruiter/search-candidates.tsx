@@ -269,25 +269,33 @@ export default function RecruiterSearchCandidatesScreen() {
         )}
       </ScrollView>
 
-      {/* Navigation Tab Emulator bar */}
+      {/* Simulator Raised FAB Bottom Navigation Bar */}
       <View style={[styles.bottomNavBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
-          <Ionicons name="home-outline" size={22} color="#8E8E93" />
+          <Ionicons name="home-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Trang chủ</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
-          <Ionicons name="briefcase-outline" size={22} color="#8E8E93" />
+          <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Việc của tôi</Text>
         </TouchableOpacity>
 
+        {/* Center Raised FAB */}
+        <TouchableOpacity activeOpacity={0.85} onPress={() => router.push({ pathname: '/recruiter/edit-job', params: { id: 'new' } })} style={styles.fabNavItem}>
+          <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+            <Ionicons name="add" size={32} color="#FFF" />
+          </View>
+          <Text style={styles.fabItemText}>Đăng tin</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
-          <Ionicons name="people-outline" size={22} color="#8E8E93" />
+          <Ionicons name="people-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Cộng đồng</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
-          <Ionicons name="person-outline" size={22} color="#8E8E93" />
+          <Ionicons name="person-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Cá nhân</Text>
         </TouchableOpacity>
       </View>
@@ -464,7 +472,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   bottomNavBar: {
-    height: 56,
+    height: 64,
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -473,16 +481,51 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    elevation: 10,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    overflow: 'visible',
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
   },
   navItemText: {
     fontSize: 9,
     fontWeight: '600',
     color: '#8E8E93',
-    marginTop: 3,
+    marginTop: 4,
+  },
+  fabNavItem: {
+    flex: 1.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    position: 'relative',
+  },
+  fabCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: -25,
+    borderWidth: 4,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+  },
+  fabItemText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#0060B6',
+    marginTop: 34,
   },
 });
