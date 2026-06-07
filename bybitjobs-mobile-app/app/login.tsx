@@ -9,6 +9,8 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +22,7 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, resetPassword, confirmResetPassword } = useAuth();
 
   // Get dynamic redirect parameters and prefilled values if any
   const { redirectTitle, prefilledEmail, prefilledPassword } = useLocalSearchParams<{ 
@@ -33,6 +35,14 @@ export default function LoginScreen() {
   const [emailOrPhone, setEmailOrPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [isForgotModalVisible, setIsForgotModalVisible] = React.useState(false);
+  const [forgotStep, setForgotStep] = React.useState<'email' | 'confirm'>('email');
+  const [resetEmail, setResetEmail] = React.useState('');
+  const [resetOtp, setResetOtp] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = React.useState('');
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [isResettingPassword, setIsResettingPassword] = React.useState(false);
 
   // Auto-fill parameters when redirected from signup screen
   React.useEffect(() => {
@@ -84,7 +94,82 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert('Quên mật khẩu', 'Hệ thống sẽ gửi mã thiết lập lại mật khẩu tới liên hệ của bạn.');
+    const currentEmail = emailOrPhone.includes('@') ? emailOrPhone.trim() : '';
+    setResetEmail(currentEmail);
+    setForgotStep('email');
+    setResetOtp('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setShowNewPassword(false);
+    setIsForgotModalVisible(true);
+  };
+
+  const handleSendResetPasswordEmail = async () => {
+    const email = resetEmail.trim();
+    if (!email) {
+      Alert.alert('Thông báo', 'Vui lòng nhập email để đặt lại mật khẩu.');
+      return;
+    }
+    if (!email.includes('@')) {
+      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ email hợp lệ.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    const result = await resetPassword(email);
+    setIsResettingPassword(false);
+
+    Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message, [
+      {
+        text: 'Đồng ý',
+        onPress: () => {
+          if (result.success) {
+            setForgotStep('confirm');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    const otp = resetOtp.trim();
+    if (!otp) {
+      Alert.alert('Thông báo', 'Vui lòng nhập mã OTP.');
+      return;
+    }
+    if (!/^\d{6}$/.test(otp)) {
+      Alert.alert('Thông báo', 'Mã OTP phải gồm 6 chữ số.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Thông báo', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert('Thông báo', 'Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    const result = await confirmResetPassword(resetEmail.trim(), otp, newPassword);
+    setIsResettingPassword(false);
+
+    Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message, [
+      {
+        text: 'Đồng ý',
+        onPress: () => {
+          if (result.success) {
+            setIsForgotModalVisible(false);
+            setForgotStep('email');
+            setResetEmail('');
+            setResetOtp('');
+            setNewPassword('');
+            setConfirmNewPassword('');
+            setPassword('');
+          }
+        },
+      },
+    ]);
   };
 
   const handleRegister = () => {
@@ -262,6 +347,150 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isForgotModalVisible}
+        onRequestClose={() => setIsForgotModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.forgotModalCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                setIsForgotModalVisible(false);
+                setForgotStep('email');
+              }}
+              style={styles.modalCloseButton}
+              disabled={isResettingPassword}
+            >
+              <Ionicons name="close" size={22} color={isDark ? '#9BA1A6' : '#687076'} />
+            </TouchableOpacity>
+
+            <View style={styles.forgotIconCircle}>
+              <Ionicons name="mail-outline" size={26} color="#0084FF" />
+            </View>
+
+            <Text style={[styles.forgotModalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+              {forgotStep === 'email' ? 'Quên mật khẩu' : 'Xác nhận đổi mật khẩu'}
+            </Text>
+            <Text style={[styles.forgotModalSubtitle, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              {forgotStep === 'email'
+                ? 'Nhập email tài khoản, hệ thống sẽ gửi mã OTP đặt lại mật khẩu cho bạn.'
+                : 'Nhập mã OTP 6 số đã gửi về email, sau đó đặt mật khẩu mới.'}
+            </Text>
+
+            {forgotStep === 'email' ? (
+              <>
+                <View style={[styles.resetInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F0F4F8' }]}>
+                  <Ionicons name="mail-outline" size={20} color="#8E8E93" style={styles.fieldIcon} />
+                  <TextInput
+                    style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                    placeholder="Nhập email"
+                    placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={resetEmail}
+                    onChangeText={setResetEmail}
+                    editable={!isResettingPassword}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleSendResetPasswordEmail}
+                  style={[styles.resetPasswordButton, isResettingPassword && styles.resetPasswordButtonDisabled]}
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.resetPasswordButtonText}>Gửi mã OTP</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={[styles.resetInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F0F4F8' }]}>
+                  <Ionicons name="key-outline" size={20} color="#8E8E93" style={styles.fieldIcon} />
+                  <TextInput
+                    style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                    placeholder="Nhập mã OTP 6 số"
+                    placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={resetOtp}
+                    onChangeText={setResetOtp}
+                    editable={!isResettingPassword}
+                  />
+                </View>
+
+                <View style={[styles.resetInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F0F4F8' }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#8E8E93" style={styles.fieldIcon} />
+                  <TextInput
+                    style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                    placeholder="Mật khẩu mới"
+                    placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                    secureTextEntry={!showNewPassword}
+                    autoCapitalize="none"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    editable={!isResettingPassword}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                    style={styles.eyeBtn}
+                  >
+                    <Ionicons
+                      name={showNewPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="#8E8E93"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.resetInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F0F4F8' }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#8E8E93" style={styles.fieldIcon} />
+                  <TextInput
+                    style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                    placeholder="Nhập lại mật khẩu mới"
+                    placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                    secureTextEntry={!showNewPassword}
+                    autoCapitalize="none"
+                    value={confirmNewPassword}
+                    onChangeText={setConfirmNewPassword}
+                    editable={!isResettingPassword}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleConfirmResetPassword}
+                  style={[styles.resetPasswordButton, isResettingPassword && styles.resetPasswordButtonDisabled]}
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.resetPasswordButtonText}>Xác nhận đổi mật khẩu</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={handleSendResetPasswordEmail}
+                  style={styles.resendResetButton}
+                  disabled={isResettingPassword}
+                >
+                  <Text style={styles.resendResetButtonText}>Gửi lại mã OTP</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -447,5 +676,90 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  forgotModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 18,
+    padding: 22,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(150, 150, 150, 0.12)',
+    zIndex: 1,
+  },
+  forgotIconCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#E6F4FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  forgotModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  forgotModalSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  resetInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 46,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  resetPasswordButton: {
+    backgroundColor: '#0084FF',
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resetPasswordButtonDisabled: {
+    opacity: 0.65,
+  },
+  resetPasswordButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  resendResetButton: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  resendResetButtonText: {
+    color: '#0084FF',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });

@@ -22,13 +22,15 @@ export default function ApplyJobScreen() {
   const { submitApplication, userData } = useAuth();
 
   // Get dynamic title from parameters
-  const { title, jobId, salary, location } = useLocalSearchParams<{
+  const { title, jobId, companyName, salary, location } = useLocalSearchParams<{
     title: string;
     jobId?: string;
+    companyName?: string;
     salary?: string;
     location?: string;
   }>();
   const displayTitle = title || 'Nhân viên phục vụ quán cà phê The Coffee House';
+  const displayCompanyName = companyName || 'The Coffee House';
   const displaySalary = salary || '25k - 30k / giờ';
   const displayLocation = location || 'Quận 1, TP. Hồ Chí Minh';
 
@@ -73,6 +75,7 @@ export default function ApplyJobScreen() {
     const result = await submitApplication({
       jobId,
       jobTitle: displayTitle,
+      companyName: displayCompanyName,
       jobSalary: displaySalary,
       jobLocation: displayLocation,
       applicantName: fullName.trim(),

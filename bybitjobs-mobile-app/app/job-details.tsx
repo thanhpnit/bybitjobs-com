@@ -29,9 +29,8 @@ export default function JobDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { isLoggedIn, jobs } = useAuth();
+  const { isLoggedIn, jobs, savedJobs, toggleSavedJob, addViewedJob } = useAuth();
   const [reportModalVisible, setReportModalVisible] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
   const [reportForm, setReportForm] = useState({
     fullName: '',
@@ -64,11 +63,29 @@ export default function JobDetailsScreen() {
   const displayTitle = currentJob?.title || title || 'Nhân viên phục vụ quán cà phê The Coffee House';
   const displaySalary = currentJob?.salary || salary || '300.000đ /ngày';
   const displayLocation = currentJob?.location || location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
+  const displayJobId = currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
+  const isSaved = savedJobs.some((savedJob) => savedJob.jobId === displayJobId);
+  const addViewedJobRef = React.useRef(addViewedJob);
   const storedPosterName =
     currentJob?.posterName ||
     currentJob?.posterFullName ||
     currentJob?.postedByName ||
     currentJob?.authorName;
+
+  React.useEffect(() => {
+    addViewedJobRef.current = addViewedJob;
+  }, [addViewedJob]);
+
+  React.useEffect(() => {
+    if (!isLoggedIn) return;
+
+    addViewedJobRef.current({
+      jobId: displayJobId,
+      jobTitle: displayTitle,
+      jobSalary: displaySalary,
+      jobLocation: displayLocation,
+    });
+  }, [displayJobId, displayLocation, displaySalary, displayTitle, isLoggedIn]);
 
   React.useEffect(() => {
     let isActive = true;
@@ -126,15 +143,19 @@ export default function JobDetailsScreen() {
     };
   }, [currentJob?.employerId, storedPosterName]);
 
-  const handleSaveJob = () => {
+  const handleSaveJob = async () => {
     if (!isLoggedIn) {
       router.push('/login');
       return;
     }
 
-    const nextSaved = !isSaved;
-    setIsSaved(nextSaved);
-    Alert.alert('Thông báo', nextSaved ? 'Đã lưu công việc.' : 'Đã bỏ lưu công việc.');
+    const result = await toggleSavedJob({
+      jobId: displayJobId,
+      jobTitle: displayTitle,
+      jobSalary: displaySalary,
+      jobLocation: displayLocation,
+    });
+    Alert.alert('Thông báo', result.message);
   };
 
   const handleApply = () => {
@@ -148,7 +169,8 @@ export default function JobDetailsScreen() {
         pathname: '/apply-job',
         params: {
           title: displayTitle,
-          jobId: currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`,
+          jobId: displayJobId,
+          companyName: employerName,
           salary: displaySalary,
           location: displayLocation,
         }
