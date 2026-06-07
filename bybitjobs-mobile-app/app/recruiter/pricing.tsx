@@ -81,7 +81,7 @@ export default function RecruiterPricingScreen() {
     {
       icon: 'flash-outline' as const,
       title: 'Hỗ trợ ưu tiên',
-      desc: 'Mọi thắc mắc của bạn sẽ được đội ngũ Smalljobs xử lý ngay lập tức.',
+      desc: 'Mọi thắc mắc của bạn sẽ được đội ngũ BybitJobs xử lý ngay lập tức.',
     },
   ];
 

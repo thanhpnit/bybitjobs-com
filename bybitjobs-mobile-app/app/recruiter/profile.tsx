@@ -29,15 +29,15 @@ export default function RecruiterProfileScreen() {
 
   // Form Field states (prefilled with mock values or context states)
   // Form Field states (prefilled with mock values or context states)
-  const [companyName, setCompanyName] = React.useState(employerData?.companyName || 'Smalljobs Global Solutions');
-  const [website, setWebsite] = React.useState(employerData?.website || 'https://smalljobs.vn');
+  const [companyName, setCompanyName] = React.useState(employerData?.companyName || 'BybitJobs Global Solutions');
+  const [website, setWebsite] = React.useState(employerData?.website || 'https://bybitjobs.com');
   const [email, setEmail] = React.useState(employerData?.email || 'example@company.com');
   const [phone, setPhone] = React.useState(employerData?.phoneNumber || '0123 456 789');
   const [address, setAddress] = React.useState(employerData?.address || 'Tòa nhà Landmark 81, TP. HCM');
   const [industry, setIndustry] = React.useState(employerData?.industry || 'Công nghệ');
   const [scale, setScale] = React.useState(employerData?.scale || '51-200 nhân viên');
   const [description, setDescription] = React.useState(
-    employerData?.description || 'Smalljobs.vn là nền tảng kết nối các công việc tự do và bán thời gian hàng đầu Việt Nam. Chúng tôi cam kết mang lại giải pháp tuyển dụng minh bạch, nhanh chóng và hiệu quả cho doanh nghiệp và người lao động.'
+    employerData?.description || 'BybitJobs là nền tảng kết nối các công việc tự do và bán thời gian hàng đầu Việt Nam. Chúng tôi cam kết mang lại giải pháp tuyển dụng minh bạch, nhanh chóng và hiệu quả cho doanh nghiệp và người lao động.'
   );
 
   // Logo & Banner state simulator
@@ -190,7 +190,7 @@ export default function RecruiterProfileScreen() {
         <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
           <Ionicons name="menu-outline" size={26} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerBarTitle}>Smalljobs.vn</Text>
+        <Text style={styles.headerBarTitle}>BybitJobs</Text>
         <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.push('/recruiter/dashboard')}>
           <Ionicons name="desktop-outline" size={22} color="#FFF" />
         </TouchableOpacity>
