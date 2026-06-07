@@ -379,6 +379,20 @@ export default function ProfileScreen() {
     return '#FF9500';
   };
 
+  const getReviewStatusLabel = (status?: string, hasReview = false) => {
+    if (status === 'Đã phê duyệt') return 'Đã phê duyệt';
+    if (status === 'Bị báo cáo') return 'Bị báo cáo';
+    if (status === 'Chờ duyệt' || hasReview) return 'Chờ duyệt';
+    return 'Chưa đánh giá';
+  };
+
+  const getReviewStatusColor = (status?: string, hasReview = false) => {
+    if (status === 'Đã phê duyệt') return '#4CAF50';
+    if (status === 'Bị báo cáo') return '#FF3B30';
+    if (status === 'Chờ duyệt' || hasReview) return '#FF9500';
+    return '#8E8E93';
+  };
+
   const handleOpenAppliedJobDetail = (applicationId: string) => {
     const application = appliedJobs.find((item) => item.id === applicationId);
     setCompanyRating(application?.companyRating || 0);
@@ -527,7 +541,20 @@ export default function ProfileScreen() {
       companyRating,
       companyComment: companyComment.trim(),
     });
-    Alert.alert(result.success ? 'Thành công' : 'Thông báo', result.message);
+    if (result.success) {
+      Alert.alert('Thành công', 'Bạn đã đánh giá thành công.', [
+        {
+          text: 'Đóng',
+          onPress: () => {
+            setSelectedAppliedJobId(null);
+            setCompanyRating(0);
+            setCompanyComment('');
+          },
+        },
+      ]);
+      return;
+    }
+    Alert.alert('Thông báo', result.message);
   };
 
   // Dynamic dates
@@ -1330,9 +1357,39 @@ export default function ProfileScreen() {
                   </View>
 
                   <View style={[styles.appliedDetailCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
-                    <Text style={[styles.reviewTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                      Đánh giá công ty
-                    </Text>
+                    <View style={styles.reviewHeaderRow}>
+                      <Text style={[styles.reviewTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                        Đánh giá công ty
+                      </Text>
+                      <View
+                        style={[
+                          styles.reviewStatusBadge,
+                          {
+                            backgroundColor: `${getReviewStatusColor(
+                              selectedAppliedJob.reviewStatus,
+                              !!selectedAppliedJob.companyRating
+                            )}20`,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.reviewStatusText,
+                            {
+                              color: getReviewStatusColor(
+                                selectedAppliedJob.reviewStatus,
+                                !!selectedAppliedJob.companyRating
+                              ),
+                            },
+                          ]}
+                        >
+                          {getReviewStatusLabel(
+                            selectedAppliedJob.reviewStatus,
+                            !!selectedAppliedJob.companyRating
+                          )}
+                        </Text>
+                      </View>
+                    </View>
                     <View style={styles.ratingRow}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <TouchableOpacity
@@ -2637,10 +2694,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 10,
+  },
   reviewTitle: {
+    flex: 1,
     fontSize: 15,
     fontWeight: 'bold',
-    marginBottom: 10,
+  },
+  reviewStatusBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  reviewStatusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   ratingRow: {
     flexDirection: 'row',

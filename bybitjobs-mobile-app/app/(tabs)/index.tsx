@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Platform,
   Modal,
 } from 'react-native';
@@ -186,6 +187,8 @@ export default function HomeScreen() {
   const [isLocationModalVisible, setIsLocationModalVisible] = React.useState(false);
   const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+  const [isSearchModalVisible, setIsSearchModalVisible] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   const getPosterName = (job: (typeof jobs)[number]) => {
     return (
@@ -231,6 +234,45 @@ export default function HomeScreen() {
     };
   });
 
+  const normalizeText = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const searchSuggestions = React.useMemo(() => {
+    const keyword = normalizeText(searchQuery.trim());
+    if (!keyword) return [];
+
+    return jobListings
+      .filter((job) => {
+        const searchableText = normalizeText([
+          job.title,
+          job.author.name,
+          job.location,
+          job.price,
+          job.originalIndustry || '',
+        ].join(' '));
+        return searchableText.includes(keyword);
+      })
+      .slice(0, 8);
+  }, [jobListings, searchQuery]);
+
+  const openJobDetails = (job: JobItem) => {
+    setIsSearchModalVisible(false);
+    setSearchQuery('');
+    router.push({
+      pathname: '/job-details',
+      params: {
+        jobId: job.id,
+        title: job.title,
+        companyName: job.author.name,
+        salary: job.price,
+        location: job.location,
+      },
+    });
+  };
+
   const filteredJobs = jobListings.filter(job => {
     // Filter by Location
     let matchLocation = true;
@@ -273,7 +315,11 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.headerRightGroup}>
-              <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setIsSearchModalVisible(true)}
+                style={styles.iconButton}
+              >
                 <Ionicons name="search-outline" size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
@@ -379,15 +425,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     key={job.id}
                     activeOpacity={0.9}
-                    onPress={() => router.push({
-                      pathname: '/job-details',
-                      params: {
-                        jobId: job.id,
-                        title: job.title,
-                        salary: job.price,
-                        location: job.location,
-                      },
-                    })}
+                    onPress={() => openJobDetails(job)}
                     style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
                   >
                     <View style={styles.jobCardTop}>
@@ -503,9 +541,8 @@ export default function HomeScreen() {
                         })}
                       </View>
 
-                      {/* Highly Tilted Price Bubble */}
                       <View style={[styles.priceBubble, isDark && styles.priceBubbleDark]}>
-                        <Text style={styles.priceText}>{job.price}</Text>
+                        <Text style={styles.priceText} numberOfLines={1}>{job.price}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -518,6 +555,86 @@ export default function HomeScreen() {
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        visible={isSearchModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsSearchModalVisible(false)}
+      >
+        <View style={styles.searchModalOverlay}>
+          <View style={[styles.searchPanel, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.searchInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+              <Ionicons name="search-outline" size={20} color="#8E8E93" />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+                placeholder="Nhập vài chữ đầu để tìm việc..."
+                placeholderTextColor="#8E8E93"
+                style={[styles.searchInput, { color: isDark ? '#FFF' : '#11181C' }]}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setIsSearchModalVisible(false);
+                    setSearchQuery('');
+                  }}
+                >
+                  <Ionicons name="close-circle" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.searchResultsList}>
+              {searchQuery.trim().length === 0 ? (
+                <View style={styles.searchEmptyBox}>
+                  <Ionicons name="sparkles-outline" size={30} color="#0084FF" />
+                  <Text style={[styles.searchEmptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Tìm nhanh công việc
+                  </Text>
+                  <Text style={styles.searchEmptyText}>
+                    Gõ tên việc, khu vực, lĩnh vực hoặc mức lương để xem đề xuất.
+                  </Text>
+                </View>
+              ) : searchSuggestions.length === 0 ? (
+                <View style={styles.searchEmptyBox}>
+                  <Ionicons name="search-outline" size={30} color="#8E8E93" />
+                  <Text style={[styles.searchEmptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Không tìm thấy công việc phù hợp
+                  </Text>
+                </View>
+              ) : (
+                searchSuggestions.map((job) => (
+                  <TouchableOpacity
+                    key={job.id}
+                    activeOpacity={0.8}
+                    onPress={() => openJobDetails(job)}
+                    style={[styles.searchSuggestionItem, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
+                  >
+                    <View style={[styles.searchSuggestionIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                      <Ionicons name="briefcase-outline" size={18} color="#0084FF" />
+                    </View>
+                    <View style={styles.searchSuggestionTextCol}>
+                      <Text style={[styles.searchSuggestionTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                        {job.title}
+                      </Text>
+                      <Text style={styles.searchSuggestionMeta} numberOfLines={1}>
+                        {job.author.name} • {job.location}
+                      </Text>
+                    </View>
+                    <Text style={styles.searchSuggestionPrice} numberOfLines={1}>
+                      {job.price}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+
+          </View>
+        </View>
+      </Modal>
 
       {/* Location Selection Modal */}
       <Modal
@@ -968,10 +1085,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 12,
+    gap: 10,
   },
   tagsContainer: {
     flexDirection: 'row',
     gap: 8,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   tagBubble: {
     flexDirection: 'row',
@@ -989,13 +1109,12 @@ const styles = StyleSheet.create({
   },
   priceBubble: {
     backgroundColor: '#E6F4FE',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 2,
-    borderTopRightRadius: 2,
-    transform: [{ rotate: '-3deg' }],
+    width: 112,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   priceBubbleDark: {
     backgroundColor: '#152E47',
@@ -1003,10 +1122,99 @@ const styles = StyleSheet.create({
   priceText: {
     color: '#0084FF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
   },
   scrollPaddingBottom: {
     height: 40,
+  },
+  searchModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 64 : 42,
+  },
+  searchPanel: {
+    borderRadius: 18,
+    padding: 14,
+    maxHeight: '78%',
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+  },
+  searchInputWrapper: {
+    height: 46,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  searchResultsList: {
+    marginTop: 10,
+  },
+  searchEmptyBox: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+  },
+  searchEmptyTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  searchEmptyText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  searchSuggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  searchSuggestionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  searchSuggestionTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  searchSuggestionTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  searchSuggestionMeta: {
+    color: '#8E8E93',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+  searchSuggestionPrice: {
+    color: '#0084FF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    maxWidth: 92,
+    marginLeft: 8,
+    textAlign: 'right',
   },
   modalOverlay: {
     flex: 1,

@@ -109,6 +109,7 @@ export interface ApplicationItem {
   companyRating?: number;
   companyComment?: string;
   reviewedAt?: string;
+  reviewStatus?: 'Chờ duyệt' | 'Đã phê duyệt' | 'Bị báo cáo';
   status: 'Pending' | 'Approved' | 'Rejected';
   appliedAt: string;
 }
@@ -1025,6 +1026,7 @@ export function useAuth() {
           companyRating: feedback.companyRating,
           companyComment: feedback.companyComment,
           reviewedAt,
+          reviewStatus: 'Chờ duyệt',
         };
       }
       return app;
@@ -1037,12 +1039,13 @@ export function useAuth() {
         companyRating: feedback.companyRating,
         companyComment: feedback.companyComment,
         reviewedAt,
+        reviewStatus: 'Chờ duyệt',
       });
     } catch (error) {
       console.error('Lỗi lưu đánh giá công ty:', error);
     }
 
-    return { success: true, message: 'Đã lưu đánh giá công ty.' };
+    return { success: true, message: 'Bạn đã đánh giá thành công.' };
   };
 
   const toggleSavedJob = async (payload: {
