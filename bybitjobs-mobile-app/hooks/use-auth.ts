@@ -465,7 +465,7 @@ export function useAuth() {
               const date = data.createdAt ? data.createdAt.toDate() : new Date();
               return {
                 id: doc.id,
-                category: (data.target === 'ALL' ? 'system' : 'security') as any,
+                category: (['ALL', 'RECRUITER', 'USER'].includes(data.target) ? 'system' : 'security') as any,
                 title: data.title || '',
                 description: data.body || '',
                 time: getRelativeTimeLabel(date),
@@ -473,7 +473,7 @@ export function useAuth() {
                 target: data.target || 'ALL',
               };
             })
-            .filter((item) => item.target === 'ALL' || item.target === user.uid);
+            .filter((item) => ['ALL', 'RECRUITER', 'USER'].includes(item.target) || item.target === user.uid);
           globalNotifications = dbItems;
           setNotifications(dbItems);
           notifyAll();
@@ -1302,10 +1302,18 @@ export function useAuth() {
   };
 
   const mergedNotifications = firebaseUser
-    ? [...notifications, ...mockNotifications].map((item) => ({
-        ...item,
-        isRead: readIds.includes(item.id) || item.isRead
-      }))
+    ? [...notifications, ...mockNotifications]
+        .filter((item) => {
+          if (item.target === 'ALL') return true;
+          if (item.target === 'RECRUITER') return userRole === 'employer';
+          if (item.target === 'USER') return userRole === 'candidate';
+          if (item.target === undefined) return userRole === 'candidate';
+          return item.target === firebaseUser.uid;
+        })
+        .map((item) => ({
+          ...item,
+          isRead: readIds.includes(item.id) || !!item.isRead,
+        }))
     : [];
 
   const unreadNotificationsCount = mergedNotifications.filter((n) => !n.isRead).length;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Typography } from '../components/ui/Typography';
@@ -7,7 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, Bell, Send, Clock, User, Users as UsersIcon } from 'lucide-react-native';
+import { Plus, Bell, Send, Clock, User, Users as UsersIcon, Building2 } from 'lucide-react-native';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 
@@ -66,10 +66,19 @@ export const Notifications: React.FC = () => {
       return;
     }
 
-    const target = targetType === 'ALL' ? 'ALL' : targetUid.trim();
-    if (targetType === 'UID' && !target) {
-      alert('Vui lòng nhập UID người nhận!');
-      return;
+    let target = '';
+    if (targetType === 'ALL') {
+      target = 'ALL';
+    } else if (targetType === 'RECRUITER') {
+      target = 'RECRUITER';
+    } else if (targetType === 'USER') {
+      target = 'USER';
+    } else {
+      target = targetUid.trim();
+      if (!target) {
+        alert('Vui lòng nhập UID người nhận!');
+        return;
+      }
     }
 
     try {
@@ -154,15 +163,29 @@ export const Notifications: React.FC = () => {
                     {item.target === 'ALL' ? (
                       <Badge status="success" style={styles.badgeWidth}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <UsersIcon size={12} color="#fff" />
-                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>Tất cả (ALL)</Text>
+                          <UsersIcon size={12} color={colors.successText} />
+                          <Text style={{ color: colors.successText, fontSize: 11, fontWeight: 'bold' }}>Tất cả (ALL)</Text>
+                        </View>
+                      </Badge>
+                    ) : item.target === 'RECRUITER' ? (
+                      <Badge status="warning" style={styles.badgeWidth}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Building2 size={12} color={colors.warningText} />
+                          <Text style={{ color: colors.warningText, fontSize: 11, fontWeight: 'bold' }}>Nhà tuyển dụng</Text>
+                        </View>
+                      </Badge>
+                    ) : item.target === 'USER' ? (
+                      <Badge status="info" style={styles.badgeWidth}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <User size={12} color={colors.infoText} />
+                          <Text style={{ color: colors.infoText, fontSize: 11, fontWeight: 'bold' }}>Người dùng</Text>
                         </View>
                       </Badge>
                     ) : (
-                      <Badge status="info" style={styles.badgeWidth}>
+                      <Badge status="default" style={styles.badgeWidth}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <User size={12} color="#fff" />
-                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
+                          <User size={12} color={colors.textSecondary} />
+                          <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
                             UID: {item.target}
                           </Text>
                         </View>
@@ -228,6 +251,8 @@ export const Notifications: React.FC = () => {
             }}
           >
             <option value="ALL">Gửi tất cả (ALL)</option>
+            <option value="RECRUITER">Gửi nhà tuyển dụng</option>
+            <option value="USER">Gửi người dùng (Ứng viên)</option>
             <option value="UID">Gửi đích danh (Nhập UID)</option>
           </select>
         </View>
