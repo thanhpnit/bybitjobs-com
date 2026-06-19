@@ -897,6 +897,41 @@ app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promi
   }
 });
 
+// Lấy danh sách giao dịch (orders)
+app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = admin.firestore();
+    const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
+    
+    // get unique employerIds
+    const employerIds = [...new Set(snapshot.docs.map(doc => doc.data().employerId))];
+    const employersMap: any = {};
+    
+    // fetch employer names in parallel to map with orders
+    await Promise.all(employerIds.map(async (uid) => {
+      if (!uid) return;
+      const empDoc = await db.collection('employers').doc(uid).get();
+      if (empDoc.exists) {
+        employersMap[uid] = empDoc.data()?.company || 'Unknown';
+      }
+    }));
+    
+    const orders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        companyName: employersMap[data.employerId] || 'Không xác định'
+      };
+    });
+    
+    return res.status(200).json(orders);
+  } catch (error: any) {
+    console.error('Lỗi lấy danh sách giao dịch:', error);
+    return res.status(500).json({ error: 'Lỗi lấy danh sách giao dịch' });
+  }
+});
+
 // ---------------- PAYOS PAYMENT API ---------------- //
 
 app.post('/api/payment/create', async (req: Request, res: Response): Promise<any> => {

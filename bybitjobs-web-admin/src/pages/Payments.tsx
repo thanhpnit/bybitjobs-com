@@ -11,16 +11,35 @@ import { PaymentConfigTab } from './PaymentConfigTab';
 
 const screenWidth = Dimensions.get('window').width;
 
-const transactions = [
-  { id: '#TXN-88291', company: 'Công ty TechCore', package: 'GÓI PREMIUM', amount: '2.500.000 đ', method: 'Chuyển khoản', status: 'Completed', color: '#D97706', bg: '#FEF3C7' },
-  { id: '#TXN-88290', company: 'Gia Phong Group', package: 'GÓI CƠ BẢN', amount: '500.000 đ', method: 'Thẻ Visa', status: 'Pending', color: '#6B7280', bg: '#F3F4F6' },
-  { id: '#TXN-88289', company: 'LogiMove JSC', package: 'GÓI DOANH NGHIỆP', amount: '12.000.000 đ', method: 'Ví MoMo', status: 'Failed', color: '#0066FF', bg: '#E6F0FF' },
-  { id: '#TXN-88288', company: 'VinaGoods LTD', package: 'GÓI PREMIUM', amount: '2.500.000 đ', method: 'Chuyển khoản', status: 'Completed', color: '#D97706', bg: '#FEF3C7' },
-];
-
+import { useEffect } from 'react';
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'config'>('overview');
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  // Luôn luôn kết nối trực tiếp tới IP VPS thật
+  const apiHost = '160.250.246.119';
+
+  useEffect(() => {
+    fetch(`http://${apiHost}:4000/api/orders`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data.map((item: any) => ({
+            id: `#TXN-${item.orderCode}`,
+            company: item.companyName || 'Không xác định',
+            package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
+            amount: `${Number(item.price || 0).toLocaleString()} đ`,
+            method: 'PayOS',
+            status: item.status === 'success' ? 'Completed' : item.status === 'pending' ? 'Pending' : 'Failed',
+            color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
+            bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
+          }));
+          setTransactions(mapped);
+        }
+      })
+      .catch(err => console.error('Lỗi lấy danh sách giao dịch:', err));
+  }, []);
 
   return (
     <View style={styles.container}>
