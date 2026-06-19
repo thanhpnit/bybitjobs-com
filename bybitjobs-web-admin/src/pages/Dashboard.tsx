@@ -4,7 +4,7 @@ import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useTheme } from '../context/ThemeContext';
-import { Wallet, Users as UsersIcon, FileText, AlertCircle } from 'lucide-react-native';
+import { Wallet, Users as UsersIcon, FileText, AlertCircle, Star, CheckCircle2 } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
 import { useData } from '../context/DataContext';
 
@@ -13,7 +13,7 @@ const screenWidth = Dimensions.get('window').width;
 export const Dashboard: React.FC = () => {
   const { colors, theme } = useTheme();
   const isDark = theme === 'dark';
-  const { users, jobPosts, reports } = useData();
+  const { users, jobPosts, reports, reviews } = useData();
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -38,6 +38,128 @@ export const Dashboard: React.FC = () => {
       })
       .catch(err => console.error('Lỗi lấy giao dịch gần đây:', err));
   }, []);
+
+  const parseDDMMYYYY = (str: string) => {
+    if (!str) return new Date();
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    }
+    return new Date(str);
+  };
+
+  const parseTransactionDate = (str: string) => {
+    if (!str) return new Date();
+    const [datePart, timePart] = str.split(' ');
+    if (!datePart) return new Date(str);
+    const parts = datePart.split('/');
+    const timeParts = timePart ? timePart.split(':') : [0, 0];
+    if (parts.length === 3) {
+      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), Number(timeParts[0] || 0), Number(timeParts[1] || 0));
+    }
+    return new Date(str);
+  };
+
+  const getRelativeTime = (date: Date) => {
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / (60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+    if (diffMins < 1) return 'VỪA XONG';
+    if (diffMins < 60) return `${diffMins} PHÚT TRƯỚC`;
+    if (diffHours < 24) return `${diffHours} GIỜ TRƯỚC`;
+    return `${diffDays} NGÀY TRƯỚC`;
+  };
+
+  const activities = React.useMemo(() => {
+    const list: any[] = [];
+
+    // Helper to safely parse any date format into a Date object
+    const toDate = (val: any): Date => {
+      if (!val) return new Date();
+      if (val instanceof Date) return val;
+      if (val.toDate && typeof val.toDate === 'function') return val.toDate(); // Firebase Timestamp
+      if (typeof val === 'number') return new Date(val);
+      if (typeof val === 'string') {
+        // Handle DD/MM/YYYY
+        const parts = val.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const year = parseInt(parts[2], 10);
+          return new Date(year, month, day);
+        }
+        return new Date(val);
+      }
+      return new Date();
+    };
+
+    // Báo cáo vi phạm
+    reports.forEach((item) => {
+      const statusLabel = item.status === 'Chờ xử lý' ? '⏳ Chờ xử lý' : (item.status === 'Đã xử lý' ? '✅ Đã xử lý' : item.status);
+      list.push({
+        title: `Báo cáo vi phạm - ${statusLabel}`,
+        description: `${item.user || 'Ẩn danh'} báo cáo ${item.target || 'tin đăng'}: ${item.reason}`,
+        date: toDate(item.date),
+        iconName: 'AlertCircle',
+        color: colors.dangerText,
+        bgColor: colors.dangerBg,
+      });
+    });
+
+    // Đánh giá công ty
+    reviews.forEach((item) => {
+      const isApproved = item.status === 'Đã duyệt';
+      list.push({
+        title: isApproved ? 'Đánh giá đã duyệt' : 'Đánh giá chờ duyệt',
+        description: `${item.user || 'Ẩn danh'} đánh giá ${item.company || 'công ty'}: "${item.comment}" (${item.rating}⭐)`,
+        date: toDate(item.date),
+        iconName: isApproved ? 'CheckCircle2' : 'Star',
+        color: isApproved ? colors.successText : colors.warningText,
+        bgColor: isApproved ? colors.successBg : colors.warningBg,
+      });
+    });
+
+    // Tin tuyển dụng
+    jobPosts.forEach((item) => {
+      list.push({
+        title: 'Tin tuyển dụng mới',
+        description: `${item.title} tại ${item.company || 'Doanh nghiệp'}`,
+        date: toDate(item.createdAt || item.date),
+        iconName: 'FileText',
+        color: colors.warningText,
+        bgColor: colors.warningBg,
+      });
+    });
+
+    // Người dùng đăng ký
+    users.forEach((item) => {
+      list.push({
+        title: 'Người dùng mới đăng ký',
+        description: `${item.name || 'Thành viên mới'} (${item.job || 'Người tìm việc'})`,
+        date: toDate(item.createdAt || item.date),
+        iconName: 'UsersIcon',
+        color: colors.successText,
+        bgColor: colors.successBg,
+      });
+    });
+
+    // Giao dịch thanh toán
+    recentTransactions.forEach((item) => {
+      list.push({
+        title: 'Thanh toán thành công',
+        description: `${item.name} đã mua gói dịch vụ ${item.amount}`,
+        date: toDate(item.date),
+        iconName: 'Wallet',
+        color: colors.infoText,
+        bgColor: colors.infoBg,
+      });
+    });
+
+    return list
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [reports, reviews, jobPosts, users, recentTransactions, colors]);
 
   return (
     <View style={styles.container}>
@@ -107,28 +229,29 @@ export const Dashboard: React.FC = () => {
         </Card>
 
         <Card style={styles.activitySection}>
-          <Typography variant="h4" style={{ marginBottom: 24 }}>Hoạt động gần đây</Typography>
-          
-          <View style={styles.activityItem}>
-            <View style={[styles.activityIcon, { backgroundColor: colors.dangerBg }]}>
-              <AlertCircle color={colors.dangerText} size={16} />
-            </View>
-            <View style={styles.activityContent}>
-              <Typography variant="subtitle2">Báo cáo vi phạm mới</Typography>
-              <Typography variant="body2" color="secondary">Nội dung bài đăng không phù hợp</Typography>
-              <Typography variant="caption" color="muted">15 PHÚT TRƯỚC</Typography>
-            </View>
-          </View>
-
-          <View style={styles.activityItem}>
-            <View style={[styles.activityIcon, { backgroundColor: colors.successBg }]}>
-              <UsersIcon color={colors.successText} size={16} />
-            </View>
-            <View style={styles.activityContent}>
-              <Typography variant="subtitle2">Doanh nghiệp mới đăng ký</Typography>
-              <Typography variant="body2" color="secondary">Công ty Công nghệ Alpha</Typography>
-              <Typography variant="caption" color="muted">1 GIỜ TRƯỚC</Typography>
-            </View>
+          <Typography variant="h4" style={{ marginBottom: 16 }}>Hoạt động gần đây ({activities.length})</Typography>
+          <View style={styles.activityScrollArea}>
+          {activities.length === 0 ? (
+            <Typography variant="body2" color="secondary">Chưa có hoạt động nào gần đây.</Typography>
+          ) : (
+            activities.map((act, index) => (
+              <View key={index} style={styles.activityItem}>
+                <View style={[styles.activityIcon, { backgroundColor: act.bgColor }]}>
+                  {act.iconName === 'Wallet' && <Wallet color={act.color} size={16} />}
+                  {act.iconName === 'UsersIcon' && <UsersIcon color={act.color} size={16} />}
+                  {act.iconName === 'FileText' && <FileText color={act.color} size={16} />}
+                  {act.iconName === 'AlertCircle' && <AlertCircle color={act.color} size={16} />}
+                  {act.iconName === 'Star' && <Star color={act.color} size={16} />}
+                  {act.iconName === 'CheckCircle2' && <CheckCircle2 color={act.color} size={16} />}
+                </View>
+                <View style={styles.activityContent}>
+                  <Typography variant="subtitle2">{act.title}</Typography>
+                  <Typography variant="body2" color="secondary" numberOfLines={1}>{act.description}</Typography>
+                  <Typography variant="caption" color="muted">{getRelativeTime(act.date)}</Typography>
+                </View>
+              </View>
+            ))
+          )}
           </View>
         </Card>
       </View>
@@ -211,6 +334,11 @@ const styles = StyleSheet.create({
   activitySection: {
     flex: 1,
     minHeight: 360,
+    maxHeight: 500,
+  },
+  activityScrollArea: {
+    flex: 1,
+    overflow: 'scroll' as any,
   },
   activityItem: {
     flexDirection: 'row',

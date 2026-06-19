@@ -1,7 +1,7 @@
 export const initialUsers = [
-  { id: '#US-9021', name: 'Nguyễn Văn An', job: 'Thợ điện bậc 4', email: 'an.nguyen@email.com', phone: '090 123 4567', status: 'Đã xác thực', date: '12/10/2023' },
-  { id: '#US-8942', name: 'Trần Thị Bình', job: 'Giúp việc gia đình', email: 'binh.tt@email.com', phone: '091 888 9999', status: 'Chờ xác thực', date: '15/10/2023' },
-  { id: '#US-8811', name: 'Lê Minh Cường', job: 'Giao hàng nhanh', email: 'cuong.le@email.com', phone: '098 765 4321', status: 'Bị khóa', date: '18/10/2023' },
+  { id: '#US-9021', name: 'Nguyễn Văn An', job: 'Thợ điện bậc 4', email: 'an.nguyen@email.com', phone: '090 123 4567', status: 'Đã xác thực', date: '19/06/2026' },
+  { id: '#US-8942', name: 'Trần Thị Bình', job: 'Giúp việc gia đình', email: 'binh.tt@email.com', phone: '091 888 9999', status: 'Chờ xác thực', date: '18/06/2026' },
+  { id: '#US-8811', name: 'Lê Minh Cường', job: 'Giao hàng nhanh', email: 'cuong.le@email.com', phone: '098 765 4321', status: 'Bị khóa', date: '17/06/2026' },
 ];
 
 export const initialEmployers = [
@@ -10,9 +10,9 @@ export const initialEmployers = [
 ];
 
 export const initialJobPosts = [
-  { id: '#JD-8291', title: 'Nhân viên Giao hàng Nội thành', type: 'Bán thời gian • Quận 1, HCM', company: 'LogiExpress Co.', companyStatus: 'Đối tác tin cậy', date: '24/10/2023', status: 'Chờ duyệt' },
-  { id: '#JD-8292', title: 'Nhân viên Phục vụ Quán Cà phê', type: 'Thời vụ • Quận 3, HCM', company: 'The Urban Beans', companyStatus: 'ID: NTD-0921', date: '24/10/2023', status: 'Hoạt động' },
-  { id: '#JD-8285', title: 'Thực tập sinh Marketing', type: 'Làm việc tại nhà • Toàn quốc', company: 'Creative Mind Agency', companyStatus: 'ID: NTD-1102', date: '22/10/2023', status: 'Bị từ chối' },
+  { id: '#JD-8291', title: 'Nhân viên Giao hàng Nội thành', type: 'Bán thời gian • Quận 1, HCM', company: 'LogiExpress Co.', companyStatus: 'Đối tác tin cậy', date: '19/06/2026', status: 'Chờ duyệt' },
+  { id: '#JD-8292', title: 'Nhân viên Phục vụ Quán Cà phê', type: 'Thời vụ • Quận 3, HCM', company: 'The Urban Beans', companyStatus: 'ID: NTD-0921', date: '18/06/2026', status: 'Hoạt động' },
+  { id: '#JD-8285', title: 'Thực tập sinh Marketing', type: 'Làm việc tại nhà • Toàn quốc', company: 'Creative Mind Agency', companyStatus: 'ID: NTD-1102', date: '16/06/2026', status: 'Bị từ chối' },
 ];
 
 export const initialPackages = [
@@ -66,13 +66,13 @@ export const initialIndustries = [
 ];
 
 export const initialReports = [
-  { id: 1, user: 'Nguyen Van A', target: 'Công ty ABC', reason: 'Lừa đảo tiền cọc', date: '2023-10-24', status: 'Chờ xử lý' },
-  { id: 2, user: 'Tran Thi B', target: 'Người dùng XYZ', reason: 'Spam tin nhắn', date: '2023-10-23', status: 'Chờ xử lý' },
+  { id: 1, user: 'Nguyen Van A', target: 'Công ty ABC', reason: 'Lừa đảo tiền cọc', date: '2026-06-19', status: 'Chờ xử lý' },
+  { id: 2, user: 'Tran Thi B', target: 'Người dùng XYZ', reason: 'Spam tin nhắn', date: '2026-06-18', status: 'Chờ xử lý' },
 ];
 
 export const initialReviews = [
-  { id: 1, user: 'Le Van C', company: 'Công ty ABC', rating: 1, comment: 'Bắt đóng tiền cọc đồng phục 500k', date: '2023-10-24', status: 'Chờ duyệt' },
-  { id: 2, user: 'Hoang Thi D', company: 'Công ty XYZ', rating: 5, comment: 'Môi trường tốt, lương đúng hạn', date: '2023-10-22', status: 'Đã duyệt' },
+  { id: 1, user: 'Le Van C', company: 'Công ty ABC', rating: 1, comment: 'Bắt đóng tiền cọc đồng phục 500k', date: '2026-06-19', status: 'Chờ duyệt' },
+  { id: 2, user: 'Hoang Thi D', company: 'Công ty XYZ', rating: 5, comment: 'Môi trường tốt, lương đúng hạn', date: '2026-06-17', status: 'Đã duyệt' },
 ];
 
 export const initialPaymentMethods = [
