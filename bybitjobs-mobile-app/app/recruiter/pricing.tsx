@@ -36,35 +36,47 @@ export default function RecruiterPricingScreen() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'packages'), (snapshot) => {
-      const data: PackageItem[] = [];
-      snapshot.forEach((doc) => {
-        const pkg = doc.data();
-        data.push({
-          id: pkg.id,
-          name: pkg.name,
-          price: pkg.price,
-          priceNum: pkg.priceNum || 0,
-          duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
-          tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
-          features: [
-            `Số lượng: ${pkg.posts || ''}`,
-            `Lượt nhận CV: ${pkg.cvs || ''}`,
-          ],
-          isPopular: pkg.isPopular,
-          isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
-        });
-      });
-      // Sort by priceNum to keep them in order
-      data.sort((a, b) => a.priceNum - b.priceNum);
-      setPackages(data);
-      setLoading(false);
-    }, (err) => {
-      console.log('Lỗi fetch packages:', err);
-      setLoading(false);
-    });
+    let intervalId: any = null;
 
-    return () => unsubscribe();
+    const fetchPackages = async () => {
+      try {
+        const res = await fetch('http://160.250.246.119:4000/api/packages');
+        if (!res.ok) throw new Error('API response was not ok');
+        const rawData = await res.json();
+        const data: PackageItem[] = [];
+        
+        rawData.forEach((pkg: any) => {
+          data.push({
+            id: pkg.id,
+            name: pkg.name,
+            price: pkg.price,
+            priceNum: pkg.priceNum || 0,
+            duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
+            tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
+            features: [
+              `Số lượng: ${pkg.posts || ''}`,
+              `Lượt nhận CV: ${pkg.cvs || ''}`,
+            ],
+            isPopular: pkg.isPopular,
+            isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
+          });
+        });
+
+        // Sort by priceNum to keep them in order
+        data.sort((a, b) => a.priceNum - b.priceNum);
+        setPackages(data);
+        setLoading(false);
+      } catch (err) {
+        console.log('Lỗi fetch packages:', err);
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+    // Poll every 5s in case admin updates prices
+    intervalId = setInterval(fetchPackages, 5000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const benefits = [

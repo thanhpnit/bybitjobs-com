@@ -897,6 +897,19 @@ app.put('/api/employers/:uid/status', async (req: Request, res: Response): Promi
   }
 });
 
+// GET danh sách các gói dịch vụ
+app.get('/api/packages', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = admin.firestore();
+    const snapshot = await db.collection('packages').get();
+    const packages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return res.status(200).json(packages);
+  } catch (error: any) {
+    console.error('Lỗi lấy danh sách packages:', error);
+    return res.status(500).json({ error: 'Lỗi lấy danh sách packages' });
+  }
+});
+
 // Lấy danh sách giao dịch (orders)
 app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
   try {
