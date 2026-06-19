@@ -989,7 +989,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
   
   let webhookData;
   try {
-    webhookData = payos.verifyPaymentWebhookData(req.body);
+    webhookData = await payos.webhooks.verify(req.body);
   } catch (err: any) {
     console.error("PayOS Verification failed:", err.message);
     // Trả về 200 OK để PayOS dashboard có thể lưu cấu hình webhook thành công
@@ -1096,7 +1096,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
 app.post('/api/setup-webhook', async (req: Request, res: Response): Promise<any> => {
   try {
     const webhookUrl = 'http://160.250.246.119:4000/api/webhooks/payos';
-    await payos.confirmWebhook(webhookUrl);
+    await payos.webhooks.confirm(webhookUrl);
     return res.status(200).json({ success: true, message: `Webhook set to ${webhookUrl}` });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -1107,7 +1107,7 @@ app.listen(PORT, async () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   try {
     const webhookUrl = 'http://160.250.246.119:4000/api/webhooks/payos';
-    await payos.confirmWebhook(webhookUrl);
+    await payos.webhooks.confirm(webhookUrl);
     console.log(`✅ PayOS Webhook configured to: ${webhookUrl}`);
   } catch (error: any) {
     console.error('❌ Failed to configure PayOS Webhook:', error.message);
