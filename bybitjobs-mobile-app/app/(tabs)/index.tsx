@@ -37,6 +37,8 @@ interface JobItem {
   }[];
   price: string;
   originalIndustry?: string;
+  createdAt: string;
+  isPremium: boolean;
 }
 
 function CandidateHomeScreen() {
@@ -48,6 +50,7 @@ function CandidateHomeScreen() {
   const [activeChip, setActiveChip] = React.useState('Hot');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
+  const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
 
   const toggleBookmark = (id: string) => {
     if (bookmarkedJobs.includes(id)) {
@@ -61,7 +64,12 @@ function CandidateHomeScreen() {
     let isActive = true;
     const employerIds = Array.from(new Set(
       jobs
-        .filter((job) => !job.posterName && job.employerId && !posterNamesByEmployerId[job.employerId])
+        .filter((job) => {
+          if (!job.employerId) return false;
+          const needsPosterName = !job.posterName && !posterNamesByEmployerId[job.employerId];
+          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined;
+          return needsPosterName || needsPremiumStatus;
+        })
         .map((job) => job.employerId as string)
     ));
 
@@ -69,31 +77,80 @@ function CandidateHomeScreen() {
 
     const loadPosterNames = async () => {
       const entries = await Promise.all(employerIds.map(async (employerId) => {
+        let name: string | undefined;
+        let isPremium = false;
+
         try {
           const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
-          if (!response.ok) return null;
+          if (response.ok) {
+            const userData = await response.json();
+            const userName =
+              userData.fullName ||
+              userData.full_name ||
+              userData.displayName ||
+              userData.name;
 
-          const userData = await response.json();
-          const name =
-            userData.fullName ||
-            userData.full_name ||
-            userData.displayName ||
-            userData.name;
-
-          return typeof name === 'string' && name.trim()
-            ? [employerId, name.trim()] as const
-            : null;
+            if (typeof userName === 'string' && userName.trim()) {
+              name = userName.trim();
+            }
+          }
         } catch (error) {
           console.error('Lỗi lấy tên người đăng tin:', error);
-          return null;
         }
+
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`);
+          if (response.ok) {
+            const employerData = await response.json();
+            const packageText = [
+              employerData.current_package,
+              employerData.currentPackage,
+              employerData.packageName,
+              employerData.servicePackage,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase();
+
+            isPremium =
+              employerData.isPremium === true ||
+              packageText.includes('premium') ||
+              packageText.includes('diamond') ||
+              packageText.includes('vip');
+          }
+        } catch (error) {
+          console.error('Lỗi lấy gói nhà tuyển dụng:', error);
+        }
+
+        return { employerId, name, isPremium };
       }));
 
       if (!isActive) return;
 
-      const nextNames = Object.fromEntries(entries.filter(Boolean) as [string, string][]);
+      const nextNames = Object.fromEntries(
+        entries
+          .filter((entry) => !!entry.name)
+          .map((entry) => [entry.employerId, entry.name as string])
+      );
+      const nextPremiumStatuses = Object.fromEntries(
+        entries.map((entry) => [entry.employerId, entry.isPremium])
+      );
+
       if (Object.keys(nextNames).length > 0) {
         setPosterNamesByEmployerId((prev) => ({ ...prev, ...nextNames }));
+      }
+      if (Object.keys(nextPremiumStatuses).length > 0) {
+        setPremiumEmployersById((prev) => {
+          let hasChanged = false;
+          const next = { ...prev };
+          Object.entries(nextPremiumStatuses).forEach(([employerId, isPremium]) => {
+            if (next[employerId] !== isPremium) {
+              next[employerId] = isPremium;
+              hasChanged = true;
+            }
+          });
+          return hasChanged ? next : prev;
+        });
       }
     };
 
@@ -102,7 +159,7 @@ function CandidateHomeScreen() {
     return () => {
       isActive = false;
     };
-  }, [jobs, posterNamesByEmployerId]);
+  }, [jobs, posterNamesByEmployerId, premiumEmployersById]);
 
   const provinces = [
     'Tất cả địa điểm',
@@ -231,6 +288,8 @@ function CandidateHomeScreen() {
       ],
       price: job.salary,
       originalIndustry: job.industry,
+      createdAt: job.createdAt,
+      isPremium: job.employerId ? premiumEmployersById[job.employerId] === true : false,
     };
   });
 
@@ -273,6 +332,11 @@ function CandidateHomeScreen() {
     });
   };
 
+  const getCreatedTime = (dateString: string) => {
+    const time = new Date(dateString).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  };
+
   const filteredJobs = jobListings.filter(job => {
     // Filter by Location
     let matchLocation = true;
@@ -293,6 +357,11 @@ function CandidateHomeScreen() {
     }
 
     return matchLocation && matchIndustry;
+  }).sort((a, b) => {
+    if (activeChip === 'Hot' && a.isPremium !== b.isPremium) {
+      return a.isPremium ? -1 : 1;
+    }
+    return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
   });
 
   return (
@@ -374,7 +443,7 @@ function CandidateHomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsContainer}
           >
-            {['Hot', 'Sắp diễn ra', 'Mới nhất', 'Làm ngay'].map((chip) => {
+            {['Hot', 'Mới nhất'].map((chip) => {
               const isActive = activeChip === chip;
               return (
                 <TouchableOpacity
@@ -430,14 +499,21 @@ function CandidateHomeScreen() {
                   >
                     <View style={styles.jobCardTop}>
                       {/* Job Image/Avatar */}
-                      {job.image ? (
-                        <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
-                      ) : (
-                        <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
-                          {/* Custom Vector Coder Girl Mock */}
-                          <Ionicons name="desktop-outline" size={24} color="#FF9800" />
-                        </View>
-                      )}
+                      <View style={styles.jobImageWrapper}>
+                        {job.image ? (
+                          <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
+                            {/* Custom Vector Coder Girl Mock */}
+                            <Ionicons name="desktop-outline" size={24} color="#FF9800" />
+                          </View>
+                        )}
+                        {job.isPremium && (
+                          <View style={styles.hotBadge}>
+                            <Text style={styles.hotBadgeText}>HOT</Text>
+                          </View>
+                        )}
+                      </View>
 
                       {/* Job Main Details */}
                       <View style={styles.jobDetails}>
@@ -1002,6 +1078,10 @@ const styles = StyleSheet.create({
   },
   jobCardTop: {
     flexDirection: 'row',
+  },
+  jobImageWrapper: {
+    width: 60,
+    height: 60,
   },
   jobImage: {
     width: 60,
