@@ -484,23 +484,24 @@ export function useAuth() {
         if (globalApplicationsUnsubscribe) globalApplicationsUnsubscribe();
         const qApplications = query(
           collection(db, 'applications'),
-          where('candidateId', '==', user.uid)
+          orderBy('appliedAt', 'desc')
         );
         globalApplicationsUnsubscribe = onSnapshot(qApplications, (snapshot) => {
-          const userApplications = (snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as ApplicationItem[]).sort(
-            (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
-          );
-          globalApplications = [
-            ...globalApplications.filter((app) => app.candidateId !== user.uid),
-            ...userApplications,
-          ];
+          const dbApplications: any[] = [];
+          snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const application: any = {};
+            application.id = docSnap.id;
+            Object.keys(data).forEach((key) => {
+              application[key] = data[key];
+            });
+            dbApplications.push(application);
+          });
+          globalApplications = dbApplications;
           setApplications([...globalApplications]);
           notifyAll();
         }, (error) => {
-          console.error('Lỗi tải danh sách việc đã ứng tuyển:', error);
+          console.error('Lỗi tải danh sách hồ sơ ứng tuyển:', error);
         });
 
         if (globalSavedJobsUnsubscribe) globalSavedJobsUnsubscribe();
@@ -1023,7 +1024,7 @@ export function useAuth() {
     }
   };
 
-  const updateApplicationStatus = (appId: string, status: 'Pending' | 'Approved' | 'Rejected') => {
+  const updateApplicationStatus = async (appId: string, status: 'Pending' | 'Approved' | 'Rejected') => {
     globalApplications = globalApplications.map((app) => {
       if (app.id === appId) {
         // Unlock contact info for the candidate if Approved
@@ -1044,7 +1045,14 @@ export function useAuth() {
       }
       return app;
     });
+    setApplications([...globalApplications]);
     notifyAll();
+
+    try {
+      await updateDoc(doc(db, 'applications', appId), { status });
+    } catch (error) {
+      console.error('Lỗi cập nhật trạng thái hồ sơ ứng tuyển:', error);
+    }
   };
 
   const submitApplication = async (payload: SubmitApplicationPayload): Promise<{ success: boolean; message: string }> => {

@@ -24,7 +24,7 @@ export default function RecruiterCvDetailsScreen() {
   const application = applications.find((a) => a.id === appId);
   const candidate = candidates.find((c) => c.id === application?.candidateId);
 
-  if (!candidate || !application) {
+  if (!application) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
         <View style={styles.headerBar}>
@@ -42,12 +42,40 @@ export default function RecruiterCvDetailsScreen() {
   }
 
   const isApproved = application.status === 'Approved';
+  const candidateName = application.applicantName || candidate?.name || 'Ứng viên';
+  const candidateEmail = application.applicantEmail || candidate?.email || 'Chưa cập nhật email';
+  const candidatePhone = application.applicantPhone || candidate?.phone || 'Chưa cập nhật số điện thoại';
+  const candidateLocation = candidate?.location || application.jobLocation || 'Chưa cập nhật địa điểm';
+  const candidateRole = candidate?.role || application.message || 'Ứng viên đã nộp hồ sơ';
+  const candidateJobType = candidate?.jobType || application.jobTitle || 'Chưa cập nhật';
+  const candidateRating = candidate?.rating || 5;
+  const candidateReviewsCount = candidate?.reviewsCount || 0;
+  const candidateSkills = candidate?.skills?.length ? candidate.skills : ['Thông tin từ hồ sơ ứng tuyển'];
+  const candidatePortfolio = candidate?.portfolio || 'Chưa cập nhật';
+  const candidateEducation = candidate?.education || 'Chưa cập nhật';
+  const candidateExperience = candidate?.experience?.length ? candidate.experience : [
+    {
+      role: application.jobTitle || 'Ứng viên',
+      company: application.companyName || 'Công việc đã ứng tuyển',
+      duration: 'Hiện tại',
+      description: application.message || 'Ứng viên chưa nhập thêm mô tả kinh nghiệm.',
+      isCurrent: true,
+    },
+  ];
+  const candidateAvatar = candidate?.avatar;
+  const candidateInitials = candidateName
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'UV';
 
   const handleApprove = () => {
     updateApplicationStatus(application.id, 'Approved');
     Alert.alert(
       '✓ Đã duyệt hồ sơ',
-      `Đã duyệt thành công hồ sơ của "${candidate.name}". Số điện thoại liên hệ đầy đủ đã được mở khóa.`
+      `Đã duyệt thành công hồ sơ của "${candidateName}". Số điện thoại liên hệ đầy đủ đã được mở khóa.`
     );
   };
 
@@ -95,21 +123,27 @@ export default function RecruiterCvDetailsScreen() {
         {/* Card 1: Avatar & Personal General Details */}
         <View style={[styles.profileCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: candidate.avatar }} style={styles.profileAvatar} />
+            {candidateAvatar ? (
+              <Image source={{ uri: candidateAvatar }} style={styles.profileAvatar} />
+            ) : (
+              <View style={[styles.profileAvatar, styles.profileAvatarFallback]}>
+                <Text style={styles.profileAvatarFallbackText}>{candidateInitials}</Text>
+              </View>
+            )}
             <View style={styles.verifiedBadge}>
               <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
             </View>
           </View>
 
           <Text style={[styles.candidateNameText, { color: isDark ? '#FFF' : '#11181C' }]}>
-            {candidate.name}
+            {candidateName}
           </Text>
           <Text style={styles.candidateRoleSubtitle}>
-            {candidate.role}
+            {candidateRole}
           </Text>
 
           <View style={styles.ratingBadge}>
-            <Text style={styles.ratingBadgeText}>⭐️ {candidate.rating} ({candidate.reviewsCount} đánh giá)</Text>
+            <Text style={styles.ratingBadgeText}>⭐️ {candidateRating} ({candidateReviewsCount} đánh giá)</Text>
           </View>
 
           {/* Contact Details List */}
@@ -117,13 +151,13 @@ export default function RecruiterCvDetailsScreen() {
           
           <View style={styles.contactRow}>
             <Ionicons name="mail-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
-            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidate.email}</Text>
+            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidateEmail}</Text>
           </View>
 
           <View style={styles.contactRow}>
             <Ionicons name="call-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
             <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C', fontWeight: isApproved ? '700' : '500' }]}>
-              {candidate.phone}
+              {candidatePhone}
             </Text>
             {!isApproved && (
               <View style={styles.lockBadge}>
@@ -135,12 +169,12 @@ export default function RecruiterCvDetailsScreen() {
 
           <View style={styles.contactRow}>
             <Ionicons name="location-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
-            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidate.location}</Text>
+            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidateLocation}</Text>
           </View>
 
           <View style={styles.contactRow}>
             <Ionicons name="time-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
-            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidate.jobType}</Text>
+            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidateJobType}</Text>
           </View>
         </View>
 
@@ -148,7 +182,7 @@ export default function RecruiterCvDetailsScreen() {
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
           <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>KỸ NĂNG CHÍNH</Text>
           <View style={styles.skillsWrapper}>
-            {candidate.skills.map((skill, index) => (
+            {candidateSkills.map((skill, index) => (
               <View key={index} style={[styles.skillChip, { backgroundColor: isDark ? '#2C2C2E' : '#EBF5FF' }]}>
                 <Text style={styles.skillChipText}>{skill}</Text>
               </View>
@@ -166,7 +200,7 @@ export default function RecruiterCvDetailsScreen() {
             </View>
             <View style={styles.otherTextWrapper}>
               <Text style={styles.otherLabel}>Portfolio</Text>
-              <Text style={styles.otherValueText}>{candidate.portfolio}</Text>
+              <Text style={styles.otherValueText}>{candidatePortfolio}</Text>
             </View>
           </View>
 
@@ -178,7 +212,7 @@ export default function RecruiterCvDetailsScreen() {
             </View>
             <View style={styles.otherTextWrapper}>
               <Text style={styles.otherLabel}>Học vấn</Text>
-              <Text style={styles.otherValueText}>{candidate.education}</Text>
+              <Text style={styles.otherValueText}>{candidateEducation}</Text>
             </View>
           </View>
         </View>
@@ -188,8 +222,8 @@ export default function RecruiterCvDetailsScreen() {
           <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>KINH NGHIỆM LÀM VIỆC</Text>
           
           <View style={styles.timelineContainer}>
-            {candidate.experience.map((exp, index) => {
-              const isLast = index === candidate.experience.length - 1;
+            {candidateExperience.map((exp, index) => {
+              const isLast = index === candidateExperience.length - 1;
               return (
                 <View key={index} style={styles.timelineRow}>
                   {/* Timeline spine decoration */}
@@ -329,6 +363,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+  },
+  profileAvatarFallback: {
+    backgroundColor: '#E6F4FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatarFallbackText: {
+    color: '#0084FF',
+    fontSize: 22,
+    fontWeight: 'bold',
   },
   verifiedBadge: {
     position: 'absolute',

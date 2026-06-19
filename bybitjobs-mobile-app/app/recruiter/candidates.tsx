@@ -12,13 +12,13 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth, ApplicationItem, CandidateItem } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function RecruiterCandidatesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { applications, candidates, jobs, updateApplicationStatus, unreadNotificationsCount } = useAuth();
+  const { applications, candidates, jobs, userData, updateApplicationStatus, unreadNotificationsCount } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
@@ -26,8 +26,21 @@ export default function RecruiterCandidatesScreen() {
   // Tab state: 'All' | 'Pending' | 'Approved' | 'Rejected'
   const [activeTab, setActiveTab] = React.useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
 
+  const employerJobIds = React.useMemo(() => {
+    if (!userData?.uid) return new Set<string>();
+    return new Set(
+      jobs
+        .filter((job) => job.employerId === userData.uid)
+        .map((job) => job.id)
+    );
+  }, [jobs, userData?.uid]);
+
+  const employerApplications = React.useMemo(() => {
+    return applications.filter((app) => employerJobIds.has(app.jobId));
+  }, [applications, employerJobIds]);
+
   // Filter application records
-  const filteredApps = applications.filter((app) => {
+  const filteredApps = employerApplications.filter((app) => {
     if (activeTab === 'Pending') return app.status === 'Pending';
     if (activeTab === 'Approved') return app.status === 'Approved';
     if (activeTab === 'Rejected') return app.status === 'Rejected';
@@ -61,7 +74,19 @@ export default function RecruiterCandidatesScreen() {
     return `${diffDays} NGÀY TRƯỚC`;
   };
 
-  const pendingCount = applications.filter((a) => a.status === 'Pending').length;
+  const pendingCount = employerApplications.filter((a) => a.status === 'Pending').length;
+  const approvedCount = employerApplications.filter((a) => a.status === 'Approved').length;
+  const rejectedCount = employerApplications.filter((a) => a.status === 'Rejected').length;
+
+  const getApplicantInitials = (name: string) => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'UV';
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
@@ -108,7 +133,7 @@ export default function RecruiterCandidatesScreen() {
           style={[styles.tabButton, activeTab === 'All' && styles.tabButtonActive]}
         >
           <Text style={[styles.tabText, activeTab === 'All' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Tất cả ({applications.length})
+            Tất cả ({employerApplications.length})
           </Text>
         </TouchableOpacity>
 
@@ -128,7 +153,7 @@ export default function RecruiterCandidatesScreen() {
           style={[styles.tabButton, activeTab === 'Approved' && styles.tabButtonActive]}
         >
           <Text style={[styles.tabText, activeTab === 'Approved' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Đã duyệt ({applications.filter((a) => a.status === 'Approved').length})
+            Đã duyệt ({approvedCount})
           </Text>
         </TouchableOpacity>
 
@@ -138,7 +163,7 @@ export default function RecruiterCandidatesScreen() {
           style={[styles.tabButton, activeTab === 'Rejected' && styles.tabButtonActive]}
         >
           <Text style={[styles.tabText, activeTab === 'Rejected' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Từ chối ({applications.filter((a) => a.status === 'Rejected').length})
+            Từ chối ({rejectedCount})
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -156,7 +181,10 @@ export default function RecruiterCandidatesScreen() {
           filteredApps.map((app) => {
             const candidate = candidates.find((c) => c.id === app.candidateId);
             const job = jobs.find((j) => j.id === app.jobId);
-            if (!candidate) return null;
+            const candidateName = app.applicantName || candidate?.name || 'Ứng viên';
+            const candidateRole = candidate?.role || app.message || 'Ứng viên đã nộp hồ sơ';
+            const candidateRating = candidate?.rating || 5;
+            const candidateAvatar = candidate?.avatar;
 
             return (
               <TouchableOpacity
@@ -176,13 +204,19 @@ export default function RecruiterCandidatesScreen() {
               >
                 {/* Upper row: Avatar & Profile Info */}
                 <View style={styles.cardHeader}>
-                  <Image source={{ uri: candidate.avatar }} style={styles.avatar} />
+                  {candidateAvatar ? (
+                    <Image source={{ uri: candidateAvatar }} style={styles.avatar} />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarFallback]}>
+                      <Text style={styles.avatarFallbackText}>{getApplicantInitials(candidateName)}</Text>
+                    </View>
+                  )}
                   <View style={styles.infoWrapper}>
                     <Text style={[styles.candidateName, { color: isDark ? '#FFF' : '#11181C' }]}>
-                      {candidate.name}
+                      {candidateName}
                     </Text>
                     <Text style={styles.candidateDetails}>
-                      ⭐️ {candidate.rating} • {candidate.role}
+                      ⭐️ {candidateRating} • {candidateRole}
                     </Text>
                     {job && (
                       <Text style={styles.jobAppliedTitle} numberOfLines={1}>
@@ -206,7 +240,7 @@ export default function RecruiterCandidatesScreen() {
                   <View style={styles.cardActionsRow}>
                     <TouchableOpacity
                       activeOpacity={0.7}
-                      onPress={() => handleReject(app.id, candidate.name)}
+                      onPress={() => handleReject(app.id, candidateName)}
                       style={[styles.actionBtn, styles.rejectBtn, { borderColor: isDark ? '#444' : '#E5E7EB' }]}
                     >
                       <Ionicons name="close-circle-outline" size={16} color="#FF3B30" />
@@ -215,7 +249,7 @@ export default function RecruiterCandidatesScreen() {
 
                     <TouchableOpacity
                       activeOpacity={0.7}
-                      onPress={() => handleApprove(app.id, candidate.name)}
+                      onPress={() => handleApprove(app.id, candidateName)}
                       style={[styles.actionBtn, styles.approveBtn]}
                     >
                       <Ionicons name="checkmark-circle-outline" size={16} color="#0084FF" />
@@ -406,6 +440,16 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     marginRight: 12,
+  },
+  avatarFallback: {
+    backgroundColor: '#E6F4FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarFallbackText: {
+    color: '#0084FF',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   infoWrapper: {
     flex: 1,
