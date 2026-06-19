@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
@@ -14,6 +14,30 @@ export const Dashboard: React.FC = () => {
   const { colors, theme } = useTheme();
   const isDark = theme === 'dark';
   const { users, jobPosts, reports } = useData();
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('http://160.250.246.119:4000/api/orders')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data.slice(0, 5).map((item: any) => {
+            const dateObj = new Date(item.createdAt);
+            const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+            return {
+              id: `#TXN-${item.orderCode}`,
+              date: dateStr,
+              name: item.companyName || 'Không xác định',
+              amount: `${Number(item.price || 0).toLocaleString()}đ`,
+              method: 'PayOS',
+              status: item.status === 'success' ? 'success' : (item.status === 'pending' ? 'warning' : 'danger')
+            };
+          });
+          setRecentTransactions(mapped);
+        }
+      })
+      .catch(err => console.error('Lỗi lấy giao dịch gần đây:', err));
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -115,7 +139,7 @@ export const Dashboard: React.FC = () => {
           <Typography variant="subtitle2" color="brand">Xem tất cả</Typography>
         </View>
 
-        <View style={styles.tableHeader}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
           <Typography variant="caption" color="muted" style={styles.colId}>MÃ GIAO DỊCH</Typography>
           <Typography variant="caption" color="muted" style={styles.colDate}>NGÀY THANH TOÁN</Typography>
           <Typography variant="caption" color="muted" style={styles.colCustomer}>KHÁCH HÀNG</Typography>
@@ -124,11 +148,7 @@ export const Dashboard: React.FC = () => {
           <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
         </View>
 
-        {[
-          { id: '#PAY-9821', date: '12/10/2023 14:30', name: 'Trần Văn A', amount: '500.000đ', method: 'Momo', status: 'success' },
-          { id: '#PAY-9819', date: '12/10/2023 12:15', name: 'Nguyễn Thị B', amount: '1.200.000đ', method: 'Thẻ ATM nội địa', status: 'success' },
-          { id: '#PAY-9815', date: '11/10/2023 18:45', name: 'Phạm Minh C', amount: '200.000đ', method: 'ZaloPay', status: 'warning' },
-        ].map((item, index) => (
+        {recentTransactions.map((item, index) => (
           <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
             <Typography variant="subtitle2" style={styles.colId}>{item.id}</Typography>
             <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
@@ -140,7 +160,7 @@ export const Dashboard: React.FC = () => {
             <Typography variant="body2" color="secondary" style={styles.colMethod}>{item.method}</Typography>
             <View style={styles.colStatus}>
               <Badge status={item.status as any}>
-                {item.status === 'success' ? 'Thành công' : 'Đang chờ'}
+                {item.status === 'success' ? 'Thành công' : (item.status === 'warning' ? 'Đang chờ' : 'Thất bại')}
               </Badge>
             </View>
           </View>
