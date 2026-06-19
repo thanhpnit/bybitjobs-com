@@ -57,13 +57,129 @@ export default function RecruiterDashboardScreen() {
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
   const [activeChip, setActiveChip] = React.useState('Hot');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
+  const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
+  const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
 
-  const toggleBookmark = (id: string) => {
-    if (bookmarkedJobs.includes(id)) {
-      setBookmarkedJobs(bookmarkedJobs.filter((bId) => bId !== id));
-    } else {
-      setBookmarkedJobs([...bookmarkedJobs, id]);
-    }
+  React.useEffect(() => {
+    let isActive = true;
+    const employerIds = Array.from(new Set(
+      jobs
+        .filter((job) => {
+          if (!job.employerId) return false;
+          const needsPosterName = !job.posterName && !posterNamesByEmployerId[job.employerId];
+          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined;
+          return needsPosterName || needsPremiumStatus;
+        })
+        .map((job) => job.employerId as string)
+    ));
+
+    if (employerIds.length === 0) return;
+
+    const loadPosterNames = async () => {
+      const entries = await Promise.all(employerIds.map(async (employerId) => {
+        let name: string | undefined;
+        let isPremium = false;
+
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
+          if (response.ok) {
+            const userData = await response.json();
+            const userName =
+              userData.fullName ||
+              userData.full_name ||
+              userData.displayName ||
+              userData.name;
+
+            if (typeof userName === 'string' && userName.trim()) {
+              name = userName.trim();
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi lấy tên người đăng tin:', error);
+        }
+
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`);
+          if (response.ok) {
+            const employerData = await response.json();
+            const packageText = [
+              employerData.current_package,
+              employerData.currentPackage,
+              employerData.packageName,
+              employerData.servicePackage,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase();
+
+            isPremium =
+              employerData.isPremium === true ||
+              packageText.includes('premium') ||
+              packageText.includes('diamond') ||
+              packageText.includes('vip');
+          }
+        } catch (error) {
+          console.error('Lỗi lấy gói nhà tuyển dụng:', error);
+        }
+
+        return { employerId, name, isPremium };
+      }));
+
+      if (!isActive) return;
+
+      const nextNames = Object.fromEntries(
+        entries
+          .filter((entry) => !!entry.name)
+          .map((entry) => [entry.employerId, entry.name as string])
+      );
+      const nextPremiumStatuses = Object.fromEntries(
+        entries.map((entry) => [entry.employerId, entry.isPremium])
+      );
+
+      if (Object.keys(nextNames).length > 0) {
+        setPosterNamesByEmployerId((prev) => ({ ...prev, ...nextNames }));
+      }
+      if (Object.keys(nextPremiumStatuses).length > 0) {
+        setPremiumEmployersById((prev) => {
+          let hasChanged = false;
+          const next = { ...prev };
+          Object.entries(nextPremiumStatuses).forEach(([employerId, isPremium]) => {
+            if (next[employerId] !== isPremium) {
+              next[employerId] = isPremium;
+              hasChanged = true;
+            }
+          });
+          return hasChanged ? next : prev;
+        });
+      }
+    };
+
+    loadPosterNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, [jobs, posterNamesByEmployerId, premiumEmployersById]);
+
+  const getPosterName = (job: any) => {
+    return (
+      job.posterName ||
+      job.posterFullName ||
+      job.postedByName ||
+      job.authorName ||
+      (job.employerId ? posterNamesByEmployerId[job.employerId] : undefined) ||
+      'Nhà tuyển dụng'
+    ).trim();
+  };
+
+  const getPosterAvatar = (name: string) => {
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(-2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'NT';
   };
 
   const handlePostJob = () => {
@@ -122,69 +238,43 @@ export default function RecruiterDashboardScreen() {
     'Dịch vụ làm đẹp'
   ];
 
-  const mockMarketJobs: MarketJobItem[] = [
-    {
-      id: 'market-job-1',
-      title: 'Cần phụ việc tại nhà hàng tiệc cưới Gò Vấp',
-      image: require('../../assets/images/wedding_banquet.png'),
-      author: {
-        name: 'Tiến Thắng',
-        verified: true,
-        rating: 4.5,
-        avatar: 'TT',
-      },
-      location: 'Phú Nhuận',
-      timeLeft: 'Còn 3 ngày, 3 giờ',
-      tags: [
-        { label: 'Nhà hàng', type: 'category', icon: 'restaurant-outline' },
-        { label: '500', type: 'points', icon: 'logo-usd' },
-      ],
-      price: '300.000đ',
-      originalIndustry: 'Nhà hàng / F&B',
-    },
-    {
-      id: 'market-job-2',
-      title: 'Tôi cần một người có chuyên môn phát triển app',
-      image: null,
-      author: {
-        name: 'Duyên',
-        verified: true,
-        rating: 4.5,
-        avatar: 'D',
-      },
-      location: 'Gò Vấp',
-      timeLeft: 'Còn 1 ngày, 5 giờ',
-      tags: [
-        { label: 'UI/UX', type: 'category', icon: 'color-palette-outline' },
-        { label: '500', type: 'points', icon: 'logo-usd' },
-      ],
-      price: '1.000.000đ',
-      originalIndustry: 'UI/UX / Thiết kế',
-    },
-  ];
+  const toggleBookmark = (id: string) => {
+    if (bookmarkedJobs.includes(id)) {
+      setBookmarkedJobs(bookmarkedJobs.filter((bId) => bId !== id));
+    } else {
+      setBookmarkedJobs([...bookmarkedJobs, id]);
+    }
+  };
 
-  const combinedJobs: MarketJobItem[] = [
-    ...mockMarketJobs,
-    ...jobs.map((job) => ({
+  const getCreatedTime = (dateString: string) => {
+    const time = new Date(dateString).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  const combinedJobs: MarketJobItem[] = jobs.map((job) => {
+    const posterName = getPosterName(job);
+    const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
+    return {
       id: job.id,
       title: job.title,
       image: null,
       author: {
-        name: 'Nhà Tuyển Dụng',
+        name: posterName,
         verified: true,
         rating: 5.0,
-        avatar: 'NT',
+        avatar: getPosterAvatar(posterName),
       },
       location: job.location,
       timeLeft: job.isOpen ? `Hạn chót: ${job.deadline}` : 'Đã đóng',
       tags: [
-        { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category' as const, icon: 'briefcase-outline' as const },
-        { label: '500', type: 'points' as const, icon: 'logo-usd' as const }
+        { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category' as const, icon: 'briefcase-outline' as const }
       ],
       price: job.salary,
       originalIndustry: job.industry,
-    })),
-  ];
+      createdAt: job.createdAt,
+      isPremium,
+    } as any;
+  });
 
   const filteredJobs = combinedJobs.filter((job) => {
     let matchLocation = true;
@@ -204,6 +294,11 @@ export default function RecruiterDashboardScreen() {
     }
 
     return matchLocation && matchIndustry;
+  }).sort((a, b) => {
+    if (activeChip === 'Hot' && (a as any).isPremium !== (b as any).isPremium) {
+      return (a as any).isPremium ? -1 : 1;
+    }
+    return getCreatedTime((b as any).createdAt) - getCreatedTime((a as any).createdAt);
   });
 
   return (
@@ -261,47 +356,7 @@ export default function RecruiterDashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.quickFunctionsCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
-          <View style={styles.quickGrid}>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleQuickAction('Lụm lúa')} style={styles.quickItem}>
-              <View style={styles.badgeWrapper}>
-                <View style={[styles.circleIcon, { backgroundColor: '#E6F4FE' }]}>
-                  <Ionicons name="cash" size={22} color="#0084FF" />
-                </View>
-                <View style={styles.hotBadge}>
-                  <Text style={styles.hotBadgeText}>Hot</Text>
-                </View>
-              </View>
-              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#333' }]}>Lụm lúa</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleQuickAction('BXH')} style={styles.quickItem}>
-              <View style={styles.badgeWrapper}>
-                <View style={[styles.circleIcon, { backgroundColor: '#FFEFE6' }]}>
-                  <Ionicons name="ribbon" size={22} color="#FF9500" />
-                </View>
-                <View style={styles.hotBadge}>
-                  <Text style={styles.hotBadgeText}>Hot</Text>
-                </View>
-              </View>
-              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#333' }]}>BXH</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleQuickAction('eKYC')} style={styles.quickItem}>
-              <View style={[styles.circleIcon, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="shield-checkmark" size={22} color="#2E7D32" />
-              </View>
-              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#333' }]}>eKYC</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity activeOpacity={0.7} onPress={() => handleQuickAction('Ví')} style={styles.quickItem}>
-              <View style={[styles.circleIcon, { backgroundColor: '#ECEFF1' }]}>
-                <Ionicons name="wallet" size={22} color="#455A64" />
-              </View>
-              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#333' }]}>Ví</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         <View style={[styles.bannerCard, { backgroundColor: isDark ? '#1C2E3D' : '#EAF4FC' }]}>
           <View style={styles.bannerLeft}>
@@ -326,7 +381,7 @@ export default function RecruiterDashboardScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsContainer}
         >
-          {['Hot', 'Sắp diễn ra', 'Mới nhất', 'Làm ngay'].map((chip) => {
+          {['Hot', 'Mới nhất'].map((chip) => {
             const isActive = activeChip === chip;
             return (
               <TouchableOpacity
@@ -367,34 +422,33 @@ export default function RecruiterDashboardScreen() {
                   key={job.id}
                   activeOpacity={0.9}
                   onPress={() => {
-                    if (job.id.startsWith('market-job')) {
-                      Alert.alert('Chi tiết', `Chi tiết yêu cầu công việc: ${job.title}`);
-                    } else {
-                      router.push({
-                        pathname: '/job-details',
-                        params: {
-                          jobId: job.id,
-                          title: job.title,
-                          salary: job.price,
-                          location: job.location,
-                        },
-                      });
-                    }
+                    router.push({
+                      pathname: '/job-details',
+                      params: {
+                        jobId: job.id,
+                        title: job.title,
+                        salary: job.price,
+                        location: job.location,
+                      },
+                    });
                   }}
                   style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
                 >
                   <View style={styles.jobCardTop}>
-                    {job.image ? (
-                      <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
-                        {job.author.name === 'Duyên' ? (
-                          <Ionicons name="person-outline" size={24} color="#E91E63" />
-                        ) : (
+                    <View style={{ position: 'relative' }}>
+                      {job.image ? (
+                        <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
+                      ) : (
+                        <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
                           <Ionicons name="desktop-outline" size={24} color="#FF9800" />
-                        )}
-                      </View>
-                    )}
+                        </View>
+                      )}
+                      {(job as any).isPremium && (
+                        <View style={[styles.hotBadge, { top: -6, right: -6 }]}>
+                          <Text style={styles.hotBadgeText}>HOT</Text>
+                        </View>
+                      )}
+                    </View>
 
                     <View style={styles.jobDetails}>
                       <View style={styles.titleRow}>
@@ -1035,10 +1089,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 12,
+    gap: 10,
   },
   tagsContainer: {
     flexDirection: 'row',
     gap: 8,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   tagBubble: {
     flexDirection: 'row',
@@ -1056,13 +1113,12 @@ const styles = StyleSheet.create({
   },
   priceBubble: {
     backgroundColor: '#E6F4FE',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 2,
-    borderTopRightRadius: 2,
-    transform: [{ rotate: '-3deg' }],
+    width: 112,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   priceBubbleDark: {
     backgroundColor: '#152E47',
@@ -1070,7 +1126,8 @@ const styles = StyleSheet.create({
   priceText: {
     color: '#0084FF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
   },
   scrollSpacer: {
     height: 40,

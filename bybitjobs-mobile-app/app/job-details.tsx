@@ -221,11 +221,17 @@ export default function JobDetailsScreen() {
           {/* Job Title Card */}
           <View style={[styles.whiteCard, isDark && styles.darkCard]}>
             <View style={styles.jobHeaderRow}>
-              <Image
-                source={require('../assets/images/wedding_banquet.png')}
-                style={styles.jobImage}
-                resizeMode="cover"
-              />
+              {(currentJob as any)?.image ? (
+                <Image
+                  source={{ uri: (currentJob as any).image }}
+                  style={styles.jobImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.jobImage, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0', justifyContent: 'center', alignItems: 'center' }]}>
+                  <Ionicons name="desktop-outline" size={32} color="#FF9800" />
+                </View>
+              )}
               <View style={styles.jobTitleCol}>
                 <Text style={[styles.jobTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
                   {displayTitle}
@@ -243,23 +249,25 @@ export default function JobDetailsScreen() {
             {/* Quick Info Tags */}
             <View style={styles.quickTagsRow}>
               <View style={[styles.tagItem, isDark ? styles.tagItemDark : styles.tagItemLight]}>
-                <Ionicons name="time-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
+                <Ionicons name="briefcase-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
                 <Text style={[styles.tagLabelText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  Bán thời gian
+                  {currentJob?.industry || 'Tuyển dụng'}
                 </Text>
               </View>
 
               <View style={[styles.tagItem, isDark ? styles.tagItemDark : styles.tagItemLight]}>
-                <Ionicons name="people-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
+                <Ionicons name="time-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
                 <Text style={[styles.tagLabelText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  Cần 5 người
+                  {currentJob?.isOpen ? 'Đang tuyển' : 'Đã đóng'}
                 </Text>
               </View>
 
-              <View style={styles.hotTagItem}>
-                <Ionicons name="flame" size={14} color="#FFF" style={styles.tagIcon} />
-                <Text style={styles.hotTagLabelText}>Tuyển gấp</Text>
-              </View>
+              {(currentJob as any)?.isPremium && (
+                <View style={styles.hotTagItem}>
+                  <Ionicons name="flame" size={14} color="#FFF" style={styles.tagIcon} />
+                  <Text style={styles.hotTagLabelText}>HOT</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -301,33 +309,20 @@ export default function JobDetailsScreen() {
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
             
             <View style={styles.bulletList}>
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Hỗ trợ setup bàn tiệc, sắp xếp chén đĩa theo tiêu chuẩn nhà hàng.
+              {currentJob?.description ? (
+                currentJob.description.split('\n').filter(line => line.trim()).map((line, index) => (
+                  <View key={index} style={styles.bulletItem}>
+                    <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
+                    <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                      {line.trim().replace(/^-\s*/, '')}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ color: isDark ? '#ECEDEE' : '#333', fontSize: 13, fontStyle: 'italic' }}>
+                  Chưa có mô tả chi tiết công việc.
                 </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Phục vụ đồ ăn, thức uống cho khách tại bàn trong suốt buổi tiệc.
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Dọn dẹp bàn tiệc sau khi khách dùng xong.
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Hỗ trợ các công việc khác theo sự phân công của quản lý sảnh.
-                </Text>
-              </View>
+              )}
             </View>
           </View>
 
@@ -336,82 +331,52 @@ export default function JobDetailsScreen() {
             <View style={styles.sectionHeader}>
               <Ionicons name="checkbox-outline" size={20} color="#0084FF" style={styles.sectionHeaderIcon} />
               <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Yêu cầu
+                Yêu cầu tuyển dụng
               </Text>
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
             <View style={styles.bulletList}>
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Nam/Nữ từ 18 - 30 tuổi, sức khỏe tốt.
+              {currentJob?.requirements ? (
+                currentJob.requirements.split('\n').filter(line => line.trim()).map((line, index) => (
+                  <View key={index} style={styles.bulletItem}>
+                    <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
+                    <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                      {line.trim().replace(/^-\s*/, '')}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ color: isDark ? '#ECEDEE' : '#333', fontSize: 13, fontStyle: 'italic' }}>
+                  Chưa có yêu cầu cụ thể.
                 </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Nhanh nhẹn, trung thực, có trách nhiệm trong công việc.
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Không yêu cầu kinh nghiệm (sẽ được hướng dẫn trước khi làm).
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Trang phục: Quần tây đen, áo sơ mi trắng dài tay, giày tây đen (nam) hoặc giày búp bê đen (nữ).
-                </Text>
-              </View>
+              )}
             </View>
           </View>
 
           {/* Benefits (Quyền lợi) */}
-          <View style={[styles.whiteCard, styles.sectionCard, isDark && styles.darkCard]}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="gift-outline" size={20} color="#0084FF" style={styles.sectionHeaderIcon} />
-              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Quyền lợi
-              </Text>
-            </View>
-            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-            <View style={styles.bulletList}>
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Bao ăn 1 bữa giữa ca.
+          {((currentJob as any)?.benefits) ? (
+            <View style={[styles.whiteCard, styles.sectionCard, isDark && styles.darkCard]}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="gift-outline" size={20} color="#0084FF" style={styles.sectionHeaderIcon} />
+                <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Quyền lợi
                 </Text>
               </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Thanh toán tiền mặt hoặc chuyển khoản ngay sau khi xong tiệc.
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Có tiền tip nếu phục vụ tốt.
-                </Text>
-              </View>
-
-              <View style={styles.bulletItem}>
-                <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
-                <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                  Môi trường làm việc năng động, chuyên nghiệp.
-                </Text>
+              <View style={styles.bulletList}>
+                {((currentJob as any).benefits as string).split('\n').filter(line => line.trim()).map((line, index) => (
+                  <View key={index} style={styles.bulletItem}>
+                    <View style={[styles.bulletDot, { backgroundColor: isDark ? '#FFF' : '#555' }]} />
+                    <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                      {line.trim().replace(/^-\s*/, '')}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </View>
-          </View>
+          ) : null}
 
           {/* Meta Details Card */}
           <View style={[styles.whiteCard, styles.metaCard, isDark && styles.darkCard]}>
@@ -428,19 +393,6 @@ export default function JobDetailsScreen() {
               </View>
             </View>
 
-            {/* Time */}
-            <View style={styles.metaRow}>
-              <View style={[styles.metaIconCircle, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="calendar" size={16} color="#0084FF" />
-              </View>
-              <View style={styles.metaTextCol}>
-                <Text style={[styles.metaLabel, { color: isDark ? '#9BA1A6' : '#687076' }]}>Thời gian làm việc</Text>
-                <Text style={[styles.metaValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  Thứ 7 (15/10/2023) - Ca chiều: 14:00 đến 22:00
-                </Text>
-              </View>
-            </View>
-
             {/* Deadline */}
             <View style={styles.metaRow}>
               <View style={[styles.metaIconCircle, { backgroundColor: '#FFEBEE' }]}>
@@ -449,7 +401,7 @@ export default function JobDetailsScreen() {
               <View style={styles.metaTextCol}>
                 <Text style={[styles.metaLabel, { color: isDark ? '#9BA1A6' : '#687076' }]}>Hạn ứng tuyển</Text>
                 <Text style={[styles.metaValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  Trước 12:00 ngày 14/10/2023
+                  {currentJob?.deadline || 'Liên hệ nhà tuyển dụng'}
                 </Text>
               </View>
             </View>
