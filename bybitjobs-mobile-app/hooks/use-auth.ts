@@ -354,6 +354,59 @@ export function getRelativeTime(dateString: string, isOpen: boolean): string {
   }
 }
 
+let globalNotifications: any[] = [];
+let globalNotificationsUnsubscribe: (() => void) | null = null;
+let globalReadIds: string[] = [];
+
+const mockNotifications = [
+  {
+    id: 'mock-1',
+    category: 'job',
+    title: 'Nhà tuyển dụng đã xem hồ sơ',
+    description: 'Công ty Bybit Việt Nam đã xem CV_Web_Developer_VN.pdf của bạn.',
+    time: '3 phút trước',
+    isRead: false,
+  },
+  {
+    id: 'mock-3',
+    category: 'job',
+    title: 'Tin tuyển dụng phù hợp mới',
+    description: 'Việc làm "Senior React Native Developer - Bybit" đang tìm ứng viên phù hợp với bạn.',
+    time: '1 giờ trước',
+    isRead: false,
+  },
+  {
+    id: 'mock-4',
+    category: 'community',
+    title: 'Lượt tương tác mới trong Cộng đồng',
+    description: 'Nguyễn Văn A và 5 người khác đã thích bài viết chia sẻ kinh nghiệm phỏng vấn của bạn.',
+    time: 'Hôm qua',
+    isRead: true,
+  },
+  {
+    id: 'mock-5',
+    category: 'system',
+    title: 'Chào mừng bạn đến với BybitJobs',
+    description: 'Khám phá ngay hàng ngàn công việc chất lượng và tạo CV chuyên nghiệp miễn phí.',
+    time: '2 ngày trước',
+    isRead: true,
+  },
+];
+
+const getRelativeTimeLabel = (date: Date) => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (60 * 1000));
+  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays === 1) return 'Hôm qua';
+  return `${diffDays} ngày trước`;
+};
+
 export function useAuth() {
   const [firebaseUser, setFirebaseUser] = React.useState<FirebaseUser | null>(auth.currentUser);
   const [isInitializing, setIsInitializing] = React.useState(true);
@@ -367,7 +420,10 @@ export function useAuth() {
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
-  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string }>({});
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string }>({});
+  
+  const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
+  const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -391,13 +447,39 @@ export function useAuth() {
             const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}`);
             if (response.ok) {
               const data = await response.json();
-              setUserDataExtra({ desiredJob: data.job });
+              setUserDataExtra({ desiredJob: data.job, phone: data.phone });
             }
           } catch (err) {
             console.error('Lỗi lấy thông tin user:', err);
           }
         };
         fetchUserData();
+
+        // Fetch notifications from Firestore realtime
+        if (globalNotificationsUnsubscribe) globalNotificationsUnsubscribe();
+        const qNotifications = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+        globalNotificationsUnsubscribe = onSnapshot(qNotifications, (snapshot) => {
+          const dbItems = snapshot.docs
+            .map((doc) => {
+              const data = doc.data();
+              const date = data.createdAt ? data.createdAt.toDate() : new Date();
+              return {
+                id: doc.id,
+                category: (data.target === 'ALL' ? 'system' : 'security') as any,
+                title: data.title || '',
+                description: data.body || '',
+                time: getRelativeTimeLabel(date),
+                isRead: false,
+                target: data.target || 'ALL',
+              };
+            })
+            .filter((item) => item.target === 'ALL' || item.target === user.uid);
+          globalNotifications = dbItems;
+          setNotifications(dbItems);
+          notifyAll();
+        }, (error) => {
+          console.error('Error fetching mobile notifications realtime:', error);
+        });
 
         if (globalApplicationsUnsubscribe) globalApplicationsUnsubscribe();
         const qApplications = query(
@@ -466,9 +548,9 @@ export function useAuth() {
               const empData = await empResponse.json();
               globalEmployerData = {
                 id: empData.id || empData.user_id,
-                companyName: empData.company_name,
-                taxId: empData.tax_code,
-                phoneNumber: empData.phone,
+                companyName: empData.company_name || empData.company || '',
+                taxId: empData.tax_code || empData.taxId || '',
+                phoneNumber: empData.phone || empData.phoneNumber || '',
                 address: empData.address,
                 servicePackage: 'Free',
                 currentPackage: empData.current_package || 'basic',
@@ -503,7 +585,10 @@ export function useAuth() {
                 });
               }
               
-              globalUserRole = 'employer';
+              // Không tự động đổi vai trò sang employer để người dùng luôn ở giao diện ứng viên lúc mới vào
+              if (!globalUserRole) {
+                globalUserRole = 'candidate';
+              }
             } else {
               globalUserRole = 'candidate';
               globalEmployerData = null;
@@ -556,6 +641,12 @@ export function useAuth() {
           globalViewedJobsUnsubscribe();
           globalViewedJobsUnsubscribe = null;
         }
+        if (globalNotificationsUnsubscribe) {
+          globalNotificationsUnsubscribe();
+          globalNotificationsUnsubscribe = null;
+        }
+        globalNotifications = [];
+        globalReadIds = [];
         globalUserRole = null;
         globalEmployerData = null;
         globalSavedJobs = [];
@@ -566,6 +657,8 @@ export function useAuth() {
         setEmployerData(null);
         setSavedJobs([]);
         setViewedJobs([]);
+        setNotifications([]);
+        setReadIds([]);
       }
       setIsInitializing(false);
     });
@@ -579,6 +672,8 @@ export function useAuth() {
       setApplications([...globalApplications]);
       setSavedJobs([...globalSavedJobs]);
       setViewedJobs([...globalViewedJobs]);
+      setNotifications([...globalNotifications]);
+      setReadIds([...globalReadIds]);
     };
     listeners.add(handleMockDataChange);
 
@@ -795,7 +890,7 @@ export function useAuth() {
       
       if (response.ok) {
         const result = await response.json();
-        globalUserRole = 'employer';
+        globalUserRole = 'candidate';
         globalEmployerData = { ...data, servicePackage: 'Free', status: result.employer.status };
         notifyAll();
       } else {
@@ -1187,6 +1282,54 @@ export function useAuth() {
     }
   };
 
+  const updateUserPhone = async (newPhone: string) => {
+    if (firebaseUser) {
+      try {
+        const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/phone`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: newPhone })
+        });
+        if (!response.ok) {
+          throw new Error('Cập nhật thất bại từ Server');
+        }
+        setUserDataExtra(prev => ({ ...prev, phone: newPhone }));
+      } catch (error) {
+        console.error('Lỗi khi cập nhật số điện thoại:', error);
+        throw error;
+      }
+    }
+  };
+
+  const mergedNotifications = firebaseUser
+    ? [...notifications, ...mockNotifications].map((item) => ({
+        ...item,
+        isRead: readIds.includes(item.id) || item.isRead
+      }))
+    : [];
+
+  const unreadNotificationsCount = mergedNotifications.filter((n) => !n.isRead).length;
+
+  const markAllNotificationsAsRead = () => {
+    globalReadIds = mergedNotifications.map((n) => n.id);
+    setReadIds(globalReadIds);
+    notifyAll();
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    if (!globalReadIds.includes(id)) {
+      globalReadIds = [...globalReadIds, id];
+      setReadIds(globalReadIds);
+      notifyAll();
+    }
+  };
+
+  const switchRole = (role: UserRole) => {
+    globalUserRole = role;
+    setUserRole(role);
+    notifyAll();
+  };
+
   return {
     isLoggedIn: !!firebaseUser,
     isInitializing,
@@ -1197,7 +1340,8 @@ export function useAuth() {
       emailOrPhone: firebaseUser.email || '', 
       fullName: firebaseUser.displayName || 'Người dùng',
       isVerified: firebaseUser.emailVerified,
-      desiredJob: userDataExtra.desiredJob
+      desiredJob: userDataExtra.desiredJob,
+      phone: userDataExtra.phone
     } : null,
     employerData,
     jobs,
@@ -1218,6 +1362,11 @@ export function useAuth() {
     updateApplicationStatus,
     sendInvitation,
     updateDesiredJob,
+    updateUserPhone,
+    notifications: mergedNotifications,
+    unreadNotificationsCount,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
     login,
     signup,
     resetPassword,
@@ -1229,5 +1378,6 @@ export function useAuth() {
     upgradePackage: updatePackage,
     createOrder,
     logout,
+    switchRole,
   };
 }

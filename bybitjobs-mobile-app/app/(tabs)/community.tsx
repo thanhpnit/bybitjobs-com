@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function CommunityScreen() {
+function CandidateCommunityScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -53,3 +53,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+import { useAuth } from '@/hooks/use-auth';
+import RecruiterJobsScreen from '../recruiter/jobs';
+
+export default function CommunityScreen() {
+  const { userRole } = useAuth();
+  if (userRole === 'employer') {
+    return <RecruiterJobsScreen />;
+  }
+  return <CandidateCommunityScreen />;
+}

@@ -42,104 +42,24 @@ const getRelativeTimeLabel = (date: Date) => {
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { userData } = useAuth();
   const router = useRouter();
+  
+  const { 
+    userData, 
+    notifications, 
+    markAllNotificationsAsRead, 
+    markNotificationAsRead 
+  } = useAuth();
 
   const [activeSegment, setActiveSegment] = React.useState<'all' | 'unread'>('all');
-  const [dbNotifications, setDbNotifications] = React.useState<any[]>([]);
-  const [readIds, setReadIds] = React.useState<string[]>([]);
-
-  const mockNotifications: NotificationItem[] = [
-    {
-      id: 'mock-1',
-      category: 'job',
-      title: 'Nhà tuyển dụng đã xem hồ sơ',
-      description: 'Công ty Bybit Việt Nam đã xem CV_Web_Developer_VN.pdf của bạn.',
-      time: '3 phút trước',
-      isRead: false,
-    },
-    {
-      id: 'mock-2',
-      category: 'security',
-      title: 'Xác thực tài khoản thành công',
-      description: 'Chúc mừng! Tài khoản của bạn đã được xác thực chính chủ và cấp tích xanh.',
-      time: '15 phút trước',
-      isRead: false,
-    },
-    {
-      id: 'mock-3',
-      category: 'job',
-      title: 'Tin tuyển dụng phù hợp mới',
-      description: 'Việc làm "Senior React Native Developer - Bybit" đang tìm ứng viên phù hợp với bạn.',
-      time: '1 giờ trước',
-      isRead: false,
-    },
-    {
-      id: 'mock-4',
-      category: 'community',
-      title: 'Lượt tương tác mới trong Cộng đồng',
-      description: 'Nguyễn Văn A và 5 người khác đã thích bài viết chia sẻ kinh nghiệm phỏng vấn của bạn.',
-      time: 'Hôm qua',
-      isRead: true,
-    },
-    {
-      id: 'mock-5',
-      category: 'system',
-      title: 'Chào mừng bạn đến với BybitJobs',
-      description: 'Khám phá ngay hàng ngàn công việc chất lượng và tạo CV chuyên nghiệp miễn phí.',
-      time: '2 ngày trước',
-      isRead: true,
-    },
-  ];
-
-  // Fetch database notifications realtime
-  useEffect(() => {
-    if (!userData?.uid) {
-      setDbNotifications([]);
-      return;
-    }
-
-    const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          const date = data.createdAt ? data.createdAt.toDate() : new Date();
-          return {
-            id: doc.id,
-            category: (data.target === 'ALL' ? 'system' : 'security') as any,
-            title: data.title || '',
-            description: data.body || '',
-            time: getRelativeTimeLabel(date),
-            isRead: false,
-            target: data.target || 'ALL',
-          };
-        })
-        .filter((item) => item.target === 'ALL' || item.target === userData?.uid);
-      setDbNotifications(items);
-    }, (error) => {
-      console.error('Error fetching mobile notifications realtime:', error);
-    });
-
-    return () => unsubscribe();
-  }, [userData?.uid]);
-
-  // Merge database notifications with mock fallbacks and local read state
-  const notifications = userData?.uid
-    ? [...dbNotifications, ...mockNotifications].map((item) => ({
-        ...item,
-        isRead: readIds.includes(item.id) || item.isRead
-      }))
-    : [];
 
   const handleMarkAllRead = () => {
-    setReadIds(notifications.map((n) => n.id));
+    markAllNotificationsAsRead();
     Alert.alert('Thành công', 'Đã đánh dấu tất cả thông báo là đã đọc!');
   };
 
   const handleNotificationPress = (id: string) => {
-    setReadIds((prev) => [...prev, id]);
+    markNotificationAsRead(id);
     const item = notifications.find((n) => n.id === id);
     if (item) {
       Alert.alert(item.title, item.description);

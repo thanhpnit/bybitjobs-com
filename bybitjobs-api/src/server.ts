@@ -81,7 +81,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       uid: userRecord.uid, // Giữ nguyên UID Firebase để thực hiện thao tác xóa/khóa
       name: userRecord.displayName || 'Người dùng App',
       email: userRecord.email || '',
-      phone: userRecord.phoneNumber || 'Chưa có',
+      phone: userRecord.phoneNumber || firestoreUsers[userRecord.uid]?.phone || 'Chưa cập nhật',
       job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
       status: userRecord.disabled 
         ? 'Bị khóa' 
@@ -114,7 +114,25 @@ app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any>
   }
 });
 
-// API lấy thông tin chi tiết một người dùng (bao gồm job)
+// API cập nhật số điện thoại người dùng
+app.put('/api/users/:uid/phone', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  const { phone } = req.body;
+  if (!uid || !phone) {
+    return res.status(400).json({ error: 'Thiếu thông tin uid hoặc phone' });
+  }
+
+  try {
+    const db = admin.firestore();
+    await db.collection('users').doc(uid).set({ phone }, { merge: true });
+    return res.status(200).json({ success: true, message: 'Cập nhật số điện thoại thành công' });
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật số điện thoại:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu dữ liệu', details: error.message });
+  }
+});
+
+// API lấy thông tin chi tiết một người dùng (bao gồm job và phone)
 app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
   try {
@@ -122,12 +140,14 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const db = admin.firestore();
     const doc = await db.collection('users').doc(uid).get();
     const job = doc.exists ? doc.data()?.job : 'Ứng viên (Mobile App)';
+    const phone = doc.exists ? doc.data()?.phone : undefined;
     
     return res.status(200).json({
       uid: userRecord.uid,
       name: userRecord.displayName,
       email: userRecord.email,
-      job: job
+      job: job,
+      phone: phone
     });
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi server', details: error.message });
@@ -140,15 +160,29 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
     return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
   }
 
-  const { uid } = req.params;
+  const uid = req.params.uid as string;
   if (!uid) {
     return res.status(400).json({ error: 'Thiếu UID người dùng.' });
   }
 
   try {
+    const db = admin.firestore();
+    
+    // Xóa tài khoản khỏi Firebase Auth
     await admin.auth().deleteUser(uid as string);
-    console.log(`🔥 Đã xóa vĩnh viễn người dùng có UID: ${uid}`);
-    return res.status(200).json({ success: true, message: `Đã xóa vĩnh viễn người dùng có UID: ${uid}` });
+    
+    // Xóa thông tin doanh nghiệp trong Firestore
+    await db.collection('employers').doc(uid).delete();
+    
+    // Xóa thông tin bổ sung user (ví dụ công việc mong muốn) trong Firestore
+    await db.collection('users').doc(uid).delete();
+    
+    // Xóa các thông tin OTP liên quan
+    await db.collection('otps').doc(uid).delete();
+    await db.collection('passwordResetOtps').doc(uid).delete();
+
+    console.log(`🔥 Đã xóa vĩnh viễn người dùng và các dữ liệu liên quan có UID: ${uid}`);
+    return res.status(200).json({ success: true, message: `Đã xóa vĩnh viễn người dùng và các dữ liệu liên quan có UID: ${uid}` });
   } catch (error: any) {
     console.error('Lỗi khi xóa người dùng:', error);
     return res.status(500).json({ error: 'Lỗi server khi xóa người dùng khỏi Firebase', details: error.message });
@@ -246,6 +280,19 @@ app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<
 
     // Cập nhật trạng thái emailVerified thành true trong Firebase Auth
     await admin.auth().updateUser(uid, { emailVerified: true });
+
+    // Tạo thông báo xác minh thành công trong Firestore
+    try {
+      await db.collection('notifications').add({
+        target: uid,
+        title: 'Xác thực tài khoản thành công',
+        body: 'Chúc mừng! Tài khoản của bạn đã được xác thực chính chủ và cấp tích xanh.',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (notifError) {
+      console.error('Lỗi tạo thông báo xác thực:', notifError);
+    }
+
     console.log(`🔥 Đã xác minh thành công tài khoản người dùng có UID: ${uid}`);
     return res.status(200).json({ success: true, message: `Xác minh tài khoản thành công.` });
   } catch (error: any) {
@@ -968,6 +1015,22 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
                 current_package: orderData.packageName || packageId
               });
               console.log(`Đã cập nhật bài đăng cho Employer ${employerId}: ${used}/${limit}`);
+
+              // Tự động đẩy tất cả tin tuyển dụng của Employer này lên đầu tiên (cập nhật createdAt)
+              try {
+                const jobsSnapshot = await db.collection('jobs').where('employerId', '==', employerId).get();
+                if (!jobsSnapshot.empty) {
+                  const nowStr = new Date().toISOString();
+                  const batch = db.batch();
+                  jobsSnapshot.forEach(jobDoc => {
+                    batch.update(jobDoc.ref, { createdAt: nowStr });
+                  });
+                  await batch.commit();
+                  console.log(`🔥 Đã đẩy ${jobsSnapshot.size} tin tuyển dụng của Employer ${employerId} lên đầu trang.`);
+                }
+              } catch (jobErr) {
+                console.error('Lỗi khi đẩy tin tuyển dụng lên đầu trang:', jobErr);
+              }
             }
           }
           console.log(`🔥 Đã duyệt thành công đơn hàng PayOS: ${orderCode}`);

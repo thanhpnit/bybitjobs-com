@@ -9,7 +9,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -25,9 +25,12 @@ export default function RecruiterProfileScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
+  const isIphoneWithNotch = bottomInset > 0;
   
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, isLoggedIn } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, isLoggedIn, switchRole, unreadNotificationsCount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -55,6 +58,24 @@ export default function RecruiterProfileScreen() {
       { id: 'branch-2', name: 'Văn phòng đại diện', address: 'Quận Cầu Giấy, Hà Nội' },
     ]
   );
+
+  React.useEffect(() => {
+    if (employerData) {
+      setCompanyName(employerData.companyName || 'Công ty TNHH Giao Hàng Nhanh');
+      setWebsite(employerData.website || 'https://bybitjobs.com');
+      setEmail(employerData.email || 'example@company.com');
+      setPhone(employerData.phoneNumber || '0123 456 789');
+      setAddress(employerData.address || 'Quận 7, TP. Hồ Chí Minh');
+      setIndustry(employerData.industry || 'Sản xuất / Vận tải');
+      setScale(employerData.scale || '51-200 nhân viên');
+      setDescription(
+        employerData.description || 'Chúng tôi cam kết mang lại giải pháp giao hàng nhanh chóng, hiệu quả và tin cậy cho hàng triệu khách hàng trên toàn quốc.'
+      );
+      if (employerData.branches) {
+        setBranches(employerData.branches);
+      }
+    }
+  }, [employerData]);
 
   const getInitial = (name: string) => {
     if (!name) return 'C';
@@ -615,12 +636,23 @@ export default function RecruiterProfileScreen() {
             <Ionicons name="menu-outline" size={26} color="#FFF" />
           </TouchableOpacity>
           <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>BybitJobs</Text>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.iconBtn}
+            onPress={() => router.push('/(tabs)/notifications')}
+          >
             <Ionicons name="notifications-outline" size={24} color="#FFF" />
+            {unreadNotificationsCount > 0 && (
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>
+                  {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }}>
           {/* 1. Cover & Logo Hero */}
           <View style={styles.empHeroSection}>
             <Image
@@ -936,8 +968,32 @@ export default function RecruiterProfileScreen() {
 
           <TouchableOpacity
             activeOpacity={0.8}
+            onPress={() => {
+              Alert.alert(
+                'Chuyển vai trò',
+                'Bạn có chắc chắn muốn quay lại giao diện Người tìm việc không?',
+                [
+                  { text: 'Hủy', style: 'cancel' },
+                  {
+                    text: 'Đồng ý',
+                    onPress: () => {
+                      switchRole('candidate');
+                      router.replace('/(tabs)/profile');
+                    }
+                  }
+                ]
+              );
+            }}
+            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 16, marginBottom: 8, backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', width: undefined }]}
+          >
+            <Ionicons name="people-outline" size={20} color="#0084FF" style={{ marginRight: 8 }} />
+            <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Quay lại vai trò Người tìm việc</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
             onPress={handleLogout}
-            style={[styles.bigLogoutButton, { marginHorizontal: 16, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE' }]}
+            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 20, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
           >
             <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
             <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
@@ -946,7 +1002,17 @@ export default function RecruiterProfileScreen() {
         </ScrollView>
 
         {/* Custom Raised FAB Bottom Navigation Bar for Recruiter */}
-        <View style={[styles.bottomNavBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+        {false && (
+        <View style={[
+          styles.bottomNavBar, 
+          { 
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
+            borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+            height: isIphoneWithNotch ? 82 : 64,
+            paddingBottom: isIphoneWithNotch ? 22 : 6,
+            paddingTop: 8
+          }
+        ]}>
           <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
             <Ionicons name="home-outline" size={24} color="#8E8E93" />
             <Text style={styles.navItemText}>Trang chủ</Text>
@@ -975,6 +1041,7 @@ export default function RecruiterProfileScreen() {
             <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
           </TouchableOpacity>
         </View>
+        )}
       </SafeAreaView>
     );
   };
@@ -1003,6 +1070,25 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   headerBarTitle: {
     color: '#FFF',

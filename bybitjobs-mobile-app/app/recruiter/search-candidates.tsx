@@ -9,7 +9,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -20,6 +20,9 @@ export default function RecruiterSearchCandidatesScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { candidates, jobs, sendInvitation } = useAuth();
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
+  const isIphoneWithNotch = bottomInset > 0;
 
   // Search keyword state
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -195,7 +198,7 @@ export default function RecruiterSearchCandidatesScreen() {
       </View>
 
       {/* Main scrolling list of headhunt candidates */}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
         {filteredCandidates.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="search-outline" size={48} color="#8E8E93" />
@@ -269,8 +272,17 @@ export default function RecruiterSearchCandidatesScreen() {
         )}
       </ScrollView>
 
-      {/* Simulator Raised FAB Bottom Navigation Bar */}
-      <View style={[styles.bottomNavBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+      {false && (
+      <View style={[
+        styles.bottomNavBar, 
+        { 
+          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
+          borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+          height: isIphoneWithNotch ? 82 : 64,
+          paddingBottom: isIphoneWithNotch ? 22 : 6,
+          paddingTop: 8
+        }
+      ]}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
           <Ionicons name="home-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Trang chủ</Text>
@@ -299,6 +311,7 @@ export default function RecruiterSearchCandidatesScreen() {
           <Text style={styles.navItemText}>Cá nhân</Text>
         </TouchableOpacity>
       </View>
+      )}
     </SafeAreaView>
   );
 }

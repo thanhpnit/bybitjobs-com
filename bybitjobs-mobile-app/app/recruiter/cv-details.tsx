@@ -79,7 +79,11 @@ export default function RecruiterCvDetailsScreen() {
           <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
             <Ionicons name="share-social-outline" size={22} color="#FFF" />
           </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.iconBtn}
+            onPress={() => router.push('/(tabs)/notifications')}
+          >
             <Ionicons name="notifications-outline" size={22} color="#FFF" />
           </TouchableOpacity>
         </View>

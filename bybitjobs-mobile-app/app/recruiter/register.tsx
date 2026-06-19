@@ -55,15 +55,15 @@ export default function RecruiterRegisterScreen() {
       address,
     });
 
-    // 3. Show Success & Redirect to Update Company Profile Screen
+    // 3. Show Success & Redirect to Candidate Profile Screen
     Alert.alert(
       'Đăng ký thành công',
-      'Hồ sơ doanh nghiệp của bạn đã được thiết lập thành công. Vui lòng bổ sung thêm thông tin chi tiết để thu hút ứng viên tốt hơn.',
+      'Yêu cầu đăng ký tài khoản tuyển dụng của bạn đã được gửi thành công. Vui lòng đợi Admin phê duyệt thông tin để có thể sử dụng giao diện tuyển dụng.',
       [
         {
-          text: 'Cập nhật thông tin',
+          text: 'Đồng ý',
           onPress: () => {
-            router.replace('/recruiter/profile');
+            router.replace('/(tabs)/profile');
           },
         },
       ]

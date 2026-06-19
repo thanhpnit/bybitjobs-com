@@ -8,7 +8,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -18,7 +18,10 @@ export default function RecruiterCandidatesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { applications, candidates, jobs, updateApplicationStatus } = useAuth();
+  const { applications, candidates, jobs, updateApplicationStatus, unreadNotificationsCount } = useAuth();
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
+  const isIphoneWithNotch = bottomInset > 0;
 
   // Tab state: 'All' | 'Pending' | 'Approved' | 'Rejected'
   const [activeTab, setActiveTab] = React.useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
@@ -64,12 +67,21 @@ export default function RecruiterCandidatesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
       {/* Header bar */}
       <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
-        <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
+        <View style={styles.iconBtn} />
         <Text style={styles.headerBarTitle}>Quản lý ứng viên</Text>
-        <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.push('/recruiter/dashboard')}>
-          <Ionicons name="desktop-outline" size={22} color="#FFF" />
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          style={styles.iconBtn} 
+          onPress={() => router.push('/(tabs)/notifications')}
+        >
+          <Ionicons name="notifications-outline" size={22} color="#FFF" />
+          {unreadNotificationsCount > 0 && (
+            <View style={styles.badgeContainer}>
+              <Text style={styles.badgeText}>
+                {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -132,7 +144,7 @@ export default function RecruiterCandidatesScreen() {
       </ScrollView>
 
       {/* Main scrolling content */}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
         {filteredApps.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={48} color="#8E8E93" />
@@ -232,8 +244,17 @@ export default function RecruiterCandidatesScreen() {
         )}
       </ScrollView>
 
-      {/* Simulator Raised FAB Bottom Navigation Bar */}
-      <View style={[styles.bottomNavBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+      {false && (
+      <View style={[
+        styles.bottomNavBar, 
+        { 
+          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
+          borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+          height: isIphoneWithNotch ? 82 : 64,
+          paddingBottom: isIphoneWithNotch ? 22 : 6,
+          paddingTop: 8
+        }
+      ]}>
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
           <Ionicons name="home-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Trang chủ</Text>
@@ -262,6 +283,7 @@ export default function RecruiterCandidatesScreen() {
           <Text style={styles.navItemText}>Cá nhân</Text>
         </TouchableOpacity>
       </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -283,6 +305,25 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   headerBarTitle: {
     color: '#FFF',

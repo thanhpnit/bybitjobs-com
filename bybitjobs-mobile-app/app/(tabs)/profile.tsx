@@ -18,7 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
 
-export default function ProfileScreen() {
+function CandidateProfileScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -41,7 +41,9 @@ export default function ProfileScreen() {
     verifyAccount,
     seqId,
     updateDesiredJob,
-    sendOtp
+    updateUserPhone,
+    sendOtp,
+    switchRole
   } = useAuth();
 
   // Job seeking switch states
@@ -54,6 +56,10 @@ export default function ProfileScreen() {
   // Edit Job State
   const [isEditJobModalVisible, setIsEditJobModalVisible] = React.useState(false);
   const [editJobInput, setEditJobInput] = React.useState('');
+
+  // Edit Phone State
+  const [isEditPhoneModalVisible, setIsEditPhoneModalVisible] = React.useState(false);
+  const [editPhoneInput, setEditPhoneInput] = React.useState('');
   const [isAppliedJobsModalVisible, setIsAppliedJobsModalVisible] = React.useState(false);
   const [selectedAppliedJobId, setSelectedAppliedJobId] = React.useState<string | null>(null);
   const [isSavedJobsModalVisible, setIsSavedJobsModalVisible] = React.useState(false);
@@ -271,6 +277,27 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleEditPhone = () => {
+    setEditPhoneInput(userPhone === 'Chưa cập nhật' ? '' : userPhone);
+    setIsEditPhoneModalVisible(true);
+  };
+
+  const handleSavePhone = async () => {
+    if (editPhoneInput.trim() === '') {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (updateUserPhone) {
+      try {
+        await updateUserPhone(editPhoneInput.trim());
+        setIsEditPhoneModalVisible(false);
+        Alert.alert('Thành công', 'Cập nhật số điện thoại thành công!');
+      } catch (err) {
+        Alert.alert('Lỗi', 'Không thể cập nhật số điện thoại lúc này.');
+      }
+    }
+  };
+
   const displayName = isLoggedIn ? (userData?.fullName || 'Nguyễn Minh Quân') : 'Tài khoản khách';
 
   const getInitial = (name: string) => {
@@ -293,7 +320,7 @@ export default function ProfileScreen() {
   const userPhone = isLoggedIn
     ? (userData?.emailOrPhone && !userData.emailOrPhone.includes('@')
       ? userData.emailOrPhone
-      : '090 1234 567')
+      : (userData?.phone || 'Chưa cập nhật'))
     : 'Chưa liên kết';
 
   const appliedJobs = React.useMemo(() => {
@@ -1239,9 +1266,18 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.infoTextCol}>
                   <Text style={styles.infoLabel}>SỐ ĐIỆN THOẠI</Text>
-                  <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    {userPhone}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                    <Text style={[styles.infoValue, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]} numberOfLines={1}>
+                      {userPhone}
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={handleEditPhone}
+                      style={{ backgroundColor: '#0084FF', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 }}
+                    >
+                      <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold' }}>Sửa</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
@@ -1389,27 +1425,57 @@ export default function ProfileScreen() {
 
           {/* Employer Upgrade Promo (Shown if candidate) */}
           {userRole !== 'employer' && (
-            <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#0084FF' }]}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="business-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
-                <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  Tuyển dụng trên BybitJobs
+            employerData ? (
+              <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#4CAF50' }]}>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="business-outline" size={20} color="#4CAF50" style={styles.cardHeaderIcon} />
+                  <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Giao diện Nhà tuyển dụng
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+                <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16, lineHeight: 18 }}>
+                  Tài khoản của bạn đã được đăng ký làm Nhà tuyển dụng. Bấm nút dưới để chuyển đổi sang giao diện quản lý tuyển dụng.
                 </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (employerData?.status === 'Chờ duyệt') {
+                      Alert.alert('Đang chờ duyệt', 'Hồ sơ doanh nghiệp của bạn đang được Admin xét duyệt. Vui lòng quay lại sau nhé!');
+                    } else {
+                      switchRole('employer');
+                      router.replace('/');
+                    }
+                  }}
+                  style={[styles.upgradeButton, { backgroundColor: '#4CAF50' }]}
+                >
+                  <Ionicons name="swap-horizontal-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.upgradeButtonText}>Chuyển sang giao diện Nhà tuyển dụng</Text>
+                </TouchableOpacity>
               </View>
-              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-              <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16, lineHeight: 18 }}>
-                Đăng ký tài khoản nhà tuyển dụng miễn phí để đăng tin tuyển dụng và tìm kiếm nhân tài ngay hôm nay.
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => handleFeaturePress('Đăng ký tuyển dụng', () => {
-                  router.push('/recruiter/register');
-                })}
-                style={styles.upgradeButton}
-              >
-                <Text style={styles.upgradeButtonText}>Kích hoạt tài khoản Tuyển dụng</Text>
-              </TouchableOpacity>
-            </View>
+            ) : (
+              <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#0084FF' }]}>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="business-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+                  <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Tuyển dụng trên BybitJobs
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+                <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16, lineHeight: 18 }}>
+                  Đăng ký tài khoản nhà tuyển dụng miễn phí để đăng tin tuyển dụng và tìm kiếm nhân tài ngay hôm nay.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => handleFeaturePress('Đăng ký tuyển dụng', () => {
+                    router.push('/recruiter/register');
+                  })}
+                  style={styles.upgradeButton}
+                >
+                  <Text style={styles.upgradeButtonText}>Kích hoạt tài khoản Tuyển dụng</Text>
+                </TouchableOpacity>
+              </View>
+            )
           )}
 
           {/* 4. CV của tôi (CV đã tải lên & Cover Letter) Card */}
@@ -2312,6 +2378,48 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: '#0084FF' }]}
                 onPress={handleSaveJob}
+              >
+                <Text style={styles.verificationSubmitBtnText}>Lưu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Phone Modal */}
+      <Modal
+        visible={isEditPhoneModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalCenteredOverlay}>
+          <View style={[styles.verificationContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <Text style={[styles.verificationTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }]}>Cập nhật Số điện thoại</Text>
+            <Text style={[styles.verificationSubtitle, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 20 }]}>
+              Nhập số điện thoại liên hệ của bạn để cập nhật vào thông tin cá nhân và đồng bộ với trang quản trị.
+            </Text>
+            
+            <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
+              <TextInput
+                style={[styles.verificationTextInput, { color: isDark ? '#FFF' : '#11181C', letterSpacing: 0, textAlign: 'left', width: '100%' }]}
+                value={editPhoneInput}
+                onChangeText={setEditPhoneInput}
+                placeholder="VD: 0912345678"
+                placeholderTextColor={isDark ? '#8E8E93' : '#AEAEB2'}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA' }]}
+                onPress={() => setIsEditPhoneModalVisible(false)}
+              >
+                <Text style={[styles.verificationSubmitBtnText, { color: isDark ? '#FFF' : '#11181C' }]}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: '#0084FF' }]}
+                onPress={handleSavePhone}
               >
                 <Text style={styles.verificationSubmitBtnText}>Lưu</Text>
               </TouchableOpacity>
@@ -4031,3 +4139,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+import RecruiterProfileScreen from '../recruiter/profile';
+
+export default function ProfileScreen() {
+  const { userRole } = useAuth();
+  if (userRole === 'employer') {
+    return <RecruiterProfileScreen />;
+  }
+  return <CandidateProfileScreen />;
+}

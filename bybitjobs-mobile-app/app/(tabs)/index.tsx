@@ -39,7 +39,7 @@ interface JobItem {
   originalIndustry?: string;
 }
 
-export default function HomeScreen() {
+function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
@@ -1291,3 +1291,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+import RecruiterDashboardScreen from '../recruiter/dashboard';
+
+export default function HomeScreen() {
+  const { userRole } = useAuth();
+  if (userRole === 'employer') {
+    return <RecruiterDashboardScreen />;
+  }
+  return <CandidateHomeScreen />;
+}

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function MyJobsScreen() {
+function CandidateMyJobsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -53,3 +53,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+import { useAuth } from '@/hooks/use-auth';
+import RecruiterCandidatesScreen from '../recruiter/candidates';
+
+export default function MyJobsScreen() {
+  const { userRole } = useAuth();
+  if (userRole === 'employer') {
+    return <RecruiterCandidatesScreen />;
+  }
+  return <CandidateMyJobsScreen />;
+}
