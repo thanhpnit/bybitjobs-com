@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,6 +53,7 @@ export default function NotificationsScreen() {
   } = useAuth();
 
   const [activeSegment, setActiveSegment] = React.useState<'all' | 'unread'>('all');
+  const [selectedNotification, setSelectedNotification] = React.useState<any>(null);
 
   const handleMarkAllRead = () => {
     markAllNotificationsAsRead();
@@ -62,7 +64,7 @@ export default function NotificationsScreen() {
     markNotificationAsRead(id);
     const item = notifications.find((n) => n.id === id);
     if (item) {
-      Alert.alert(item.title, item.description);
+      setSelectedNotification(item);
     }
   };
 
@@ -213,6 +215,66 @@ export default function NotificationsScreen() {
           )}
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Custom Detail Modal */}
+        <Modal
+          visible={!!selectedNotification}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setSelectedNotification(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+              {selectedNotification && (() => {
+                const iconData = getCategoryIcon(selectedNotification.category);
+                return (
+                  <>
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                      <View style={[styles.modalIconCircle, { backgroundColor: isDark ? '#2C2C2E' : iconData.bg }]}>
+                        <Ionicons name={iconData.name as any} size={28} color={iconData.color} />
+                      </View>
+                      <View style={styles.modalBadgeContainer}>
+                        <Text style={[styles.modalBadgeText, { color: iconData.color, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : iconData.bg }]}>
+                          {selectedNotification.category.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Body */}
+                    <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                      <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                        {selectedNotification.title}
+                      </Text>
+                      
+                      <View style={styles.modalTimeContainer}>
+                        <Ionicons name="time-outline" size={14} color="#8E8E93" style={{ marginRight: 4 }} />
+                        <Text style={styles.modalTimeText}>
+                          {selectedNotification.time}
+                        </Text>
+                      </View>
+
+                      <View style={[styles.modalDivider, { backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA' }]} />
+
+                      <Text style={[styles.modalDescription, { color: isDark ? '#E5E5EA' : '#2C2C2E' }]}>
+                        {selectedNotification.description}
+                      </Text>
+                    </ScrollView>
+
+                    {/* Footer Close Button */}
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedNotification(null)}
+                      style={styles.modalCloseButton}
+                    >
+                      <Text style={styles.modalCloseButtonText}>Đóng</Text>
+                    </TouchableOpacity>
+                  </>
+                );
+              })()}
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -390,5 +452,97 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '75%',
+    borderRadius: 24,
+    padding: 20,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBadgeContainer: {
+    borderRadius: 8,
+  },
+  modalBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    overflow: 'hidden',
+    letterSpacing: 0.5,
+  },
+  modalBody: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  modalTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTimeText: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  modalDivider: {
+    height: 1,
+    width: '100%',
+    marginVertical: 14,
+  },
+  modalDescription: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  modalCloseButton: {
+    backgroundColor: '#0084FF',
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  modalCloseButtonText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

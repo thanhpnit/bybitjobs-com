@@ -12,6 +12,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where } from 'firebase/firestore';
+import { registerForPushNotificationsAsync } from './use-push-notifications';
 
 export type UserRole = 'candidate' | 'employer' | null;
 
@@ -357,6 +358,10 @@ export function getRelativeTime(dateString: string, isOpen: boolean): string {
 let globalNotifications: any[] = [];
 let globalNotificationsUnsubscribe: (() => void) | null = null;
 let globalReadIds: string[] = [];
+let globalActiveToast: { id: string; title: string; description: string } | null = null;
+let globalSeqId = '000000';
+let globalUserDataExtra: { desiredJob?: string; phone?: string } = {};
+let lastSubscribedUserId: string | null = null;
 
 const mockNotifications = [
   {
@@ -420,22 +425,52 @@ export function useAuth() {
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
-  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string }>({});
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string }>(globalUserDataExtra);
   
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
   const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
+  const [activeToast, setActiveToast] = React.useState<{ id: string; title: string; description: string } | null>(globalActiveToast);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
         if (!globalUserRole) globalUserRole = 'candidate';
+        
+        // Guard check: only initialize if this is a new user session
+        if (lastSubscribedUserId === user.uid) {
+          // Sync states immediately for this hook instance
+          setSeqId(globalSeqId);
+          setUserDataExtra(globalUserDataExtra);
+          setUserRole(globalUserRole);
+          setEmployerData(globalEmployerData);
+          setNotifications([...globalNotifications]);
+          setSavedJobs([...globalSavedJobs]);
+          setViewedJobs([...globalViewedJobs]);
+          setApplications([...globalApplications]);
+          setOrders([...globalOrders]);
+          setActiveToast(globalActiveToast);
+          setIsInitializing(false);
+          return;
+        }
+        
+        lastSubscribedUserId = user.uid;
+
+        // Đăng ký thông báo đẩy và lưu token lên Firestore
+        try {
+          registerForPushNotificationsAsync(user.uid);
+        } catch (pushErr) {
+          console.error('Lỗi khi đăng ký thông báo đẩy:', pushErr);
+        }
+
         // Tự động lấy USER ID tuần tự động từ server VPS
         try {
           const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/seq`);
           if (response.ok) {
             const data = await response.json();
-            setSeqId(data.seqId);
+            globalSeqId = data.seqId;
+            setSeqId(globalSeqId);
+            notifyAll();
           }
         } catch (err) {
           console.error('Lỗi lấy seqId:', err);
@@ -447,7 +482,9 @@ export function useAuth() {
             const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}`);
             if (response.ok) {
               const data = await response.json();
-              setUserDataExtra({ desiredJob: data.job, phone: data.phone });
+              globalUserDataExtra = { desiredJob: data.job, phone: data.phone };
+              setUserDataExtra(globalUserDataExtra);
+              notifyAll();
             }
           } catch (err) {
             console.error('Lỗi lấy thông tin user:', err);
@@ -457,6 +494,7 @@ export function useAuth() {
 
         // Fetch notifications from Firestore realtime
         if (globalNotificationsUnsubscribe) globalNotificationsUnsubscribe();
+        let isFirstLoad = true;
         const qNotifications = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
         globalNotificationsUnsubscribe = onSnapshot(qNotifications, (snapshot) => {
           const dbItems = snapshot.docs
@@ -474,6 +512,42 @@ export function useAuth() {
               };
             })
             .filter((item) => ['ALL', 'RECRUITER', 'USER'].includes(item.target) || item.target === user.uid);
+
+          if (isFirstLoad) {
+            isFirstLoad = false;
+          } else {
+            // Check docChanges for added notifications
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const data = change.doc.data();
+                const target = data.target;
+                let isMatch = false;
+                if (target === 'ALL') isMatch = true;
+                else if (target === 'RECRUITER') isMatch = globalUserRole === 'employer';
+                else if (target === 'USER' || target === undefined) isMatch = globalUserRole === 'candidate';
+                else if (target === user.uid) isMatch = true;
+
+                if (isMatch) {
+                  globalActiveToast = {
+                    id: change.doc.id,
+                    title: data.title || 'Thông báo mới',
+                    description: data.body || '',
+                  };
+                  notifyAll();
+
+                  // Auto dismiss after 4.5s
+                  const currentId = change.doc.id;
+                  setTimeout(() => {
+                    if (globalActiveToast && globalActiveToast.id === currentId) {
+                      globalActiveToast = null;
+                      notifyAll();
+                    }
+                  }, 4500);
+                }
+              }
+            });
+          }
+
           globalNotifications = dbItems;
           setNotifications(dbItems);
           notifyAll();
@@ -586,7 +660,6 @@ export function useAuth() {
                 });
               }
               
-              // Không tự động đổi vai trò sang employer để người dùng luôn ở giao diện ứng viên lúc mới vào
               if (!globalUserRole) {
                 globalUserRole = 'candidate';
               }
@@ -601,7 +674,7 @@ export function useAuth() {
           setEmployerData(globalEmployerData);
           notifyAll();
 
-          // Dừng polling nếu đã được duyệt
+          // Stop polling if verified
           if (globalEmployerData?.status === 'Xác thực' && pollingInterval) {
             clearInterval(pollingInterval);
             pollingInterval = null;
@@ -610,18 +683,19 @@ export function useAuth() {
 
         fetchEmployerData();
         
-        // Polling 3 giây / lần để tránh lỗi Security Rules của Firestore Client
         pollingInterval = setInterval(() => {
           if (!globalEmployerData || globalEmployerData.status === 'Chờ duyệt') {
             fetchEmployerData();
           }
         }, 3000);
 
-        // Lưu hàm cleanup
         globalEmployerUnsubscribe = () => {
           if (pollingInterval) clearInterval(pollingInterval);
         };
       } else {
+        lastSubscribedUserId = null;
+        globalSeqId = '000000';
+        globalUserDataExtra = {};
         if (globalEmployerUnsubscribe) {
           globalEmployerUnsubscribe();
           globalEmployerUnsubscribe = null;
@@ -648,6 +722,7 @@ export function useAuth() {
         }
         globalNotifications = [];
         globalReadIds = [];
+        globalActiveToast = null;
         globalUserRole = null;
         globalEmployerData = null;
         globalSavedJobs = [];
@@ -660,6 +735,7 @@ export function useAuth() {
         setViewedJobs([]);
         setNotifications([]);
         setReadIds([]);
+        setActiveToast(null);
       }
       setIsInitializing(false);
     });
@@ -675,6 +751,9 @@ export function useAuth() {
       setViewedJobs([...globalViewedJobs]);
       setNotifications([...globalNotifications]);
       setReadIds([...globalReadIds]);
+      setActiveToast(globalActiveToast);
+      setSeqId(globalSeqId);
+      setUserDataExtra(globalUserDataExtra);
     };
     listeners.add(handleMockDataChange);
 
@@ -795,7 +874,9 @@ export function useAuth() {
         const response = await fetch(`http://160.250.246.119:4000/api/users/${userCredential.user.uid}/seq`);
         if (response.ok) {
           const data = await response.json();
+          globalSeqId = data.seqId;
           setSeqId(data.seqId);
+          notifyAll();
         }
       } catch (err) {}
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
@@ -1282,7 +1363,9 @@ export function useAuth() {
         if (!response.ok) {
           throw new Error('Cập nhật thất bại từ Server');
         }
-        setUserDataExtra(prev => ({ ...prev, desiredJob: newJob }));
+        globalUserDataExtra = { ...globalUserDataExtra, desiredJob: newJob };
+        setUserDataExtra(globalUserDataExtra);
+        notifyAll();
       } catch (error) {
         console.error('Lỗi khi cập nhật công việc:', error);
         throw error;
@@ -1301,7 +1384,9 @@ export function useAuth() {
         if (!response.ok) {
           throw new Error('Cập nhật thất bại từ Server');
         }
-        setUserDataExtra(prev => ({ ...prev, phone: newPhone }));
+        globalUserDataExtra = { ...globalUserDataExtra, phone: newPhone };
+        setUserDataExtra(globalUserDataExtra);
+        notifyAll();
       } catch (error) {
         console.error('Lỗi khi cập nhật số điện thoại:', error);
         throw error;
@@ -1383,6 +1468,11 @@ export function useAuth() {
     unreadNotificationsCount,
     markAllNotificationsAsRead,
     markNotificationAsRead,
+    activeToast,
+    dismissToast: () => {
+      globalActiveToast = null;
+      notifyAll();
+    },
     login,
     signup,
     resetPassword,

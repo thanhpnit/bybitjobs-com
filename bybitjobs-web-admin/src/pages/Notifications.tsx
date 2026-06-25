@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
@@ -60,6 +60,39 @@ export const Notifications: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const sendPushNotification = async (tokens: string[], pushTitle: string, pushBody: string) => {
+    if (tokens.length === 0) return;
+    
+    const messages = tokens.map(token => ({
+      to: token,
+      sound: 'default',
+      title: pushTitle,
+      body: pushBody,
+    }));
+    
+    const chunks = [];
+    for (let i = 0; i < messages.length; i += 100) {
+      chunks.push(messages.slice(i, i + 100));
+    }
+    
+    for (const chunk of chunks) {
+      try {
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(chunk),
+        });
+        console.log('Expo Push Response:', await response.json());
+      } catch (err) {
+        console.error('Error sending push notification chunk:', err);
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!title.trim() || !body.trim()) {
       alert('Vui lòng nhập đầy đủ tiêu đề và nội dung thông báo!');
@@ -89,6 +122,69 @@ export const Notifications: React.FC = () => {
         target,
         createdAt: serverTimestamp()
       });
+
+      // Query Expo Push Tokens for matching targets
+      const tokens: string[] = [];
+      
+      if (target === 'ALL') {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        usersSnap.forEach((docSnap) => {
+          const uData = docSnap.data();
+          if (uData.expoPushToken) {
+            tokens.push(uData.expoPushToken);
+          }
+        });
+      } else if (target === 'RECRUITER') {
+        try {
+          const empRes = await fetch('http://160.250.246.119:4000/api/employers');
+          if (empRes.ok) {
+            const employers = await empRes.json();
+            const recruiterUids = employers.map((emp: any) => emp.user_id || emp.id);
+            
+            const usersSnap = await getDocs(collection(db, 'users'));
+            usersSnap.forEach((docSnap) => {
+              const uData = docSnap.data();
+              if (uData.expoPushToken && recruiterUids.includes(docSnap.id)) {
+                tokens.push(uData.expoPushToken);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Lỗi lấy danh sách nhà tuyển dụng:', e);
+        }
+      } else if (target === 'USER') {
+        try {
+          const empRes = await fetch('http://160.250.246.119:4000/api/employers');
+          if (empRes.ok) {
+            const employers = await empRes.json();
+            const recruiterUids = employers.map((emp: any) => emp.user_id || emp.id);
+            
+            const usersSnap = await getDocs(collection(db, 'users'));
+            usersSnap.forEach((docSnap) => {
+              const uData = docSnap.data();
+              if (uData.expoPushToken && !recruiterUids.includes(docSnap.id)) {
+                tokens.push(uData.expoPushToken);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Lỗi lọc danh sách ứng viên:', e);
+        }
+      } else {
+        const userDocRef = doc(db, 'users', target);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const uData = userDocSnap.data();
+          if (uData.expoPushToken) {
+            tokens.push(uData.expoPushToken);
+          }
+        }
+      }
+
+      if (tokens.length > 0) {
+        console.log(`Gửi Push Notification tới ${tokens.length} thiết bị...`);
+        await sendPushNotification(tokens, title, body);
+      }
 
       // Close modal and reset form
       setIsModalOpen(false);
