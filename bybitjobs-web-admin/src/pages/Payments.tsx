@@ -25,16 +25,25 @@ export const Payments: React.FC = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const mapped = data.map((item: any) => ({
-            id: `#TXN-${item.orderCode}`,
-            company: item.companyName || 'Không xác định',
-            package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
-            amount: `${Number(item.price || 0).toLocaleString()} đ`,
-            method: 'PayOS',
-            status: item.status === 'success' ? 'Completed' : item.status === 'pending' ? 'Pending' : 'Failed',
-            color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
-            bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
-          }));
+          const mapped = data.map((item: any) => {
+            const dateObj = new Date(item.createdAt);
+            let finalStatus = item.status;
+            if (finalStatus === 'pending') {
+              const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
+              if (isExpired) finalStatus = 'failed';
+            }
+
+            return {
+              id: `#TXN-${item.orderCode}`,
+              company: item.companyName || 'Không xác định',
+              package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
+              amount: `${Number(item.price || 0).toLocaleString()} đ`,
+              method: 'PayOS',
+              status: finalStatus === 'success' ? 'Completed' : finalStatus === 'pending' ? 'Pending' : 'Failed',
+              color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
+              bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
+            };
+          });
           setTransactions(mapped);
         }
       })

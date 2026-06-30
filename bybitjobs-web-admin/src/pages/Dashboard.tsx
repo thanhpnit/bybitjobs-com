@@ -24,13 +24,20 @@ export const Dashboard: React.FC = () => {
           const mapped = data.slice(0, 5).map((item: any) => {
             const dateObj = new Date(item.createdAt);
             const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+            
+            let finalStatus = item.status;
+            if (finalStatus === 'pending') {
+              const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
+              if (isExpired) finalStatus = 'failed';
+            }
+
             return {
               id: `#TXN-${item.orderCode}`,
               date: dateStr,
               name: item.companyName || 'Không xác định',
               amount: `${Number(item.price || 0).toLocaleString()}đ`,
               method: 'PayOS',
-              status: item.status === 'success' ? 'success' : (item.status === 'pending' ? 'warning' : 'danger')
+              status: finalStatus === 'success' ? 'success' : (finalStatus === 'pending' ? 'warning' : 'danger')
             };
           });
           setRecentTransactions(mapped);
