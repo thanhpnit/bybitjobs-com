@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -13,6 +13,8 @@ import { useData } from '../context/DataContext';
 
 export const JobPosts: React.FC = () => {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const { jobPosts, setJobPosts } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,7 +59,7 @@ export const JobPosts: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.statsGrid}>
+      <View style={[styles.statsGrid, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.statCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.infoBg }]}><Eye color={colors.infoText} size={20} /></View>
@@ -94,13 +96,13 @@ export const JobPosts: React.FC = () => {
       </View>
 
       <Card style={styles.tableCard}>
-        <View style={styles.filterBar}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <View style={[styles.filterBar, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
+          <View style={[isMobile ? { flexDirection: 'column', gap: 12 } : { flexDirection: 'row', alignItems: 'center', gap: 16 }]}>
             <Typography variant="subtitle1">Danh sách bài đăng</Typography>
             <View style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgPrimary, borderRadius: 8, paddingHorizontal: 12, height: 40, borderWidth: 1, borderColor: colors.borderLight }]}>
               <TextInput 
                 placeholder="Tìm kiếm tiêu đề, công ty..." 
-                style={{ color: colors.textPrimary, width: 200, outlineWidth: 0, height: '100%' }}
+                style={{ color: colors.textPrimary, width: isMobile ? '100%' : 200, outlineWidth: 0, height: '100%' }}
                 placeholderTextColor={colors.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -112,69 +114,73 @@ export const JobPosts: React.FC = () => {
             </View>
           </View>
           
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={[{ flexDirection: 'row', gap: 12 }, isMobile && { marginTop: 12 }]}>
             <Button variant="outline" icon={<Filter size={16} color={colors.textSecondary} />} size="sm">Bộ lọc</Button>
             <Button variant="outline" icon={<ArrowUpDown size={16} color={colors.textSecondary} />} size="sm">Sắp xếp</Button>
           </View>
         </View>
 
-        <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight }]}>
-          <Typography variant="caption" color="muted" style={styles.colId}>ID</Typography>
-          <Typography variant="caption" color="muted" style={styles.colTitle}>Bài tuyển dụng</Typography>
-          <Typography variant="caption" color="muted" style={styles.colCompany}>Nhà tuyển dụng</Typography>
-          <Typography variant="caption" color="muted" style={styles.colDate}>Ngày tạo</Typography>
-          <Typography variant="caption" color="muted" style={styles.colStatus}>Trạng thái</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 1000, flex: 1 }}>
+            <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight }]}>
+              <Typography variant="caption" color="muted" style={styles.colId}>ID</Typography>
+              <Typography variant="caption" color="muted" style={styles.colTitle}>Bài tuyển dụng</Typography>
+              <Typography variant="caption" color="muted" style={styles.colCompany}>Nhà tuyển dụng</Typography>
+              <Typography variant="caption" color="muted" style={styles.colDate}>Ngày tạo</Typography>
+              <Typography variant="caption" color="muted" style={styles.colStatus}>Trạng thái</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
+            </View>
 
-        {paginatedData.map((item, index) => (
-          <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="subtitle2" color="secondary" style={styles.colId}>{item.id}</Typography>
-            <View style={styles.colTitle}>
-              <Typography variant="subtitle2">{item.title}</Typography>
-              <Typography variant="caption" color="secondary">{item.type}</Typography>
-            </View>
-            <View style={[styles.colCompany, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
-              <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-              <View>
-                <Typography variant="subtitle2">{item.company}</Typography>
-                {item.companyStatus === 'Đối tác tin cậy' ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <CheckCircle2 size={12} color={colors.primaryColor} />
-                    <Typography variant="caption" color="brand">{item.companyStatus}</Typography>
+            {paginatedData.map((item, index) => (
+              <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="subtitle2" color="secondary" style={styles.colId}>{item.id}</Typography>
+                <View style={styles.colTitle}>
+                  <Typography variant="subtitle2">{item.title}</Typography>
+                  <Typography variant="caption" color="secondary">{item.type}</Typography>
+                </View>
+                <View style={[styles.colCompany, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
+                  <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                  <View>
+                    <Typography variant="subtitle2">{item.company}</Typography>
+                    {item.companyStatus === 'Đối tác tin cậy' ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <CheckCircle2 size={12} color={colors.primaryColor} />
+                        <Typography variant="caption" color="brand">{item.companyStatus}</Typography>
+                      </View>
+                    ) : (
+                      <Typography variant="caption" color="secondary">{item.companyStatus}</Typography>
+                    )}
                   </View>
-                ) : (
-                  <Typography variant="caption" color="secondary">{item.companyStatus}</Typography>
-                )}
+                </View>
+                <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
+                <View style={styles.colStatus}>
+                  <Badge status={item.status === 'Hoạt động' ? 'info' : item.status === 'Chờ duyệt' ? 'warning' : 'danger'}>
+                    {item.status}
+                  </Badge>
+                </View>
+                <View style={[styles.colAction, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
+                  {item.status === 'Chờ duyệt' ? (
+                    <>
+                      <TouchableOpacity style={styles.iconBtn} onPress={() => requestApprove(item.id)}>
+                        <CheckCircle2 size={20} color={colors.primaryColor}/>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.iconBtn} onPress={() => requestReject(item.id)}>
+                        <XCircle size={20} color={colors.dangerColor || '#EF4444'}/>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <TouchableOpacity style={styles.iconBtn} disabled>
+                      <CheckSquare size={20} color={colors.borderLight}/>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => requestDelete(item.id)}>
+                    <Trash2 size={20} color={colors.dangerColor || '#EF4444'} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
-            <View style={styles.colStatus}>
-              <Badge status={item.status === 'Hoạt động' ? 'info' : item.status === 'Chờ duyệt' ? 'warning' : 'danger'}>
-                {item.status}
-              </Badge>
-            </View>
-            <View style={[styles.colAction, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
-              {item.status === 'Chờ duyệt' ? (
-                <>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => requestApprove(item.id)}>
-                    <CheckCircle2 size={20} color={colors.primaryColor}/>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => requestReject(item.id)}>
-                    <XCircle size={20} color={colors.dangerColor || '#EF4444'}/>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity style={styles.iconBtn} disabled>
-                  <CheckSquare size={20} color={colors.borderLight}/>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.iconBtn} onPress={() => requestDelete(item.id)}>
-                <Trash2 size={20} color={colors.dangerColor || '#EF4444'} />
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        ))}
+        </ScrollView>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
           <Typography variant="body2" color="secondary">

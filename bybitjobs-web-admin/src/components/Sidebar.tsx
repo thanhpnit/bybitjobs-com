@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Bell
+  Bell,
+  X
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,20 +32,61 @@ const navItems = [
   { id: 'notifications', label: 'Quản lý thông báo', icon: Bell, path: '/notifications' },
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false }) => {
   const { colors } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
 
+  const slideAnim = useRef(new Animated.Value(isMobile ? -260 : 0)).current;
+
+  useEffect(() => {
+    if (isMobile) {
+      Animated.timing(slideAnim, {
+        toValue: isOpen ? 0 : -260,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      slideAnim.setValue(0);
+    }
+  }, [isOpen, isMobile, slideAnim]);
+
+  const handleNavPress = (path: string) => {
+    navigate(path);
+    if (isMobile && onClose) {
+      onClose();
+    }
+  };
+
+  const sidebarStyles = [
+    styles.sidebar,
+    { backgroundColor: colors.bgSecondary, borderRightColor: colors.borderColor },
+    isMobile && styles.sidebarMobile,
+    isMobile && { transform: [{ translateX: slideAnim }] }
+  ];
+
   return (
-    <View style={[styles.sidebar, { backgroundColor: colors.bgSecondary, borderRightColor: colors.borderColor }]}>
+    <Animated.View style={sidebarStyles as any}>
       <View style={[styles.sidebarLogo, { borderBottomColor: colors.borderLight }]}>
-        <View style={[styles.logoIcon, { backgroundColor: colors.primaryColor }]} />
-        <View style={styles.logoTextContainer}>
-          <Text style={[styles.logoTitle, { color: colors.primaryColor }]}>BybitJobs</Text>
-          <Text style={[styles.logoSubtitle, { color: colors.textMuted }]}>HỆ THỐNG QUẢN TRỊ</Text>
+        <View style={styles.logoWrapper}>
+          <View style={[styles.logoIcon, { backgroundColor: colors.primaryColor }]} />
+          <View style={styles.logoTextContainer}>
+            <Text style={[styles.logoTitle, { color: colors.primaryColor }]}>BybitJobs</Text>
+            <Text style={[styles.logoSubtitle, { color: colors.textMuted }]}>HỆ THỐNG QUẢN TRỊ</Text>
+          </View>
         </View>
+        {isMobile && onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <X size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        )}
       </View>
       
       <ScrollView style={styles.sidebarNav} contentContainerStyle={styles.sidebarNavContent}>
@@ -57,7 +99,7 @@ export const Sidebar: React.FC = () => {
                 styles.navItem,
                 isActive && { backgroundColor: colors.primaryLight }
               ]}
-              onPress={() => navigate(item.path)}
+              onPress={() => handleNavPress(item.path)}
             >
               {isActive && (
                 <View style={[styles.activeIndicator, { backgroundColor: colors.primaryColor }]} />
@@ -79,7 +121,7 @@ export const Sidebar: React.FC = () => {
       </ScrollView>
 
       <View style={[styles.sidebarFooter, { borderTopColor: colors.borderLight }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigate('/settings')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => handleNavPress('/settings')}>
           <Settings size={20} color={colors.textSecondary} />
           <Text style={[styles.navLabel, { color: colors.textSecondary }]}>Cài đặt hệ thống</Text>
         </TouchableOpacity>
@@ -88,7 +130,7 @@ export const Sidebar: React.FC = () => {
           <Text style={[styles.navLabel, { color: colors.dangerColor || '#EF4444' }]}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -98,12 +140,32 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRightWidth: 1,
   },
+  sidebarMobile: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    zIndex: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
   sidebarLogo: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 24,
     height: 70,
     borderBottomWidth: 1,
+  },
+  logoWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  closeBtn: {
+    padding: 4,
   },
   logoIcon: {
     width: 32,

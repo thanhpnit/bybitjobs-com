@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Typography } from '../components/ui/Typography';
@@ -213,85 +213,88 @@ export const Notifications: React.FC = () => {
         </Button>
       </View>
 
-      {/* Realtime list table card */}
       <Card style={styles.tableCard}>
         <View style={styles.tableHeaderSection}>
           <Typography variant="subtitle1">Lịch sử thông báo</Typography>
         </View>
 
-        <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight, borderTopColor: colors.borderLight }]}>
-          <Typography variant="caption" color="muted" style={styles.colTime}>THỜI GIAN</Typography>
-          <Typography variant="caption" color="muted" style={styles.colTitle}>TIÊU ĐỀ</Typography>
-          <Typography variant="caption" color="muted" style={styles.colBody}>NỘI DUNG CHI TIẾT</Typography>
-          <Typography variant="caption" color="muted" style={styles.colTarget}>ĐỐI TƯỢNG</Typography>
-        </View>
-
-        <ScrollView style={styles.tableBody}>
-          {loading ? (
-            <View style={styles.emptyContainer}>
-              <Typography variant="body2" color="secondary">Đang tải danh sách thông báo...</Typography>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 900, flex: 1 }}>
+            <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight, borderTopColor: colors.borderLight }]}>
+              <Typography variant="caption" color="muted" style={styles.colTime}>THỜI GIAN</Typography>
+              <Typography variant="caption" color="muted" style={styles.colTitle}>TIÊU ĐỀ</Typography>
+              <Typography variant="caption" color="muted" style={styles.colBody}>NỘI DUNG CHI TIẾT</Typography>
+              <Typography variant="caption" color="muted" style={styles.colTarget}>ĐỐI TƯỢNG</Typography>
             </View>
-          ) : notifications.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Bell size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
-              <Typography variant="body2" color="secondary">Chưa có thông báo nào được gửi.</Typography>
-            </View>
-          ) : (
-            notifications.map((item) => {
-              // Safe date check for serverTimestamp latency
-              const dateStr = item.createdAt
-                ? item.createdAt.toDate().toLocaleString('vi-VN')
-                : 'Đang xử lý...';
 
-              return (
-                <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                  <View style={[styles.colTime, styles.flexRow]}>
-                    <Clock size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                    <Typography variant="body2" color="secondary">{dateStr}</Typography>
-                  </View>
-                  <View style={styles.colTitle}>
-                    <Typography variant="subtitle2" style={{ fontWeight: '600' }}>{item.title}</Typography>
-                  </View>
-                  <View style={styles.colBody}>
-                    <Typography variant="body2" color="secondary">{item.body}</Typography>
-                  </View>
-                  <View style={styles.colTarget}>
-                    {item.target === 'ALL' ? (
-                      <Badge status="success" style={styles.badgeWidth}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <UsersIcon size={12} color={colors.successText} />
-                          <Text style={{ color: colors.successText, fontSize: 11, fontWeight: 'bold' }}>Tất cả (ALL)</Text>
-                        </View>
-                      </Badge>
-                    ) : item.target === 'RECRUITER' ? (
-                      <Badge status="warning" style={styles.badgeWidth}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Building2 size={12} color={colors.warningText} />
-                          <Text style={{ color: colors.warningText, fontSize: 11, fontWeight: 'bold' }}>Nhà tuyển dụng</Text>
-                        </View>
-                      </Badge>
-                    ) : item.target === 'USER' ? (
-                      <Badge status="info" style={styles.badgeWidth}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <User size={12} color={colors.infoText} />
-                          <Text style={{ color: colors.infoText, fontSize: 11, fontWeight: 'bold' }}>Người dùng</Text>
-                        </View>
-                      </Badge>
-                    ) : (
-                      <Badge status="default" style={styles.badgeWidth}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <User size={12} color={colors.textSecondary} />
-                          <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                            UID: {item.target}
-                          </Text>
-                        </View>
-                      </Badge>
-                    )}
-                  </View>
+            <ScrollView style={styles.tableBody}>
+              {loading ? (
+                <View style={styles.emptyContainer}>
+                  <Typography variant="body2" color="secondary">Đang tải danh sách thông báo...</Typography>
                 </View>
-              );
-            })
-          )}
+              ) : notifications.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Bell size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
+                  <Typography variant="body2" color="secondary">Chưa có thông báo nào được gửi.</Typography>
+                </View>
+              ) : (
+                notifications.map((item) => {
+                  // Safe date check for serverTimestamp latency
+                  const dateStr = item.createdAt
+                    ? item.createdAt.toDate().toLocaleString('vi-VN')
+                    : 'Đang xử lý...';
+
+                  return (
+                    <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                      <View style={[styles.colTime, styles.flexRow]}>
+                        <Clock size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                        <Typography variant="body2" color="secondary">{dateStr}</Typography>
+                      </View>
+                      <View style={styles.colTitle}>
+                        <Typography variant="subtitle2" style={{ fontWeight: '600' }}>{item.title}</Typography>
+                      </View>
+                      <View style={styles.colBody}>
+                        <Typography variant="body2" color="secondary">{item.body}</Typography>
+                      </View>
+                      <View style={styles.colTarget}>
+                        {item.target === 'ALL' ? (
+                          <Badge status="success" style={styles.badgeWidth}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <UsersIcon size={12} color={colors.successText} />
+                              <Text style={{ color: colors.successText, fontSize: 11, fontWeight: 'bold' }}>Tất cả (ALL)</Text>
+                            </View>
+                          </Badge>
+                        ) : item.target === 'RECRUITER' ? (
+                          <Badge status="warning" style={styles.badgeWidth}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Building2 size={12} color={colors.warningText} />
+                              <Text style={{ color: colors.warningText, fontSize: 11, fontWeight: 'bold' }}>Nhà tuyển dụng</Text>
+                            </View>
+                          </Badge>
+                        ) : item.target === 'USER' ? (
+                          <Badge status="info" style={styles.badgeWidth}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <User size={12} color={colors.infoText} />
+                              <Text style={{ color: colors.infoText, fontSize: 11, fontWeight: 'bold' }}>Người dùng</Text>
+                            </View>
+                          </Badge>
+                        ) : (
+                          <Badge status="default" style={styles.badgeWidth}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <User size={12} color={colors.textSecondary} />
+                              <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
+                                UID: {item.target}
+                              </Text>
+                            </View>
+                          </Badge>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
         </ScrollView>
       </Card>
 

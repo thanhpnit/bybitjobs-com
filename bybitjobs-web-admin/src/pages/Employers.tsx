@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -16,6 +16,8 @@ import { useEffect } from 'react';
 
 export const Employers: React.FC = () => {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [employers, setEmployers] = useState<any[]>([]);
   // Luôn luôn kết nối trực tiếp tới IP VPS thật để đồng bộ với cấu hình CORS và Port mapping
   const apiHost = '160.250.246.119';
@@ -122,14 +124,14 @@ export const Employers: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
         <View>
           <Typography variant="h2">Quản lý nhà tuyển dụng</Typography>
           <Typography variant="body1" color="secondary">
             Theo dõi hồ sơ công ty và giới hạn tin tuyển dụng
           </Typography>
         </View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={[{ flexDirection: 'row', gap: 12 }, isMobile && { flexWrap: 'wrap' }]}>
           <Button variant="outline" icon={<RefreshCcw color={colors.textSecondary} size={18} />} onPress={fetchEmployers}>
             Làm mới
           </Button>
@@ -139,7 +141,7 @@ export const Employers: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.statsGrid}>
+      <View style={[styles.statsGrid, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.statCard}>
           <View style={[styles.iconWrapper, { backgroundColor: colors.infoBg }]}>
             <Building2 color={colors.infoText} size={24} />
@@ -191,8 +193,8 @@ export const Employers: React.FC = () => {
       </View>
 
       <Card style={styles.tableCard}>
-        <View style={styles.filterBar}>
-          <View style={styles.filterInputs}>
+        <View style={[styles.filterBar, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
+          <View style={[styles.filterInputs, isMobile && { flexDirection: 'column' }]}>
             <View style={[styles.searchBox, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}>
               <Search size={20} color={colors.textSecondary} />
               <TextInput 
@@ -217,52 +219,56 @@ export const Employers: React.FC = () => {
           </Button>
         </View>
 
-        <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight, borderTopColor: colors.borderLight }]}>
-          <Typography variant="caption" color="muted" style={styles.colId}>MÃ NTD</Typography>
-          <Typography variant="caption" color="muted" style={styles.colName}>TÊN CÔNG TY / NTD</Typography>
-          <Typography variant="caption" color="muted" style={styles.colEmail}>EMAIL & SĐT</Typography>
-          <Typography variant="caption" color="muted" style={styles.colPosts}>GIỚI HẠN TIN</Typography>
-          <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 900, flex: 1 }}>
+            <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight, borderTopColor: colors.borderLight }]}>
+              <Typography variant="caption" color="muted" style={styles.colId}>MÃ NTD</Typography>
+              <Typography variant="caption" color="muted" style={styles.colName}>TÊN CÔNG TY / NTD</Typography>
+              <Typography variant="caption" color="muted" style={styles.colEmail}>EMAIL & SĐT</Typography>
+              <Typography variant="caption" color="muted" style={styles.colPosts}>GIỚI HẠN TIN</Typography>
+              <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
+            </View>
 
-        {paginatedData.map((item, index) => (
-          <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
-            <View style={[styles.colName, styles.flexRow]}>
-              <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-              <View>
-                <Typography variant="subtitle2">{item.company}</Typography>
-                <Typography variant="caption" color="secondary">{item.industry}</Typography>
+            {paginatedData.map((item, index) => (
+              <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
+                <View style={[styles.colName, styles.flexRow]}>
+                  <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                  <View>
+                    <Typography variant="subtitle2">{item.company}</Typography>
+                    <Typography variant="caption" color="secondary">{item.industry}</Typography>
+                  </View>
+                </View>
+                <View style={styles.colEmail}>
+                  <Typography variant="body2" color="secondary">{item.email}</Typography>
+                  <Typography variant="body2" color="secondary">{item.phone}</Typography>
+                </View>
+                <View style={styles.colPosts}>
+                  <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="caption">{item.postsLimit} tin</Typography></View>
+                </View>
+                <View style={styles.colStatus}>
+                  <Badge status={item.status === 'Xác thực' ? 'success' : 'warning'}>
+                    {item.status}
+                  </Badge>
+                </View>
+                <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
+                  {item.status === 'Chờ duyệt' && (
+                    <TouchableOpacity onPress={() => handleApprove(item.id)}>
+                      <CheckCircle2 size={18} color={colors.successText} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => handleOpenEdit(item)}>
+                    <Edit2 size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => requestDelete(item.id)}>
+                    <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.colEmail}>
-              <Typography variant="body2" color="secondary">{item.email}</Typography>
-              <Typography variant="body2" color="secondary">{item.phone}</Typography>
-            </View>
-            <View style={styles.colPosts}>
-              <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="caption">{item.postsLimit} tin</Typography></View>
-            </View>
-            <View style={styles.colStatus}>
-              <Badge status={item.status === 'Xác thực' ? 'success' : 'warning'}>
-                {item.status}
-              </Badge>
-            </View>
-            <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
-              {item.status === 'Chờ duyệt' && (
-                <TouchableOpacity onPress={() => handleApprove(item.id)}>
-                  <CheckCircle2 size={18} color={colors.successText} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity onPress={() => handleOpenEdit(item)}>
-                <Edit2 size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => requestDelete(item.id)}>
-                <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        ))}
+        </ScrollView>
 
         <View style={styles.pagination}>
           <Typography variant="body2" color="secondary">Hiển thị {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredData.length)} trên {filteredData.length} kết quả</Typography>

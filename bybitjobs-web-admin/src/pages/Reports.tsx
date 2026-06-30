@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -29,6 +29,8 @@ const formatDate = (dateString?: string) => {
 
 export const Reports: React.FC = () => {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   
   const [reportData, setReportData] = useState<any[]>([]);
   const [totalReports, setTotalReports] = useState(0);
@@ -130,7 +132,7 @@ export const Reports: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topGrid}>
+      <View style={[styles.topGrid, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.statCardMain}>
           <Typography variant="subtitle2" color="secondary">THỐNG KÊ ĐÁNH GIÁ</Typography>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginVertical: 12 }}>
@@ -164,7 +166,7 @@ export const Reports: React.FC = () => {
         </Card>
       </View>
 
-      <View style={styles.mainGrid}>
+      <View style={[styles.mainGrid, isMobile && { flexDirection: 'column' }]}>
         <View style={styles.colLeft}>
           <View style={styles.sectionHeader}>
             <Typography variant="h4">Báo cáo vi phạm</Typography>

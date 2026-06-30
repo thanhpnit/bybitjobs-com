@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -262,32 +262,36 @@ export const Dashboard: React.FC = () => {
           <Typography variant="subtitle2" color="brand">Xem tất cả</Typography>
         </View>
 
-        <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
-          <Typography variant="caption" color="muted" style={styles.colId}>MÃ GIAO DỊCH</Typography>
-          <Typography variant="caption" color="muted" style={styles.colDate}>NGÀY THANH TOÁN</Typography>
-          <Typography variant="caption" color="muted" style={styles.colCustomer}>KHÁCH HÀNG</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAmount}>SỐ TIỀN</Typography>
-          <Typography variant="caption" color="muted" style={styles.colMethod}>PHƯƠNG THỨC</Typography>
-          <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 900, flex: 1 }}>
+            <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
+              <Typography variant="caption" color="muted" style={styles.colId}>MÃ GIAO DỊCH</Typography>
+              <Typography variant="caption" color="muted" style={styles.colDate}>NGÀY THANH TOÁN</Typography>
+              <Typography variant="caption" color="muted" style={styles.colCustomer}>KHÁCH HÀNG</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAmount}>SỐ TIỀN</Typography>
+              <Typography variant="caption" color="muted" style={styles.colMethod}>PHƯƠNG THỨC</Typography>
+              <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
+            </View>
 
-        {recentTransactions.map((item, index) => (
-          <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="subtitle2" style={styles.colId}>{item.id}</Typography>
-            <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
-            <View style={[styles.colCustomer, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
-              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.borderLight }]} />
-              <Typography variant="body2">{item.name}</Typography>
-            </View>
-            <Typography variant="subtitle2" color="brand" style={styles.colAmount}>{item.amount}</Typography>
-            <Typography variant="body2" color="secondary" style={styles.colMethod}>{item.method}</Typography>
-            <View style={styles.colStatus}>
-              <Badge status={item.status as any}>
-                {item.status === 'success' ? 'Thành công' : (item.status === 'warning' ? 'Đang chờ' : 'Thất bại')}
-              </Badge>
-            </View>
+            {recentTransactions.map((item, index) => (
+              <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="subtitle2" style={styles.colId}>{item.id}</Typography>
+                <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
+                <View style={[styles.colCustomer, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: colors.borderLight }]} />
+                  <Typography variant="body2">{item.name}</Typography>
+                </View>
+                <Typography variant="subtitle2" color="brand" style={styles.colAmount}>{item.amount}</Typography>
+                <Typography variant="body2" color="secondary" style={styles.colMethod}>{item.method}</Typography>
+                <View style={styles.colStatus}>
+                  <Badge status={item.status as any}>
+                    {item.status === 'success' ? 'Thành công' : (item.status === 'warning' ? 'Đang chờ' : 'Thất bại')}
+                  </Badge>
+                </View>
+              </View>
+            ))}
           </View>
-        ))}
+        </ScrollView>
       </Card>
     </View>
   );

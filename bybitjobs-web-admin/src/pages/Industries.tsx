@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -12,7 +12,6 @@ import { useState } from 'react';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
-import { TextInput } from 'react-native';
 
 export const Industries: React.FC = () => {
   const { colors } = useTheme();
@@ -147,49 +146,53 @@ export const Industries: React.FC = () => {
           </View>
         </View>
 
-        <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
-          <Typography variant="caption" color="muted" style={styles.colId}>#</Typography>
-          <Typography variant="caption" color="muted" style={styles.colName}>TÊN NGÀNH NGHỀ</Typography>
-          <Typography variant="caption" color="muted" style={styles.colPosts}>SỐ BÀI ĐĂNG</Typography>
-          <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 800, flex: 1 }}>
+            <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
+              <Typography variant="caption" color="muted" style={styles.colId}>#</Typography>
+              <Typography variant="caption" color="muted" style={styles.colName}>TÊN NGÀNH NGHỀ</Typography>
+              <Typography variant="caption" color="muted" style={styles.colPosts}>SỐ BÀI ĐĂNG</Typography>
+              <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
+            </View>
 
-        {paginatedData.map((item, index) => (
-          <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="body2" color="secondary" style={styles.colId}>{item.id}</Typography>
-            <View style={[styles.colName, { flexDirection: 'row', alignItems: 'center', gap: 16 }]}>
-              <View style={[styles.industryIcon, { backgroundColor: item.iconBg }]} />
-              <View>
-                <Typography variant="subtitle2">{item.name}</Typography>
-                <Typography variant="caption" color="secondary">{item.desc}</Typography>
+            {paginatedData.map((item, index) => (
+              <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="body2" color="secondary" style={styles.colId}>{item.id}</Typography>
+                <View style={[styles.colName, { flexDirection: 'row', alignItems: 'center', gap: 16 }]}>
+                  <View style={[styles.industryIcon, { backgroundColor: item.iconBg }]} />
+                  <View>
+                    <Typography variant="subtitle2">{item.name}</Typography>
+                    <Typography variant="caption" color="secondary">{item.desc}</Typography>
+                  </View>
+                </View>
+                <View style={styles.colPosts}>
+                  <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="subtitle2">{item.posts}</Typography></View>
+                </View>
+                <View style={styles.colStatus}>
+                  <Badge status={item.status === 'Active' ? 'success' : 'default'}>
+                    {item.status === 'Active' ? '• Hoạt động' : '• Tạm ẩn'}
+                  </Badge>
+                </View>
+                <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
+                  <TouchableOpacity onPress={() => requestToggleStatus(item.id, item.status)}>
+                    {item.status === 'Active' ? (
+                      <Eye size={18} color={colors.textSecondary} />
+                    ) : (
+                      <EyeOff size={18} color={colors.textSecondary} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleOpenEdit(item)}>
+                    <Edit2 size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => requestDelete(item.id)}>
+                    <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.colPosts}>
-              <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="subtitle2">{item.posts}</Typography></View>
-            </View>
-            <View style={styles.colStatus}>
-              <Badge status={item.status === 'Active' ? 'success' : 'default'}>
-                {item.status === 'Active' ? '• Hoạt động' : '• Tạm ẩn'}
-              </Badge>
-            </View>
-            <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
-              <TouchableOpacity onPress={() => requestToggleStatus(item.id, item.status)}>
-                {item.status === 'Active' ? (
-                  <Eye size={18} color={colors.textSecondary} />
-                ) : (
-                  <EyeOff size={18} color={colors.textSecondary} />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleOpenEdit(item)}>
-                <Edit2 size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => requestDelete(item.id)}>
-                <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        ))}
+        </ScrollView>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
           <Typography variant="body2" color="secondary">
             Hiển thị {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredData.length)} trên tổng số {filteredData.length} kết quả

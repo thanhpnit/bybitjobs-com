@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { collection, deleteField, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
@@ -50,6 +50,8 @@ const formatDate = (dateString?: string) => {
 
 export const Reviews: React.FC = () => {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [data, setData] = useState<CompanyReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -134,7 +136,7 @@ export const Reviews: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.statsGrid}>
+      <View style={[styles.statsGrid, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.statCard}>
           <View style={styles.statIconRow}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.infoBg }]}><MessageSquare color={colors.infoText} size={20} /></View>
@@ -185,9 +187,9 @@ export const Reviews: React.FC = () => {
             </Typography>
           </Card>
         ) : data.map((item) => (
-          <Card key={item.id} style={styles.reviewCard}>
+          <Card key={item.id} style={[styles.reviewCard, isMobile && { flexDirection: 'column' }]}>
             <View style={styles.reviewContent}>
-              <View style={styles.reviewHeader}>
+              <View style={[styles.reviewHeader, isMobile && { flexDirection: 'column', gap: 12 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
                   <View>
@@ -217,7 +219,7 @@ export const Reviews: React.FC = () => {
               </View>
             </View>
 
-            <View style={[styles.actionSidebar, { borderLeftColor: colors.borderLight }]}>
+            <View style={[styles.actionSidebar, { borderLeftColor: colors.borderLight }, isMobile && { borderLeftWidth: 0, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
               {item.status !== 'Đã phê duyệt' ? (
                 <Button
                   icon={<CheckCircle2 size={16} color="#fff" />}

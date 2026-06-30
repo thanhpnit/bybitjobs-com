@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -112,41 +112,45 @@ export const Payments: React.FC = () => {
           </View>
         </View>
 
-        <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
-          <Typography variant="caption" color="muted" style={styles.colId}>Mã giao dịch</Typography>
-          <Typography variant="caption" color="muted" style={styles.colCompany}>Nhà tuyển dụng</Typography>
-          <Typography variant="caption" color="muted" style={styles.colPackage}>Gói dịch vụ</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAmount}>Số tiền</Typography>
-          <Typography variant="caption" color="muted" style={styles.colMethod}>Phương thức</Typography>
-          <Typography variant="caption" color="muted" style={styles.colStatus}>Trạng thái</Typography>
-          <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ minWidth: 900, flex: 1 }}>
+            <View style={[styles.tableHeader, { backgroundColor: colors.bgSecondary }]}>
+              <Typography variant="caption" color="muted" style={styles.colId}>Mã giao dịch</Typography>
+              <Typography variant="caption" color="muted" style={styles.colCompany}>Nhà tuyển dụng</Typography>
+              <Typography variant="caption" color="muted" style={styles.colPackage}>Gói dịch vụ</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAmount}>Số tiền</Typography>
+              <Typography variant="caption" color="muted" style={styles.colMethod}>Phương thức</Typography>
+              <Typography variant="caption" color="muted" style={styles.colStatus}>Trạng thái</Typography>
+              <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
+            </View>
 
-        {transactions.map((item, index) => (
-          <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-            <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
-            <View style={[styles.colCompany, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-              <View style={[styles.avatarRound, { backgroundColor: colors.infoBg }]}><Typography variant="caption" color="info" style={{ fontWeight: '700' }}>{item.company.substring(0, 2).toUpperCase()}</Typography></View>
-              <Typography variant="subtitle2">{item.company}</Typography>
-            </View>
-            <View style={styles.colPackage}>
-              <View style={[styles.chip, { backgroundColor: item.bg }]}><Typography variant="caption" style={{ color: item.color, fontWeight: '700' }}>{item.package}</Typography></View>
-            </View>
-            <Typography variant="h4" style={styles.colAmount}>{item.amount}</Typography>
-            <View style={[styles.colMethod, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
-              <View style={[styles.methodIcon, { backgroundColor: colors.bgSecondary }]} />
-              <Typography variant="body2">{item.method}</Typography>
-            </View>
-            <View style={styles.colStatus}>
-              <Badge status={item.status === 'Completed' ? 'success' : item.status === 'Pending' ? 'warning' : 'danger'}>
-                • {item.status}
-              </Badge>
-            </View>
-            <View style={styles.colAction}>
-              <TouchableOpacity><MoreVertical color={colors.textSecondary} size={20} /></TouchableOpacity>
-            </View>
+            {transactions.map((item, index) => (
+              <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
+                <View style={[styles.colCompany, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+                  <View style={[styles.avatarRound, { backgroundColor: colors.infoBg }]}><Typography variant="caption" color="info" style={{ fontWeight: '700' }}>{item.company.substring(0, 2).toUpperCase()}</Typography></View>
+                  <Typography variant="subtitle2">{item.company}</Typography>
+                </View>
+                <View style={styles.colPackage}>
+                  <View style={[styles.chip, { backgroundColor: item.bg }]}><Typography variant="caption" style={{ color: item.color, fontWeight: '700' }}>{item.package}</Typography></View>
+                </View>
+                <Typography variant="h4" style={styles.colAmount}>{item.amount}</Typography>
+                <View style={[styles.colMethod, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                  <View style={[styles.methodIcon, { backgroundColor: colors.bgSecondary }]} />
+                  <Typography variant="body2">{item.method}</Typography>
+                </View>
+                <View style={styles.colStatus}>
+                  <Badge status={item.status === 'Completed' ? 'success' : item.status === 'Pending' ? 'warning' : 'danger'}>
+                    • {item.status}
+                  </Badge>
+                </View>
+                <View style={styles.colAction}>
+                  <TouchableOpacity><MoreVertical color={colors.textSecondary} size={20} /></TouchableOpacity>
+                </View>
+              </View>
+            ))}
           </View>
-        ))}
+        </ScrollView>
 
         <View style={styles.pagination}>
           <Typography variant="body2" color="secondary">Hiển thị 1 - 4 trên 150 giao dịch</Typography>

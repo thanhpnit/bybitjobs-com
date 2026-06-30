@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -26,6 +26,8 @@ const features = [
 export const ServicePackages: React.FC = () => {
   const { colors, theme } = useTheme();
   const { packages, setPackages } = useData();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export const ServicePackages: React.FC = () => {
         <Button icon={<Plus color="#fff" size={18} />} onPress={handleOpenAdd}>Thêm gói mới</Button>
       </View>
 
-      <View style={styles.pricingCards}>
+      <View style={[styles.pricingCards, isMobile && { flexDirection: 'column' }]}>
         {packages.map((pkg) => {
           const IconComponent = (Icons[pkg.iconName as keyof typeof Icons] as React.ElementType) || Icons.HelpCircle;
           return (
@@ -202,7 +204,7 @@ export const ServicePackages: React.FC = () => {
         </ScrollView>
       </Card>
 
-      <View style={styles.bottomGrid}>
+      <View style={[styles.bottomGrid, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.chartCard}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
             <Typography variant="h4">Tăng trưởng người dùng</Typography>
