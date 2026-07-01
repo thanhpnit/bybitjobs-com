@@ -876,7 +876,7 @@ export default function RecruiterProfileScreen() {
                 </View>
 
                 <View style={{ marginBottom: 16 }}>
-                  {pkg.features.map((feature, idx) => (
+                  {pkg.features.map((feature: string, idx: number) => (
                     <View key={idx} style={styles.empPkgFeatureItem}>
                       <Ionicons
                         name="checkmark-circle"

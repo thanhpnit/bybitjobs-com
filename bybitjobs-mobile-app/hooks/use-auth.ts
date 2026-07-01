@@ -362,6 +362,7 @@ let globalActiveToast: { id: string; title: string; description: string } | null
 let globalSeqId = '000000';
 let globalUserDataExtra: { desiredJob?: string; phone?: string } = {};
 let lastSubscribedUserId: string | null = null;
+const appStartTime = new Date();
 
 const mockNotifications = [
   {
@@ -520,6 +521,24 @@ export function useAuth() {
             snapshot.docChanges().forEach((change) => {
               if (change.type === 'added') {
                 const data = change.doc.data();
+
+                // Only show toast for brand new notifications created after the app was started
+                let createdAt: Date;
+                if (data.createdAt) {
+                  if (typeof data.createdAt.toDate === 'function') {
+                    createdAt = data.createdAt.toDate();
+                  } else {
+                    createdAt = new Date(data.createdAt);
+                  }
+                } else {
+                  createdAt = new Date();
+                }
+
+                // If notification was created before the app loaded, skip toast alert
+                if (createdAt.getTime() <= appStartTime.getTime()) {
+                  return;
+                }
+
                 const target = data.target;
                 let isMatch = false;
                 if (target === 'ALL') isMatch = true;

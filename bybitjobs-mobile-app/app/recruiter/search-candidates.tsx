@@ -19,7 +19,7 @@ export default function RecruiterSearchCandidatesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { candidates, jobs, sendInvitation } = useAuth();
+  const { candidates, jobs, sendInvitation, userData } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
@@ -33,7 +33,10 @@ export default function RecruiterSearchCandidatesScreen() {
   const [selectedSalary, setSelectedSalary] = React.useState<string | null>(null);
 
   // Active jobs to invite candidates to
-  const activeJobs = jobs.filter((j) => j.isOpen);
+  const activeJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return jobs.filter((j) => j.isOpen && j.employerId === userData.uid);
+  }, [jobs, userData?.uid]);
 
   // Handle select filter chips
   const handleSelectExperience = () => {

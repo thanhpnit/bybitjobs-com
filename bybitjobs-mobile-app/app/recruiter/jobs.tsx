@@ -17,7 +17,7 @@ export default function RecruiterJobsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, deleteJob, unreadNotificationsCount } = useAuth();
+  const { jobs, deleteJob, unreadNotificationsCount, userData } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
@@ -25,8 +25,14 @@ export default function RecruiterJobsScreen() {
   // Selected tab state: 'All' | 'Open' | 'Closed'
   const [activeTab, setActiveTab] = React.useState<'All' | 'Open' | 'Closed'>('All');
 
+  // Filter jobs posted by this recruiter
+  const recruiterJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return jobs.filter((job) => job.employerId === userData.uid);
+  }, [jobs, userData?.uid]);
+
   // Filter jobs based on active tab
-  const filteredJobs = jobs.filter((job) => {
+  const filteredJobs = recruiterJobs.filter((job) => {
     if (activeTab === 'Open') return job.isOpen;
     if (activeTab === 'Closed') return !job.isOpen;
     return true;
@@ -72,7 +78,7 @@ export default function RecruiterJobsScreen() {
     }
   };
 
-  const activeJobsCount = jobs.filter((j) => j.isOpen).length;
+  const activeJobsCount = recruiterJobs.filter((j) => j.isOpen).length;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
@@ -120,7 +126,7 @@ export default function RecruiterJobsScreen() {
             styles.tabText,
             activeTab === 'All' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }
           ]}>
-            Tất cả ({jobs.length})
+            Tất cả ({recruiterJobs.length})
           </Text>
         </TouchableOpacity>
 
@@ -152,7 +158,7 @@ export default function RecruiterJobsScreen() {
             styles.tabText,
             activeTab === 'Closed' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }
           ]}>
-            Đã đóng ({jobs.length - activeJobsCount})
+            Đã đóng ({recruiterJobs.length - activeJobsCount})
           </Text>
         </TouchableOpacity>
       </View>
