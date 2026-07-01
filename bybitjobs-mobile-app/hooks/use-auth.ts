@@ -47,6 +47,10 @@ export interface UserData {
   fullName?: string;
   isVerified?: boolean;
   desiredJob?: string;
+  phone?: string;
+  cvName?: string;
+  cvSize?: string;
+  cvUploadTime?: string;
 }
 
 export interface JobItem {
@@ -113,6 +117,9 @@ export interface ApplicationItem {
   reviewStatus?: 'Chờ duyệt' | 'Đã phê duyệt' | 'Bị báo cáo';
   status: 'Pending' | 'Approved' | 'Rejected';
   appliedAt: string;
+  cvName?: string;
+  cvSize?: string;
+  cvUploadTime?: string;
 }
 
 export interface SubmitApplicationPayload {
@@ -125,6 +132,9 @@ export interface SubmitApplicationPayload {
   applicantPhone: string;
   applicantEmail?: string;
   message?: string;
+  cvName?: string;
+  cvSize?: string;
+  cvUploadTime?: string;
 }
 
 export interface SavedJobItem {
@@ -360,7 +370,7 @@ let globalNotificationsUnsubscribe: (() => void) | null = null;
 let globalReadIds: string[] = [];
 let globalActiveToast: { id: string; title: string; description: string } | null = null;
 let globalSeqId = '000000';
-let globalUserDataExtra: { desiredJob?: string; phone?: string } = {};
+let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string } = {};
 let lastSubscribedUserId: string | null = null;
 const appStartTime = new Date();
 
@@ -426,7 +436,7 @@ export function useAuth() {
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
-  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string }>(globalUserDataExtra);
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string }>(globalUserDataExtra);
   
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
   const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
@@ -483,7 +493,13 @@ export function useAuth() {
             const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}`);
             if (response.ok) {
               const data = await response.json();
-              globalUserDataExtra = { desiredJob: data.job, phone: data.phone };
+              globalUserDataExtra = { 
+                desiredJob: data.job, 
+                phone: data.phone,
+                cvName: data.cvName,
+                cvSize: data.cvSize,
+                cvUploadTime: data.cvUploadTime
+              };
               setUserDataExtra(globalUserDataExtra);
               notifyAll();
             }
@@ -1184,6 +1200,9 @@ export function useAuth() {
       message: payload.message,
       status: 'Pending',
       appliedAt: new Date().toISOString(),
+      cvName: payload.cvName,
+      cvSize: payload.cvSize,
+      cvUploadTime: payload.cvUploadTime,
     };
 
     globalApplications = [newApplication, ...globalApplications];
@@ -1413,6 +1432,31 @@ export function useAuth() {
     }
   };
 
+  const updateCandidateCV = async (cvName: string | null, cvSize?: string, cvUploadTime?: string) => {
+    if (firebaseUser) {
+      try {
+        const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/cv`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvName, cvSize, cvUploadTime })
+        });
+        if (!response.ok) {
+          throw new Error('Cập nhật thất bại từ Server');
+        }
+      } catch (error) {
+        console.warn('Lỗi khi cập nhật CV lên server (đang sử dụng chế độ offline/local state):', error);
+      }
+      globalUserDataExtra = { 
+        ...globalUserDataExtra, 
+        cvName: cvName || undefined, 
+        cvSize: cvName ? cvSize : undefined, 
+        cvUploadTime: cvName ? cvUploadTime : undefined 
+      };
+      setUserDataExtra(globalUserDataExtra);
+      notifyAll();
+    }
+  };
+
   const mergedNotifications = firebaseUser
     ? [...notifications, ...mockNotifications]
         .filter((item) => {
@@ -1461,7 +1505,10 @@ export function useAuth() {
       fullName: firebaseUser.displayName || 'Người dùng',
       isVerified: firebaseUser.emailVerified,
       desiredJob: userDataExtra.desiredJob,
-      phone: userDataExtra.phone
+      phone: userDataExtra.phone,
+      cvName: userDataExtra.cvName,
+      cvSize: userDataExtra.cvSize,
+      cvUploadTime: userDataExtra.cvUploadTime
     } : null,
     employerData,
     jobs,
@@ -1483,6 +1530,7 @@ export function useAuth() {
     sendInvitation,
     updateDesiredJob,
     updateUserPhone,
+    updateCandidateCV,
     notifications: mergedNotifications,
     unreadNotificationsCount,
     markAllNotificationsAsRead,

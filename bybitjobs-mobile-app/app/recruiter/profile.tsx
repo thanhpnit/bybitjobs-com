@@ -247,7 +247,7 @@ export default function RecruiterProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/');
+            router.replace('/(tabs)');
           },
         },
       ]

@@ -132,7 +132,25 @@ app.put('/api/users/:uid/phone', async (req: Request, res: Response): Promise<an
   }
 });
 
-// API lấy thông tin chi tiết một người dùng (bao gồm job và phone)
+// API cập nhật CV người dùng
+app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  const { cvName, cvSize, cvUploadTime } = req.body;
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu thông tin uid' });
+  }
+
+  try {
+    const db = admin.firestore();
+    await db.collection('users').doc(uid).set({ cvName, cvSize, cvUploadTime }, { merge: true });
+    return res.status(200).json({ success: true, message: 'Cập nhật CV thành công' });
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật CV:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu dữ liệu', details: error.message });
+  }
+});
+
+// API lấy thông tin chi tiết một người dùng (bao gồm job, phone và cv)
 app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
   try {
@@ -141,13 +159,19 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const doc = await db.collection('users').doc(uid).get();
     const job = doc.exists ? doc.data()?.job : 'Ứng viên (Mobile App)';
     const phone = doc.exists ? doc.data()?.phone : undefined;
+    const cvName = doc.exists ? doc.data()?.cvName : undefined;
+    const cvSize = doc.exists ? doc.data()?.cvSize : undefined;
+    const cvUploadTime = doc.exists ? doc.data()?.cvUploadTime : undefined;
     
     return res.status(200).json({
       uid: userRecord.uid,
       name: userRecord.displayName,
       email: userRecord.email,
       job: job,
-      phone: phone
+      phone: phone,
+      cvName: cvName,
+      cvSize: cvSize,
+      cvUploadTime: cvUploadTime
     });
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi server', details: error.message });

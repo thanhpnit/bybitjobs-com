@@ -254,22 +254,29 @@ export default function RecruiterCvDetailsScreen() {
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
           <View style={styles.attachedCvHeader}>
             <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>TỆP CV ĐÍNH KÈM</Text>
-            <TouchableOpacity activeOpacity={0.7} style={styles.downloadBtn}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              style={styles.downloadBtn}
+              onPress={() => Alert.alert('Tải xuống', `Đang tải xuống tệp: ${application.cvName || 'CV_Web_Developer_VN.pdf'}`)}
+            >
               <Ionicons name="download-outline" size={14} color="#0084FF" />
               <Text style={styles.downloadBtnText}>Tải xuống PDF</Text>
             </TouchableOpacity>
           </View>
 
           {/* Styled Document container */}
-          <View style={[styles.cvMockPreviewContainer, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
-            <View style={styles.cvMockPaper}>
-              <View style={styles.cvMockAvatarBox} />
-              <View style={styles.cvMockLineLong} />
-              <View style={styles.cvMockLineMedium} />
-              <View style={styles.cvMockLineShort} />
-              <View style={styles.cvMockBlocksRow}>
-                <View style={styles.cvMockBlock} />
-                <View style={styles.cvMockBlock} />
+          <View style={[styles.cvMockPreviewContainer, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', minHeight: 70 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', padding: 12 }}>
+              <View style={{ backgroundColor: '#FFEBEE', width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="document-text" size={24} color="#D32F2F" />
+              </View>
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDark ? '#FFF' : '#11181C' }} numberOfLines={1}>
+                  {application.cvName || 'CV_Web_Developer_VN.pdf'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#8E8E93', marginTop: 4 }}>
+                  Dung lượng: {application.cvSize || '1.1 MB'} • Ngày nộp: {application.cvUploadTime || 'Vừa xong'}
+                </Text>
               </View>
             </View>
           </View>

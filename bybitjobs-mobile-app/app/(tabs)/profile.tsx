@@ -1,4 +1,5 @@
 import React from 'react';
+import * as DocumentPicker from 'expo-document-picker';
 import {
   StyleSheet,
   View,
@@ -42,6 +43,7 @@ function CandidateProfileScreen() {
     seqId,
     updateDesiredJob,
     updateUserPhone,
+    updateCandidateCV,
     sendOtp,
     switchRole
   } = useAuth();
@@ -159,10 +161,16 @@ function CandidateProfileScreen() {
   const [isVerificationVisible, setIsVerificationVisible] = React.useState(false);
   const [verificationCode, setVerificationCode] = React.useState('');
 
-  // Sync mock CV only for the default pre-existing developer account
+  // Sync mock CV only for the default pre-existing developer account, or load persistent CV
   React.useEffect(() => {
     if (userData) {
-      if (userData.emailOrPhone === 'quan.nguyen@example.com') {
+      if (userData.cvName) {
+        setCvFile({
+          fileName: userData.cvName,
+          fileSize: userData.cvSize || 'Đang cập nhật',
+          uploadTime: userData.cvUploadTime || 'Vừa xong',
+        });
+      } else if (userData.emailOrPhone === 'quan.nguyen@example.com') {
         setCvFile({
           fileName: 'CV_NguyenMinhQuan_Senior_Web.pdf',
           fileSize: '1.2MB',
@@ -174,7 +182,7 @@ function CandidateProfileScreen() {
     } else {
       setCvFile(null);
     }
-  }, [userData]);
+  }, [userData?.uid, userData?.cvName, userData?.cvSize, userData?.cvUploadTime, userData?.emailOrPhone]);
 
   const mockFiles = [
     { name: 'CV_Web_Developer_VN.pdf', size: '1.1 MB', path: 'Documents/CVs/' },
@@ -183,34 +191,54 @@ function CandidateProfileScreen() {
     { name: 'CV_Product_Manager_2026.pdf', size: '2.1 MB', path: 'Documents/' },
   ];
 
-  const handleUploadCV = () => {
-    if (selectedFileIndex === null) {
-      Alert.alert('Thông báo', 'Vui lòng chọn một tệp từ danh sách.');
-      return;
-    }
+  const pickDocument = async (type: 'cv' | 'coverLetter') => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true
+      });
 
-    setIsFileExplorerVisible(false);
-    setIsUploading(true);
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
 
-    // Simulate uploading for 1.2 seconds
-    setTimeout(() => {
-      const selected = mockFiles[selectedFileIndex];
+      setIsUploading(true);
+
+      const asset = result.assets[0];
+      const fileSizeInMB = asset.size ? (asset.size / (1024 * 1024)).toFixed(1) + ' MB' : 'Đang cập nhật';
       const newFile = {
-        fileName: selected.name,
-        fileSize: selected.size,
+        fileName: asset.name,
+        fileSize: fileSizeInMB,
         uploadTime: 'Vừa xong',
       };
 
-      if (activeUploadType === 'cv') {
-        setCvFile(newFile);
-      } else {
-        setCoverLetterFile(newFile);
-      }
+      // Simulate a small upload delay for UX
+      setTimeout(async () => {
+        if (type === 'cv') {
+          if (updateCandidateCV) {
+            try {
+              await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime);
+            } catch (e) {
+              Alert.alert('Lỗi', 'Không thể lưu CV lên máy chủ.');
+            }
+          }
+          setCvFile(newFile);
+        } else {
+          setCoverLetterFile(newFile);
+        }
+        setIsUploading(false);
+        Alert.alert('Thành công', `Tải lên tài liệu ${type === 'cv' ? 'CV' : 'Cover Letter'} thành công!`);
+      }, 1000);
 
-      setIsUploading(false);
-      setSelectedFileIndex(null);
-      Alert.alert('Thành công', `Tải lên tài liệu ${activeUploadType === 'cv' ? 'CV' : 'Cover Letter'} thành công!`);
-    }, 1200);
+    } catch (err) {
+      console.error('Lỗi khi chọn file:', err);
+      Alert.alert('Lỗi', 'Không thể chọn tệp lúc này.');
+    }
+  };
+
+  const handleUploadCV = () => {
+    setIsFileExplorerVisible(false);
+    pickDocument(activeUploadType);
   };
 
   const handleSendVerificationEmail = async () => {
@@ -1431,7 +1459,7 @@ function CandidateProfileScreen() {
                       Alert.alert('Đang chờ duyệt', 'Hồ sơ doanh nghiệp của bạn đang được Admin xét duyệt. Vui lòng quay lại sau nhé!');
                     } else {
                       switchRole('employer');
-                      router.replace('/');
+                      router.replace('/(tabs)');
                     }
                   }}
                   style={[styles.upgradeButton, { backgroundColor: '#4CAF50' }]}
@@ -1533,10 +1561,7 @@ function CandidateProfileScreen() {
 
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        onPress={() => {
-                          setActiveUploadType('cv');
-                          setIsFileExplorerVisible(true);
-                        }}
+                        onPress={() => pickDocument('cv')}
                         style={styles.downloadButton}
                       >
                         <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
@@ -1552,7 +1577,20 @@ function CandidateProfileScreen() {
                           'Bạn có chắc muốn xóa tệp CV này khỏi tài khoản?',
                           [
                             { text: 'Hủy', style: 'cancel' },
-                            { text: 'Xóa ngay', style: 'destructive', onPress: () => setCvFile(null) }
+                            { 
+                              text: 'Xóa ngay', 
+                              style: 'destructive', 
+                              onPress: async () => {
+                                if (updateCandidateCV) {
+                                  try {
+                                    await updateCandidateCV(null);
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                }
+                                setCvFile(null);
+                              } 
+                            }
                           ]
                         );
                       }}
@@ -1577,8 +1615,7 @@ function CandidateProfileScreen() {
                     <TouchableOpacity
                       activeOpacity={0.85}
                       onPress={() => handleFeaturePress('Tải lên CV', () => {
-                        setActiveUploadType('cv');
-                        setIsFileExplorerVisible(true);
+                        pickDocument('cv');
                       })}
                       style={styles.uploadCVButton}
                     >
@@ -1613,10 +1650,7 @@ function CandidateProfileScreen() {
 
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        onPress={() => handleFeaturePress('Thay đổi Cover Letter', () => {
-                          setActiveUploadType('coverLetter');
-                          setIsFileExplorerVisible(true);
-                        })}
+                        onPress={() => pickDocument('coverLetter')}
                         style={styles.downloadButton}
                       >
                         <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
@@ -1657,8 +1691,7 @@ function CandidateProfileScreen() {
                     <TouchableOpacity
                       activeOpacity={0.85}
                       onPress={() => handleFeaturePress('Tải lên Cover Letter', () => {
-                        setActiveUploadType('coverLetter');
-                        setIsFileExplorerVisible(true);
+                        pickDocument('coverLetter');
                       })}
                       style={styles.uploadCVButton}
                     >

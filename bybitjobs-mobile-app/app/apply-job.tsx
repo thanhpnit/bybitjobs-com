@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,23 +41,55 @@ export default function ApplyJobScreen() {
   const [email, setEmail] = React.useState('');
   const [message, setMessage] = React.useState('');
   const [cvUploaded, setCvUploaded] = React.useState(false);
+  const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string } | null>(null);
 
-  const handleUploadCV = () => {
-    // Mock upload success
-    setCvUploaded(true);
-    Alert.alert('Thành công', 'Đã tải lên hồ sơ năng lực thành công!');
+  const handleUploadCV = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const fileSizeInMB = asset.size ? (asset.size / (1024 * 1024)).toFixed(1) + ' MB' : 'Đang cập nhật';
+      const newFile = {
+        name: asset.name,
+        size: fileSizeInMB,
+        uploadTime: 'Vừa xong',
+      };
+      setCvFile(newFile);
+      setCvUploaded(true);
+      Alert.alert('Thành công', `Đã chọn tệp CV "${asset.name}" thành công!`);
+    } catch (err) {
+      console.error('Lỗi khi chọn file:', err);
+      Alert.alert('Lỗi', 'Không thể chọn tệp lúc này.');
+    }
   };
 
   React.useEffect(() => {
-    if (userData?.fullName) {
-      setFullName(userData.fullName);
+    if (userData) {
+      if (userData.fullName) {
+        setFullName(userData.fullName);
+      }
+      if (userData.emailOrPhone?.includes('@')) {
+        setEmail(userData.emailOrPhone);
+      } else if (userData.emailOrPhone) {
+        setPhoneNumber(userData.emailOrPhone);
+      }
+      if (userData.cvName) {
+        setCvFile({
+          name: userData.cvName,
+          size: userData.cvSize || 'Đang cập nhật',
+          uploadTime: userData.cvUploadTime || 'Vừa xong',
+        });
+        setCvUploaded(true);
+      }
     }
-    if (userData?.emailOrPhone?.includes('@')) {
-      setEmail(userData.emailOrPhone);
-    } else if (userData?.emailOrPhone) {
-      setPhoneNumber(userData.emailOrPhone);
-    }
-  }, [userData]);
+  }, [userData?.uid, userData?.cvName, userData?.cvSize, userData?.cvUploadTime, userData?.fullName, userData?.emailOrPhone]);
 
   const handleSubmit = async () => {
     if (!fullName.trim()) {
@@ -67,7 +100,7 @@ export default function ApplyJobScreen() {
       Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại liên hệ.');
       return;
     }
-    if (!cvUploaded) {
+    if (!cvUploaded || !cvFile) {
       Alert.alert('Thông báo', 'Vui lòng tải lên CV hoặc Hồ sơ năng lực của bạn.');
       return;
     }
@@ -82,6 +115,9 @@ export default function ApplyJobScreen() {
       applicantPhone: phoneNumber.trim(),
       applicantEmail: email.trim(),
       message: message.trim(),
+      cvName: cvFile.name,
+      cvSize: cvFile.size,
+      cvUploadTime: cvFile.uploadTime,
     });
 
     if (!result.success) {
@@ -272,11 +308,11 @@ export default function ApplyJobScreen() {
                     color="#0084FF"
                   />
                 </View>
-                <Text style={[styles.uploadTextBold, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  {cvUploaded ? 'CV đã được tải lên thành công' : 'Nhấn để chọn file hoặc ảnh'}
+                <Text style={[styles.uploadTextBold, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                  {cvUploaded && cvFile ? cvFile.name : 'Nhấn để chọn file hoặc ảnh'}
                 </Text>
                 <Text style={styles.uploadTextSub}>
-                  {cvUploaded ? 'Bấm để chọn file khác thay thế' : 'Hỗ trợ định dạng: PDF, DOCX, JPG, PNG'}
+                  {cvUploaded && cvFile ? `Dung lượng: ${cvFile.size} • Bấm để thay đổi` : 'Hỗ trợ định dạng: PDF, DOCX, JPG, PNG'}
                 </Text>
               </TouchableOpacity>
             </View>
