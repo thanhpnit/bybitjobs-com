@@ -7,14 +7,12 @@ import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { Filter, Download, ArrowUpRight, MoreVertical } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
-import { PaymentConfigTab } from './PaymentConfigTab';
 
 const screenWidth = Dimensions.get('window').width;
 
 import { useEffect } from 'react';
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<'overview' | 'config'>('overview');
   const [transactions, setTransactions] = useState<any[]>([]);
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật
@@ -52,24 +50,7 @@ export const Payments: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.tabsHeader, { borderBottomColor: colors.borderLight }]}>
-        <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'overview' && [styles.tabActive, { borderBottomColor: colors.primaryColor }]]}
-          onPress={() => setActiveTab('overview')}
-        >
-          <Typography variant="subtitle2" color={activeTab === 'overview' ? 'primary' : 'secondary'}>Tổng quan giao dịch</Typography>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabBtn, activeTab === 'config' && [styles.tabActive, { borderBottomColor: colors.primaryColor }]]}
-          onPress={() => setActiveTab('config')}
-        >
-          <Typography variant="subtitle2" color={activeTab === 'config' ? 'primary' : 'secondary'}>Cấu hình nhận tiền</Typography>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === 'overview' ? (
-        <>
-          <View style={styles.topGrid}>
+      <View style={styles.topGrid}>
             <Card style={styles.chartCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
                 <View>
@@ -172,10 +153,6 @@ export const Payments: React.FC = () => {
           </View>
         </View>
       </Card>
-      </>
-      ) : (
-        <PaymentConfigTab />
-      )}
     </View>
   );
 };
