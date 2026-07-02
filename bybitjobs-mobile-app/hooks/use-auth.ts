@@ -11,7 +11,7 @@ import {
   reload,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where, getDocs, getDoc } from 'firebase/firestore';
 import { registerForPushNotificationsAsync } from './use-push-notifications';
 
 export type UserRole = 'candidate' | 'employer' | null;
@@ -40,6 +40,8 @@ export interface EmployerData {
   coverImage?: string;
   status?: string;
   postsLimit?: string;
+  usedPosts?: number;
+  packageExpiresAt?: string;
 }
 
 export interface UserData {
@@ -1079,11 +1081,47 @@ export function useAuth() {
 
   const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>): Promise<boolean> => {
     try {
-      if (globalEmployerData && globalEmployerData.postsLimit) {
-        const [usedStr, limitStr] = globalEmployerData.postsLimit.split('/');
-        const used = parseInt(usedStr, 10) || 0;
-        const limit = parseInt(limitStr, 10) || 0;
+      if (globalEmployerData) {
+        // Fallback backward compatibility for users still having postsLimit string
+        let used = globalEmployerData.usedPosts || 0;
+        if (globalEmployerData.postsLimit && globalEmployerData.postsLimit.includes('/')) {
+            used = parseInt(globalEmployerData.postsLimit.split('/')[0], 10) || 0;
+        }
         
+        // 1. Check expiration
+        if (globalEmployerData.packageExpiresAt) {
+          const expiresAt = new Date(globalEmployerData.packageExpiresAt);
+          if (new Date() > expiresAt) {
+            Alert.alert(
+              'Gói đã hết hạn',
+              `Gói ${globalEmployerData.currentPackage || 'Miễn phí'} của bạn đã hết hạn vào ngày ${expiresAt.toLocaleDateString('vi-VN')}. Vui lòng nâng cấp gói để tiếp tục đăng tin.`,
+              [
+                { text: 'Đóng', style: 'cancel' },
+                { text: 'Nâng cấp ngay', onPress: () => router.push('/recruiter/pricing' as any) }
+              ]
+            );
+            return false;
+          }
+        }
+
+        // 2. Fetch latest package config for limit
+        const packagesSnap = await getDocs(collection(db, 'packages'));
+        let limit = 0;
+        packagesSnap.forEach((d) => {
+          const pkg = d.data();
+          if (pkg.name === globalEmployerData.currentPackage || pkg.id === globalEmployerData.currentPackage) {
+            limit = pkg.maxPosts || 0;
+          }
+        });
+
+        if (!limit) {
+           const cp = (globalEmployerData.currentPackage || '').toLowerCase();
+           if (cp.includes('starter') || cp.includes('basic')) limit = 2;
+           else if (cp.includes('pro') || cp.includes('standard')) limit = 5;
+           else if (cp.includes('premium')) limit = 9999;
+           else limit = 1; // Default
+        }
+
         if (used >= limit) {
           Alert.alert(
             'Hết lượt đăng bài',
@@ -1097,10 +1135,10 @@ export function useAuth() {
         }
         
         // Cập nhật lượt đăng bài
-        const newPostsLimit = `${used + 1}/${limit}`;
-        globalEmployerData.postsLimit = newPostsLimit;
+        const newUsed = used + 1;
+        globalEmployerData.usedPosts = newUsed;
         if (auth.currentUser) {
-          await updateDoc(doc(db, 'employers', auth.currentUser.uid), { postsLimit: newPostsLimit });
+          await updateDoc(doc(db, 'employers', auth.currentUser.uid), { usedPosts: newUsed });
         }
       }
 
@@ -1184,6 +1222,39 @@ export function useAuth() {
 
     if (hasApplied) {
       return { success: false, message: 'Bạn đã ứng tuyển công việc này rồi.' };
+    }
+
+    // Check CV limits
+    const job = globalJobs.find(j => j.id === jobId);
+    if (job && job.employerId) {
+      const jobAppsCount = globalApplications.filter((app) => app.jobId === jobId).length;
+      
+      const empDoc = await getDoc(doc(db, 'employers', job.employerId));
+      let currentPackage = 'Miễn phí';
+      if (empDoc.exists()) {
+        currentPackage = empDoc.data().currentPackage || 'Miễn phí';
+      }
+
+      const packagesSnap = await getDocs(collection(db, 'packages'));
+      let maxCVs = 0;
+      packagesSnap.forEach((d) => {
+        const pkg = d.data();
+        if (pkg.name === currentPackage || pkg.id === currentPackage) {
+          maxCVs = pkg.maxCVs || 0;
+        }
+      });
+      
+      if (!maxCVs) {
+         const cp = currentPackage.toLowerCase();
+         if (cp.includes('starter') || cp.includes('basic')) maxCVs = 10;
+         else if (cp.includes('pro') || cp.includes('standard')) maxCVs = 20;
+         else if (cp.includes('premium')) maxCVs = 99999;
+         else maxCVs = 5;
+      }
+
+      if (jobAppsCount >= maxCVs) {
+        return { success: false, message: 'Số lượng CV đã tối đa.' };
+      }
     }
 
     const newApplication: ApplicationItem = {

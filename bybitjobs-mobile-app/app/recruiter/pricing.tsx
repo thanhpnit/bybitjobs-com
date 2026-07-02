@@ -206,7 +206,7 @@ export default function RecruiterPricingScreen() {
 
               {/* Features List */}
               <View style={styles.featuresList}>
-                {pkg.features.map((feature, idx) => (
+                {pkg.features.map((feature: string, idx: number) => (
                   <View key={idx} style={styles.featureItem}>
                     <Ionicons
                       name="checkmark-circle"
