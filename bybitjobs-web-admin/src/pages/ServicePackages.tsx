@@ -64,8 +64,18 @@ export const ServicePackages: React.FC = () => {
   };
 
   const handleSubmit = () => {
+    let maxPosts = 0;
+    if (formData.posts.toLowerCase().includes('không giới hạn')) maxPosts = 9999;
+    else maxPosts = parseInt(formData.posts.replace(/[^0-9]/g, ''), 10) || 0;
+
+    let maxCVs = 0;
+    if (formData.cvs.toLowerCase().includes('không giới hạn')) maxCVs = 99999;
+    else maxCVs = parseInt(formData.cvs.replace(/[^0-9]/g, ''), 10) || 0;
+
+    const dataToSave = { ...formData, maxPosts, maxCVs };
+
     if (editingId) {
-      setPackages(packages.map(i => i.id === editingId ? { ...i, ...formData } : i));
+      setPackages(packages.map(i => i.id === editingId ? { ...i, ...dataToSave } : i));
     } else {
       const newId = `pkg-${Math.floor(Math.random() * 1000)}`;
       setPackages([...packages, { 
@@ -74,7 +84,7 @@ export const ServicePackages: React.FC = () => {
         iconName: 'Award', 
         badge: 'MỚI', 
         color: '#10B981', 
-        ...formData 
+        ...dataToSave 
       }]);
     }
     setIsModalOpen(false);

@@ -18,6 +18,7 @@ export const Employers: React.FC = () => {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const { jobPosts } = useData();
   const [employers, setEmployers] = useState<any[]>([]);
   // Luôn luôn kết nối trực tiếp tới IP VPS thật để đồng bộ với cấu hình CORS và Port mapping
   const apiHost = '160.250.246.119';
@@ -122,6 +123,28 @@ export const Employers: React.FC = () => {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const totalEmployers = employers.length;
+  const verifiedEmployers = employers.filter(e => e.status === 'Đã xác thực' || e.status === 'Đã xác minh' || e.status === 'Xác thực' || e.status === 'Đang hoạt động').length;
+  const pendingEmployers = employers.filter(e => e.status === 'Chờ duyệt').length;
+  const verifiedPercentage = totalEmployers > 0 ? Math.round((verifiedEmployers / totalEmployers) * 100) : 0;
+  
+  // Calculate new job posts in last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const newJobPostsCount = jobPosts.filter(job => {
+    if (!job.date) return true;
+    let jobDate = new Date();
+    if (job.date.includes('/')) {
+        const parts = job.date.split(' ')[0].split('/');
+        if (parts.length === 3) {
+            jobDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        }
+    } else {
+        jobDate = new Date(job.date);
+    }
+    return jobDate >= thirtyDaysAgo;
+  }).length;
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
@@ -149,9 +172,8 @@ export const Employers: React.FC = () => {
           <View style={styles.statInfo}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle2" color="secondary">TỔNG DOANH NGHIỆP</Typography>
-              <Typography variant="caption" color="success">~ +12%</Typography>
             </View>
-            <Typography variant="h2" style={{ marginTop: 8 }}>1,284</Typography>
+            <Typography variant="h2" style={{ marginTop: 8 }}>{totalEmployers.toLocaleString()}</Typography>
           </View>
         </Card>
         
@@ -162,9 +184,9 @@ export const Employers: React.FC = () => {
           <View style={styles.statInfo}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle2" color="secondary">ĐÃ XÁC THỰC</Typography>
-              <Typography variant="caption" color="secondary">88% tỉ lệ</Typography>
+              <Typography variant="caption" color="secondary">{verifiedPercentage}% tỉ lệ</Typography>
             </View>
-            <Typography variant="h2" style={{ marginTop: 8 }}>1,130</Typography>
+            <Typography variant="h2" style={{ marginTop: 8 }}>{verifiedEmployers.toLocaleString()}</Typography>
           </View>
         </Card>
 
@@ -175,9 +197,9 @@ export const Employers: React.FC = () => {
           <View style={styles.statInfo}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle2" color="secondary">ĐANG CHỜ DUYỆT</Typography>
-              <Badge status="danger">CẦN XỬ LÝ</Badge>
+              {pendingEmployers > 0 && <Badge status="danger">CẦN XỬ LÝ</Badge>}
             </View>
-            <Typography variant="h2" style={{ marginTop: 8 }}>42</Typography>
+            <Typography variant="h2" style={{ marginTop: 8 }}>{pendingEmployers.toLocaleString()}</Typography>
           </View>
         </Card>
 
@@ -187,7 +209,7 @@ export const Employers: React.FC = () => {
           </View>
           <View style={styles.statInfo}>
             <Typography variant="subtitle2" color="secondary">BÀI ĐĂNG MỚI (30 NGÀY)</Typography>
-            <Typography variant="h2" style={{ marginTop: 8 }}>3,492</Typography>
+            <Typography variant="h2" style={{ marginTop: 8 }}>{newJobPostsCount.toLocaleString()}</Typography>
           </View>
         </Card>
       </View>
