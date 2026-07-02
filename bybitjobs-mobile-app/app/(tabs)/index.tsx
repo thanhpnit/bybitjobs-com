@@ -268,7 +268,7 @@ function CandidateHomeScreen() {
       .toUpperCase() || 'NT';
   };
 
-  const openJobs = jobs.filter(job => job.isOpen !== false);
+  const openJobs = jobs.filter(job => job.isOpen !== false && job.status === 'Hoạt động');
   const jobListings: JobItem[] = openJobs.map(job => {
     const posterName = getPosterName(job);
 

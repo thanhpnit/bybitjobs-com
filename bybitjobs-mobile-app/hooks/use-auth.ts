@@ -75,6 +75,7 @@ export interface JobItem {
   postedByName?: string;
   authorName?: string;
   posterEmail?: string;
+  status?: 'Chờ duyệt' | 'Hoạt động' | 'Bị từ chối';
 }
 
 export interface CandidateItem {
@@ -1178,7 +1179,9 @@ export function useAuth() {
         createdAt: new Date().toISOString(),
         employerId: auth.currentUser?.uid || '',
         posterName: auth.currentUser?.displayName || globalEmployerData?.companyName || 'Nhà tuyển dụng',
-        posterEmail: auth.currentUser?.email || ''
+        posterEmail: auth.currentUser?.email || '',
+        companyName: globalEmployerData?.companyName || auth.currentUser?.displayName || 'Nhà tuyển dụng',
+        status: 'Chờ duyệt'
       };
       await setDoc(doc(db, 'jobs', jobId), newJob);
       return true;

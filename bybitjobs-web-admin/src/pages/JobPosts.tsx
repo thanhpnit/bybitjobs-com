@@ -5,20 +5,47 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Eye, FileText, CheckCircle2, AlertCircle, Ban, Filter, ArrowUpDown, Trash2, CheckSquare, XCircle } from 'lucide-react-native';
+import { Eye, FileText, CheckCircle2, AlertCircle, Ban, Filter, ArrowUpDown, Trash2, CheckSquare, XCircle, Building2, BriefcaseBusiness } from 'lucide-react-native';
 import { useState } from 'react';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
+import { db } from '../config/firebase';
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { Modal } from '../components/ui/Modal';
+
+const getItemTime = (item: any) => {
+  const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
+  if (!value) return 0;
+  if (typeof value?.toDate === 'function') return value.toDate().getTime();
+  if (typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value === 'object' && typeof value._seconds === 'number') return value._seconds * 1000;
+  if (typeof value === 'number') return value;
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'string') {
+    if (value.includes('/')) {
+      const parts = value.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(Number);
+        return new Date(year, month - 1, day).getTime();
+      }
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
 
 export const JobPosts: React.FC = () => {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const { jobPosts, setJobPosts } = useData();
+  const { jobPosts, setJobPosts, employers } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [selectedEmployer, setSelectedEmployer] = useState<any | null>(null);
   const itemsPerPage = 10;
   const [confirmProps, setConfirmProps] = useState({ visible: false, title: '', message: '', onConfirm: () => {} });
   
@@ -27,7 +54,10 @@ export const JobPosts: React.FC = () => {
       visible: true,
       title: 'Duyệt bài đăng',
       message: 'Bạn có chắc chắn muốn duyệt bài đăng này không? Bài đăng sẽ hiển thị ngay lập tức.',
-      onConfirm: () => setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Hoạt động' } : i))
+      onConfirm: async () => {
+        await updateDoc(doc(db, 'jobs', id), { status: 'Hoạt động' });
+        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Hoạt động' } : i));
+      }
     });
   };
 
@@ -36,7 +66,10 @@ export const JobPosts: React.FC = () => {
       visible: true,
       title: 'Từ chối bài đăng',
       message: 'Bạn có chắc chắn muốn từ chối bài đăng này không?',
-      onConfirm: () => setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Bị từ chối' } : i))
+      onConfirm: async () => {
+        await updateDoc(doc(db, 'jobs', id), { status: 'Bị từ chối' });
+        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Bị từ chối' } : i));
+      }
     });
   };
 
@@ -45,14 +78,30 @@ export const JobPosts: React.FC = () => {
       visible: true,
       title: 'Xóa bài đăng',
       message: 'Bạn có chắc chắn muốn xóa bài đăng này không? Hành động này không thể hoàn tác.',
-      onConfirm: () => setJobPosts(jobPosts.filter(i => i.id !== id))
+      onConfirm: async () => {
+        await deleteDoc(doc(db, 'jobs', id));
+        setJobPosts(jobPosts.filter(i => i.id !== id));
+      }
     });
   };
 
   const filteredData = jobPosts.filter(job => 
     job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     job.company.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).sort((a, b) => getItemTime(b) - getItemTime(a));
+
+  const openEmployerDetail = (job: any) => {
+    const employer = employers.find((item) => item.id === job.employerId || item.uid === job.employerId);
+    setSelectedEmployer(employer || {
+      id: job.employerId || 'Chưa cập nhật',
+      company: job.company || job.posterName || 'Doanh nghiệp',
+      industry: job.industry || 'Chưa cập nhật',
+      email: job.posterEmail || 'Chưa cập nhật',
+      phone: 'Chưa cập nhật',
+      address: job.location || 'Chưa cập nhật',
+      status: job.companyStatus || 'Chưa cập nhật',
+    });
+  };
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -121,7 +170,7 @@ export const JobPosts: React.FC = () => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ minWidth: 1000, flex: 1 }}>
+          <View style={styles.tableInner}>
             <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight }]}>
               <Typography variant="caption" color="muted" style={styles.colId}>ID</Typography>
               <Typography variant="caption" color="muted" style={styles.colTitle}>Bài tuyển dụng</Typography>
@@ -133,22 +182,28 @@ export const JobPosts: React.FC = () => {
 
             {paginatedData.map((item, index) => (
               <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                <Typography variant="subtitle2" color="secondary" style={styles.colId}>{item.id}</Typography>
-                <View style={styles.colTitle}>
-                  <Typography variant="subtitle2">{item.title}</Typography>
-                  <Typography variant="caption" color="secondary">{item.type}</Typography>
-                </View>
+                <Typography variant="subtitle2" color="secondary" style={styles.colId} numberOfLines={2}>{item.id}</Typography>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => setSelectedJob(item)}
+                  style={[styles.colTitle, styles.clickableCell]}
+                >
+                    <Typography variant="subtitle2" numberOfLines={1}>{item.title}</Typography>
+                  <Typography variant="caption" color="secondary" numberOfLines={1}>{item.type}</Typography>
+                </TouchableOpacity>
                 <View style={[styles.colCompany, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-                  <View>
-                    <Typography variant="subtitle2">{item.company}</Typography>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <TouchableOpacity activeOpacity={0.75} onPress={() => openEmployerDetail(item)}>
+                      <Typography variant="subtitle2" numberOfLines={1}>{item.company}</Typography>
+                    </TouchableOpacity>
                     {item.companyStatus === 'Đối tác tin cậy' ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <CheckCircle2 size={12} color={colors.primaryColor} />
                         <Typography variant="caption" color="brand">{item.companyStatus}</Typography>
                       </View>
                     ) : (
-                      <Typography variant="caption" color="secondary">{item.companyStatus}</Typography>
+                      <Typography variant="caption" color="secondary" numberOfLines={1}>{item.companyStatus}</Typography>
                     )}
                   </View>
                 </View>
@@ -159,6 +214,9 @@ export const JobPosts: React.FC = () => {
                   </Badge>
                 </View>
                 <View style={[styles.colAction, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => setSelectedJob(item)}>
+                    <Eye size={20} color={colors.primaryColor} />
+                  </TouchableOpacity>
                   {item.status === 'Chờ duyệt' ? (
                     <>
                       <TouchableOpacity style={styles.iconBtn} onPress={() => requestApprove(item.id)}>
@@ -217,6 +275,110 @@ export const JobPosts: React.FC = () => {
         onConfirm={confirmProps.onConfirm}
         onClose={() => setConfirmProps({ ...confirmProps, visible: false })}
       />
+
+      <Modal
+        visible={!!selectedJob}
+        title="Chi tiết bài đăng"
+        width={760}
+        onClose={() => setSelectedJob(null)}
+      >
+        {selectedJob && (
+          <View style={styles.detailWrap}>
+            <View style={[styles.detailHero, { backgroundColor: colors.bgSecondary, borderColor: colors.borderLight }]}>
+              <View style={[styles.detailAvatar, { backgroundColor: colors.infoBg }]}>
+                <BriefcaseBusiness size={30} color={colors.infoText} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Typography variant="h3" numberOfLines={2}>{selectedJob.title}</Typography>
+                <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>{selectedJob.type}</Typography>
+              </View>
+              <Badge status={selectedJob.status === 'Hoạt động' ? 'info' : selectedJob.status === 'Chờ duyệt' ? 'warning' : 'danger'}>
+                {selectedJob.status}
+              </Badge>
+            </View>
+
+            <View style={styles.detailGrid}>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">ID bài đăng</Typography>
+                <Typography variant="subtitle2" numberOfLines={2}>{selectedJob.id}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Nhà tuyển dụng</Typography>
+                <Typography variant="subtitle2" numberOfLines={2}>{selectedJob.company}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Mức lương</Typography>
+                <Typography variant="subtitle2">{selectedJob.salary}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Hạn ứng tuyển</Typography>
+                <Typography variant="subtitle2">{selectedJob.deadline}</Typography>
+              </View>
+              <View style={[styles.detailItemWide, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Địa điểm</Typography>
+                <Typography variant="subtitle2">{selectedJob.location}</Typography>
+              </View>
+              <View style={[styles.detailItemWide, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Mô tả công việc</Typography>
+                <Typography variant="body2">{selectedJob.description}</Typography>
+              </View>
+              <View style={[styles.detailItemWide, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Yêu cầu</Typography>
+                <Typography variant="body2">{selectedJob.requirements}</Typography>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
+
+      <Modal
+        visible={!!selectedEmployer}
+        title="Chi tiết nhà tuyển dụng"
+        width={720}
+        onClose={() => setSelectedEmployer(null)}
+      >
+        {selectedEmployer && (
+          <View style={styles.detailWrap}>
+            <View style={[styles.detailHero, { backgroundColor: colors.bgSecondary, borderColor: colors.borderLight }]}>
+              <View style={[styles.detailAvatar, { backgroundColor: colors.infoBg }]}>
+                <Building2 size={30} color={colors.infoText} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Typography variant="h3" numberOfLines={2}>{selectedEmployer.company || selectedEmployer.companyName || 'Doanh nghiệp'}</Typography>
+                <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>
+                  {selectedEmployer.industry || 'Chưa cập nhật'}
+                </Typography>
+              </View>
+              <Badge status={selectedEmployer.status === 'Xác thực' ? 'success' : 'warning'}>
+                {selectedEmployer.status || 'Chưa rõ'}
+              </Badge>
+            </View>
+
+            <View style={styles.detailGrid}>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Mã nhà tuyển dụng</Typography>
+                <Typography variant="subtitle2" color="brand" numberOfLines={2}>{selectedEmployer.id || selectedEmployer.uid}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Email</Typography>
+                <Typography variant="subtitle2" numberOfLines={2}>{selectedEmployer.email || 'Chưa cập nhật'}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Số điện thoại</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.phone || selectedEmployer.phoneNumber || 'Chưa cập nhật'}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Giới hạn tin</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.postsLimit || 'Chưa cập nhật'}</Typography>
+              </View>
+              <View style={[styles.detailItemWide, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Địa chỉ</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.address || selectedEmployer.location || 'Chưa cập nhật'}</Typography>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 };
@@ -233,12 +395,20 @@ const styles = StyleSheet.create({
   tab: { paddingHorizontal: 16, paddingVertical: 6 },
   tableHeader: { flexDirection: 'row', padding: 24, borderBottomWidth: 1 },
   tableRow: { flexDirection: 'row', padding: 24, borderBottomWidth: 1, alignItems: 'center' },
-  colId: { flex: 0.8 },
-  colTitle: { flex: 3 },
-  colCompany: { flex: 2.5 },
-  colDate: { flex: 1.2 },
-  colStatus: { flex: 1.5 },
-  colAction: { flex: 1.5 },
+  tableInner: { width: 1240 },
+  colId: { width: 130 },
+  colTitle: { width: 320 },
+  colCompany: { width: 260 },
+  colDate: { width: 130 },
+  colStatus: { width: 150 },
+  colAction: { width: 180 },
   avatar: { width: 32, height: 32, borderRadius: 8 },
   iconBtn: { padding: 4 },
+  clickableCell: { cursor: 'pointer' as any },
+  detailWrap: { gap: 18 },
+  detailHero: { flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 1, borderRadius: 16, padding: 18 },
+  detailAvatar: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  detailItem: { width: '48%', borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 },
+  detailItemWide: { width: '100%', borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 },
 });

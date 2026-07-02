@@ -160,7 +160,7 @@ export default function RecruiterEditJobScreen() {
     if (isNew) {
       const success = await addJob(jobData);
       if (success) {
-        Alert.alert('Thành công', 'Đã thêm mới tin tuyển dụng thành công.', [
+        Alert.alert('Đã gửi duyệt', 'Tin tuyển dụng đã được gửi lên Admin. Bài đăng sẽ hiển thị sau khi được duyệt.', [
           {
             text: 'Đồng ý',
             onPress: () => {
@@ -170,8 +170,8 @@ export default function RecruiterEditJobScreen() {
         ]);
       }
     } else {
-      updateJob(id as string, jobData);
-      Alert.alert('Thành công', 'Đã cập nhật tin tuyển dụng thành công.', [
+      updateJob(id as string, { ...jobData, status: 'Chờ duyệt' });
+      Alert.alert('Đã gửi duyệt lại', 'Tin tuyển dụng đã được cập nhật và đang chờ Admin duyệt lại trước khi hiển thị.', [
         {
           text: 'Đồng ý',
           onPress: () => {

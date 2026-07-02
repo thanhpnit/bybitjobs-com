@@ -251,7 +251,7 @@ export default function RecruiterDashboardScreen() {
     return Number.isNaN(time) ? 0 : time;
   };
 
-  const openJobs = jobs.filter(job => job.isOpen !== false);
+  const openJobs = jobs.filter(job => job.isOpen !== false && job.status === 'Hoạt động');
   const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;

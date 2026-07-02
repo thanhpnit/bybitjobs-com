@@ -13,6 +13,28 @@ import { useState } from 'react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 
+const getItemTime = (item: any) => {
+  const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
+  if (!value) return 0;
+  if (typeof value?.toDate === 'function') return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value === 'object' && typeof value._seconds === 'number') return value._seconds * 1000;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    if (value.includes('/')) {
+      const parts = value.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(Number);
+        return new Date(year, month - 1, day).getTime();
+      }
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
 export const Users: React.FC = () => {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -33,7 +55,7 @@ export const Users: React.FC = () => {
         // Đôi khi API trả về { users: [...] } hoặc [...]
         const usersArray = Array.isArray(data) ? data : data.users;
         if (Array.isArray(usersArray)) {
-          setUsers(usersArray);
+          setUsers([...usersArray].sort((a, b) => getItemTime(b) - getItemTime(a)));
         }
       })
       .catch(err => console.error('Lỗi tải danh sách người dùng:', err));
@@ -104,7 +126,7 @@ export const Users: React.FC = () => {
     } else {
       const newId = `#US-${Math.floor(1000 + Math.random() * 9000)}`;
       const date = new Date().toLocaleDateString('vi-VN');
-      setUsers([...users, { id: newId, date, ...formData }]);
+      setUsers([{ id: newId, date, createdAt: new Date().toISOString(), ...formData }, ...users]);
     }
     setIsModalOpen(false);
   };
@@ -113,7 +135,7 @@ export const Users: React.FC = () => {
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.phone.includes(searchQuery)
-  );
+  ).sort((a, b) => getItemTime(b) - getItemTime(a));
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

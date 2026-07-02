@@ -78,6 +78,19 @@ export default function RecruiterJobsScreen() {
     }
   };
 
+  const getReviewStatus = (job: JobItem) => {
+    if (job.status === 'Chờ duyệt') {
+      return { label: 'CHỜ DUYỆT', bg: '#FFF4E5', color: '#FF9500' };
+    }
+    if (job.status === 'Bị từ chối') {
+      return { label: 'BỊ TỪ CHỐI', bg: '#FFEBEE', color: '#FF3B30' };
+    }
+    if (!job.isOpen) {
+      return { label: 'ĐÃ ĐÓNG', bg: '#E5E7EB', color: '#687076' };
+    }
+    return { label: 'HOẠT ĐỘNG', bg: '#0084FF', color: '#FFF' };
+  };
+
   const activeJobsCount = recruiterJobs.filter((j) => j.isOpen).length;
 
   return (
@@ -175,6 +188,7 @@ export default function RecruiterJobsScreen() {
         ) : (
           filteredJobs.map((job) => {
             const iconDetails = getJobIcon(job.industry);
+            const reviewStatus = getReviewStatus(job);
             return (
               <View
                 key={job.id}
@@ -209,13 +223,13 @@ export default function RecruiterJobsScreen() {
                   {/* Right hand status tag badge */}
                   <View style={[
                     styles.statusBadge,
-                    { backgroundColor: job.isOpen ? '#0084FF' : '#E5E7EB' }
+                    { backgroundColor: reviewStatus.bg }
                   ]}>
                     <Text style={[
                       styles.statusText,
-                      { color: job.isOpen ? '#FFF' : '#687076' }
+                      { color: reviewStatus.color }
                     ]}>
-                      {job.isOpen ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+                      {reviewStatus.label}
                     </Text>
                   </View>
                 </View>

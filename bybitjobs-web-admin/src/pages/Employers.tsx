@@ -14,6 +14,28 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 import { useEffect } from 'react';
 
+const getItemTime = (item: any) => {
+  const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
+  if (!value) return 0;
+  if (typeof value?.toDate === 'function') return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value === 'object' && typeof value._seconds === 'number') return value._seconds * 1000;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    if (value.includes('/')) {
+      const parts = value.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(Number);
+        return new Date(year, month - 1, day).getTime();
+      }
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
 export const Employers: React.FC = () => {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -32,7 +54,7 @@ export const Employers: React.FC = () => {
       const response = await fetch(`http://${apiHost}:4000/api/employers`);
       if (response.ok) {
         const data = await response.json();
-        setEmployers(data);
+        setEmployers((Array.isArray(data) ? data : []).sort((a, b) => getItemTime(b) - getItemTime(a)));
       }
     } catch (error) {
       console.error('Lỗi lấy danh sách NTD:', error);
@@ -44,6 +66,7 @@ export const Employers: React.FC = () => {
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEmployer, setSelectedEmployer] = useState<any | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmProps, setConfirmProps] = useState({ visible: false, title: '', message: '', onConfirm: () => {} });
   
@@ -59,6 +82,10 @@ export const Employers: React.FC = () => {
     setFormData({ company: item.company, industry: item.industry, email: item.email, phone: item.phone, status: item.status, postsLimit: item.postsLimit });
     setEditingId(item.id);
     setIsModalOpen(true);
+  };
+
+  const handleOpenDetail = (item: any) => {
+    setSelectedEmployer(item);
   };
 
   const requestDelete = (id: string) => {
@@ -118,7 +145,7 @@ export const Employers: React.FC = () => {
     (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (emp.phone || '').includes(searchQuery) ||
     (emp.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).sort((a, b) => getItemTime(b) - getItemTime(a));
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -242,7 +269,7 @@ export const Employers: React.FC = () => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ minWidth: 900, flex: 1 }}>
+          <View style={styles.tableInner}>
             <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight, borderTopColor: colors.borderLight }]}>
               <Typography variant="caption" color="muted" style={styles.colId}>MÃ NTD</Typography>
               <Typography variant="caption" color="muted" style={styles.colName}>TÊN CÔNG TY / NTD</Typography>
@@ -254,17 +281,19 @@ export const Employers: React.FC = () => {
 
             {paginatedData.map((item, index) => (
               <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
+                <Typography variant="subtitle2" color="brand" style={styles.colId} numberOfLines={2}>{item.id}</Typography>
                 <View style={[styles.colName, styles.flexRow]}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-                  <View>
-                    <Typography variant="subtitle2">{item.company}</Typography>
-                    <Typography variant="caption" color="secondary">{item.industry}</Typography>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <TouchableOpacity activeOpacity={0.75} onPress={() => handleOpenDetail(item)}>
+                      <Typography variant="subtitle2" numberOfLines={1}>{item.company}</Typography>
+                    </TouchableOpacity>
+                    <Typography variant="caption" color="secondary" numberOfLines={1}>{item.industry}</Typography>
                   </View>
                 </View>
                 <View style={styles.colEmail}>
-                  <Typography variant="body2" color="secondary">{item.email}</Typography>
-                  <Typography variant="body2" color="secondary">{item.phone}</Typography>
+                  <Typography variant="body2" color="secondary" numberOfLines={1}>{item.email}</Typography>
+                  <Typography variant="body2" color="secondary" numberOfLines={1}>{item.phone}</Typography>
                 </View>
                 <View style={styles.colPosts}>
                   <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="caption">{item.postsLimit} tin</Typography></View>
@@ -275,6 +304,9 @@ export const Employers: React.FC = () => {
                   </Badge>
                 </View>
                 <View style={[styles.colAction, { flexDirection: 'row', gap: 12 }]}>
+                  <TouchableOpacity onPress={() => handleOpenDetail(item)}>
+                    <Eye size={18} color={colors.primaryColor} />
+                  </TouchableOpacity>
                   {item.status === 'Chờ duyệt' && (
                     <TouchableOpacity onPress={() => handleApprove(item.id)}>
                       <CheckCircle2 size={18} color={colors.successText} />
@@ -353,6 +385,55 @@ export const Employers: React.FC = () => {
         </Button>
       </Modal>
 
+      <Modal
+        visible={!!selectedEmployer}
+        title="Chi tiết nhà tuyển dụng"
+        width={720}
+        onClose={() => setSelectedEmployer(null)}
+      >
+        {selectedEmployer && (
+          <View style={styles.detailWrap}>
+            <View style={[styles.detailHero, { backgroundColor: colors.bgSecondary, borderColor: colors.borderLight }]}>
+              <View style={[styles.detailAvatar, { backgroundColor: colors.infoBg }]}>
+                <Building2 size={30} color={colors.infoText} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Typography variant="h3" numberOfLines={2}>{selectedEmployer.company || 'Chưa cập nhật'}</Typography>
+                <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>
+                  {selectedEmployer.industry || 'Chưa cập nhật'}
+                </Typography>
+              </View>
+              <Badge status={selectedEmployer.status === 'Xác thực' ? 'success' : 'warning'}>
+                {selectedEmployer.status || 'Chưa rõ'}
+              </Badge>
+            </View>
+
+            <View style={styles.detailGrid}>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Mã nhà tuyển dụng</Typography>
+                <Typography variant="subtitle2" color="brand" numberOfLines={2}>{selectedEmployer.id}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Email</Typography>
+                <Typography variant="subtitle2" numberOfLines={2}>{selectedEmployer.email || 'Chưa cập nhật'}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Số điện thoại</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.phone || 'Chưa cập nhật'}</Typography>
+              </View>
+              <View style={[styles.detailItem, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Giới hạn tin</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.postsLimit || '0/10'} tin</Typography>
+              </View>
+              <View style={[styles.detailItemWide, { borderColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted">Địa chỉ</Typography>
+                <Typography variant="subtitle2">{selectedEmployer.address || selectedEmployer.location || 'Chưa cập nhật'}</Typography>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
+
       <ConfirmModal 
         visible={confirmProps.visible}
         title={confirmProps.title}
@@ -384,19 +465,26 @@ const styles = StyleSheet.create({
   inputWrapper: { height: 40, borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
   tableHeader: { flexDirection: 'row', padding: 24, borderBottomWidth: 1, borderTopWidth: 1 },
   tableRow: { flexDirection: 'row', padding: 24, borderBottomWidth: 1, alignItems: 'center' },
+  tableInner: { width: 1180 },
   flexRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, borderRadius: 8 },
-  colId: { flex: 1 },
-  colName: { flex: 2 },
-  colContact: { flex: 1.5 },
-  colEmail: { flex: 2 },
-  colPosts: { flex: 1 },
-  colStatus: { flex: 1 },
-  colAction: { flex: 1.5, gap: 8 },
+  colId: { width: 210 },
+  colName: { width: 280 },
+  colContact: { width: 180 },
+  colEmail: { width: 230 },
+  colPosts: { width: 120 },
+  colStatus: { width: 130 },
+  colAction: { width: 160, gap: 8 },
   chip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, alignSelf: 'flex-start' },
   iconBtn: { padding: 4 },
   pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24 },
   pageNumbers: { flexDirection: 'row', gap: 8 },
   pageBtn: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  pageDots: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }
+  pageDots: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  detailWrap: { gap: 18 },
+  detailHero: { flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 1, borderRadius: 16, padding: 18 },
+  detailAvatar: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  detailItem: { width: '48%', borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 },
+  detailItemWide: { width: '100%', borderWidth: 1, borderRadius: 12, padding: 14, gap: 6 }
 });

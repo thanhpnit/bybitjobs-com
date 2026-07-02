@@ -33,6 +33,30 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const getItemTime = (item: any) => {
+  const value = item?.createdAt || item?.created_at || item?.createdAtISO || item?.date || item?.updatedAt || item?.updated_at;
+  if (!value) return 0;
+  if (typeof value?.toDate === 'function') return value.toDate().getTime();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
+  if (typeof value === 'object' && typeof value._seconds === 'number') return value._seconds * 1000;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    if (value.includes('/')) {
+      const parts = value.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(Number);
+        return new Date(year, month - 1, day).getTime();
+      }
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
+const sortNewestFirst = (items: any[]) => [...items].sort((a, b) => getItemTime(b) - getItemTime(a));
+
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Version check: khi cập nhật mock data, tăng version để force refresh localStorage
   const DATA_VERSION = '2026-06-19';
@@ -78,7 +102,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .then(data => {
           const usersArray = Array.isArray(data) ? data : data.users;
           if (Array.isArray(usersArray)) {
-            setUsersState(usersArray);
+            setUsersState(sortNewestFirst(usersArray));
           }
         })
         .catch(err => console.error('Error fetching real users in DataContext:', err));
@@ -90,7 +114,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .then(data => {
           const employersArray = Array.isArray(data) ? data : data.employers;
           if (Array.isArray(employersArray)) {
-            setEmployersState(employersArray);
+            setEmployersState(sortNewestFirst(employersArray));
           }
         })
         .catch(err => console.error('Error fetching real employers in DataContext:', err));
@@ -134,10 +158,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           companyStatus: item.employerId ? `ID: ${item.employerId.slice(0, 8)}...` : 'Chờ duyệt',
           date: formattedDate,
           createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now()),
-          status: item.status || 'Chờ duyệt'
+          status: item.status || 'Chờ duyệt',
+          employerId: item.employerId || '',
+          salary: item.salary || 'Chưa cập nhật',
+          location: item.location || 'Toàn quốc',
+          industry: item.industry || 'Chưa cập nhật',
+          deadline: item.deadline || 'Chưa cập nhật',
+          description: item.description || 'Chưa có mô tả.',
+          requirements: item.requirements || 'Chưa có yêu cầu.',
+          isOpen: item.isOpen !== false,
+          posterName: item.posterName || item.companyName || 'Doanh nghiệp',
+          posterEmail: item.posterEmail || ''
         });
       });
-      setJobPostsState(data);
+      setJobPostsState(sortNewestFirst(data));
     });
 
     // 3. Reports
