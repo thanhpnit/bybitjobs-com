@@ -870,6 +870,11 @@ export default function RecruiterProfileScreen() {
                       styles.empPkgPrice,
                       { color: pkg.isPopular ? '#0084FF' : pkg.isVip ? '#FFF' : '#0084FF' },
                     ]}
+                  >
+                    {pkg.price}
+                    {pkg.duration ? ` / ${pkg.duration}` : ''}
+                  </Text>
+                </View>
 
                 <View style={{ marginBottom: 16 }}>
                   {pkg.features.map((feature: string, idx: number) => (
@@ -894,7 +899,7 @@ export default function RecruiterProfileScreen() {
                 </TouchableOpacity>
               </View>
             );
-          }}
+          })}
 
           {/* 7. Benefits Section */}
           <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 20, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>

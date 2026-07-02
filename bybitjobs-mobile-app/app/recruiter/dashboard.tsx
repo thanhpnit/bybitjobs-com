@@ -251,7 +251,8 @@ export default function RecruiterDashboardScreen() {
     return Number.isNaN(time) ? 0 : time;
   };
 
-  const combinedJobs: MarketJobItem[] = jobs.map((job) => {
+  const openJobs = jobs.filter(job => job.isOpen !== false);
+  const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
     return {

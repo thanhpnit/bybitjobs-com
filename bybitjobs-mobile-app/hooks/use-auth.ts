@@ -11,7 +11,7 @@ import {
   reload,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where, getDocs, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where, getDocs, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { registerForPushNotificationsAsync } from './use-push-notifications';
 
 export type UserRole = 'candidate' | 'employer' | null;
@@ -511,6 +511,24 @@ export function useAuth() {
         };
         fetchUserData();
 
+        // Fetch read notifications from Firestore
+        const fetchReadNotificationIds = async () => {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+              const uData = userDoc.data();
+              if (Array.isArray(uData?.readNotificationIds)) {
+                globalReadIds = uData.readNotificationIds;
+                setReadIds(globalReadIds);
+                notifyAll();
+              }
+            }
+          } catch (err) {
+            console.error('Lỗi khi tải readIds từ Firestore:', err);
+          }
+        };
+        fetchReadNotificationIds();
+
         // Fetch notifications from Firestore realtime
         if (globalNotificationsUnsubscribe) globalNotificationsUnsubscribe();
         let isFirstLoad = true;
@@ -522,7 +540,7 @@ export function useAuth() {
               const date = data.createdAt ? data.createdAt.toDate() : new Date();
               return {
                 id: doc.id,
-                category: (['ALL', 'RECRUITER', 'USER'].includes(data.target) ? 'system' : 'security') as any,
+                category: data.category || (['ALL', 'RECRUITER', 'USER'].includes(data.target) ? 'system' : 'security') as any,
                 title: data.title || '',
                 description: data.body || '',
                 time: getRelativeTimeLabel(date),
@@ -554,6 +572,16 @@ export function useAuth() {
 
                 // If notification was created before the app loaded, skip toast alert
                 if (createdAt.getTime() <= appStartTime.getTime()) {
+                  return;
+                }
+
+                // If explicit role is set, it must match current globalUserRole
+                if (data.role && data.role !== globalUserRole) {
+                  return;
+                }
+
+                // Skip toast if already marked as read
+                if (globalReadIds.includes(change.doc.id)) {
                   return;
                 }
 
@@ -1179,12 +1207,14 @@ export function useAuth() {
   };
 
   const updateApplicationStatus = async (appId: string, status: 'Pending' | 'Approved' | 'Rejected') => {
-    globalApplications = globalApplications.map((app) => {
-      if (app.id === appId) {
+    const app = globalApplications.find((a) => a.id === appId);
+
+    globalApplications = globalApplications.map((appItem) => {
+      if (appItem.id === appId) {
         // Unlock contact info for the candidate if Approved
         if (status === 'Approved') {
           globalCandidates = globalCandidates.map((c) => {
-            if (c.id === app.candidateId) {
+            if (c.id === appItem.candidateId) {
               // Unmask phone number
               let unmasked = c.phone;
               if (c.id === 'candidate-1') unmasked = '0987345678';
@@ -1195,15 +1225,36 @@ export function useAuth() {
             return c;
           });
         }
-        return { ...app, status };
+        return { ...appItem, status };
       }
-      return app;
+      return appItem;
     });
     setApplications([...globalApplications]);
     notifyAll();
 
     try {
       await updateDoc(doc(db, 'applications', appId), { status });
+
+      // Send notification to the candidate
+      if (app && (status === 'Approved' || status === 'Rejected')) {
+        const job = globalJobs.find((j) => j.id === app.jobId);
+        const jobTitle = app.jobTitle || job?.title || 'công việc';
+        const companyName = app.companyName || job?.posterName || 'Nhà tuyển dụng';
+        
+        const notifTitle = status === 'Approved' ? 'Hồ sơ được chấp nhận' : 'Hồ sơ bị từ chối';
+        const notifBody = status === 'Approved'
+          ? `Hồ sơ ứng tuyển của bạn cho công việc "${jobTitle}" tại "${companyName}" đã được duyệt.`
+          : `Hồ sơ ứng tuyển của bạn cho công việc "${jobTitle}" tại "${companyName}" đã bị từ chối.`;
+
+        await addDoc(collection(db, 'notifications'), {
+          target: app.candidateId,
+          role: 'candidate',
+          category: 'job',
+          title: notifTitle,
+          body: notifBody,
+          createdAt: serverTimestamp(),
+        });
+      }
     } catch (error) {
       console.error('Lỗi cập nhật trạng thái hồ sơ ứng tuyển:', error);
     }
@@ -1531,6 +1582,11 @@ export function useAuth() {
   const mergedNotifications = firebaseUser
     ? [...notifications, ...mockNotifications]
         .filter((item) => {
+          // If explicit role is set, it must match the active userRole
+          if (item.role && item.role !== userRole) {
+            return false;
+          }
+          
           if (item.target === 'ALL') return true;
           if (item.target === 'RECRUITER') return userRole === 'employer';
           if (item.target === 'USER') return userRole === 'candidate';
@@ -1545,17 +1601,35 @@ export function useAuth() {
 
   const unreadNotificationsCount = mergedNotifications.filter((n) => !n.isRead).length;
 
-  const markAllNotificationsAsRead = () => {
+  const markAllNotificationsAsRead = async () => {
     globalReadIds = mergedNotifications.map((n) => n.id);
     setReadIds(globalReadIds);
     notifyAll();
+    if (firebaseUser) {
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), {
+          readNotificationIds: globalReadIds
+        }, { merge: true });
+      } catch (e) {
+        console.error('Lỗi khi lưu readIds vào Firestore:', e);
+      }
+    }
   };
 
-  const markNotificationAsRead = (id: string) => {
+  const markNotificationAsRead = async (id: string) => {
     if (!globalReadIds.includes(id)) {
       globalReadIds = [...globalReadIds, id];
       setReadIds(globalReadIds);
       notifyAll();
+      if (firebaseUser) {
+        try {
+          await setDoc(doc(db, 'users', firebaseUser.uid), {
+            readNotificationIds: globalReadIds
+          }, { merge: true });
+        } catch (e) {
+          console.error('Lỗi khi lưu readIds vào Firestore:', e);
+        }
+      }
     }
   };
 

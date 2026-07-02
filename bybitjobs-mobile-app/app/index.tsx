@@ -23,23 +23,23 @@ const onboardingSlides = [
     title: 'Cơ hội không giới hạn',
     description: 'Khám phá hàng ngàn công việc chất lượng từ các nhà tuyển dụng uy tín hàng đầu trên thị trường.',
     icon: 'briefcase-sharp',
-    color: '#FFB800',
+    color: '#0084FF',
     highlightText: 'hàng ngàn công việc',
   },
   {
     id: 2,
     title: 'Hồ sơ năng lực chuyên nghiệp',
-    description: 'Tải lên CV trực tiếp từ thiết bị của bạn chỉ trong vài giây, tiếp cận nhà tuyển dụng tức thì.',
+    description: 'Tải lên CV trực tiếp từ thiết bị của bạn chỉ trong vài giây, tiếp cận nhà tuyển dụng tức thời.',
     icon: 'document-text-sharp',
-    color: '#00C853',
-    highlightText: 'tiếp cận tức thì',
+    color: '#34C759',
+    highlightText: 'tiếp cận tức thời',
   },
   {
     id: 3,
     title: 'Thông báo tức thời',
     description: 'Nhận thông báo cập nhật về trạng thái hồ sơ ứng tuyển theo thời gian thực ngay trên điện thoại.',
     icon: 'notifications-sharp',
-    color: '#00E5FF',
+    color: '#5856D6',
     highlightText: 'thời gian thực',
   },
 ];
@@ -110,7 +110,7 @@ export default function WelcomeScreen() {
   // Splash Loading Screen
   if (isInitializing || isLoggedIn) {
     return (
-      <View style={[styles.splashContainer, { backgroundColor: '#090E1A' }]}>
+      <View style={[styles.splashContainer, { backgroundColor: '#151718' }]}>
         <StatusBar barStyle="light-content" />
         <View style={styles.splashContent}>
           {/* Futuristic Glowing Logo */}
@@ -120,8 +120,8 @@ export default function WelcomeScreen() {
           
           <Animated.View style={[styles.logoIconWrapper, { transform: [{ scale: logoScale }] }]}>
             <View style={styles.premiumLogoBg}>
-              <Ionicons name="sparkles" size={32} color="#090E1A" style={styles.logoSpark} />
-              <Ionicons name="flash" size={44} color="#FFB800" />
+              <Ionicons name="sparkles" size={32} color="#FFF" style={styles.logoSpark} />
+              <Ionicons name="flash" size={44} color="#FFF" />
             </View>
           </Animated.View>
 
@@ -132,14 +132,14 @@ export default function WelcomeScreen() {
           </View>
           
           <Text style={styles.splashTagline}>Tìm việc thông minh • Tuyển dụng chất lượng</Text>
-          <ActivityIndicator size="small" color="#FFB800" style={{ marginTop: 32 }} />
+          <ActivityIndicator size="small" color="#0084FF" style={{ marginTop: 32 }} />
         </View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#080C16' : '#F4F7FC' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         
@@ -147,7 +147,7 @@ export default function WelcomeScreen() {
         <View style={styles.header}>
           <View style={styles.miniLogoRow}>
             <View style={styles.miniLogo}>
-              <Ionicons name="flash" size={16} color="#FFB800" />
+              <Ionicons name="flash" size={16} color="#FFF" />
             </View>
             <Text style={[styles.miniBrandFirst, { color: isDark ? '#FFF' : '#0B0F19' }]}>ByBit</Text>
             <Text style={styles.miniBrandLast}>Jobs</Text>
@@ -170,8 +170,8 @@ export default function WelcomeScreen() {
             styles.illustrationContainer, 
             { 
               transform: [{ translateY: slideAnim }],
-              backgroundColor: isDark ? '#111827' : '#EAF4FE',
-              borderColor: isDark ? 'rgba(255, 184, 0, 0.1)' : 'rgba(0, 132, 255, 0.1)',
+              backgroundColor: isDark ? '#1C1C1E' : '#EAF4FE',
+              borderColor: isDark ? 'rgba(0, 132, 255, 0.1)' : 'rgba(0, 132, 255, 0.15)',
             }
           ]}
         >
@@ -202,7 +202,7 @@ export default function WelcomeScreen() {
                   styles.dot,
                   {
                     width: activeSlideIndex === index ? 24 : 8,
-                    backgroundColor: activeSlideIndex === index ? '#FFB800' : (isDark ? '#2C3A56' : '#CFD8DC'),
+                    backgroundColor: activeSlideIndex === index ? '#0084FF' : (isDark ? '#2C2C2E' : '#CFD8DC'),
                   },
                 ]}
               />
@@ -215,12 +215,12 @@ export default function WelcomeScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleNextSlide}
-            style={[styles.primaryBtn, { backgroundColor: '#FFB800' }]}
+            style={[styles.primaryBtn, { backgroundColor: '#0084FF' }]}
           >
             <Text style={styles.primaryBtnText}>
               {activeSlideIndex === onboardingSlides.length - 1 ? 'Khám phá ngay' : 'Tiếp tục'}
             </Text>
-            <Ionicons name="arrow-forward" size={18} color="#0B0F19" style={{ marginLeft: 6 }} />
+            <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
 
           {activeSlideIndex === onboardingSlides.length - 1 && (
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 6,
-    backgroundColor: '#FFB800',
+    backgroundColor: '#0084FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 6,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   miniBrandLast: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFB800',
+    color: '#0084FF',
   },
   skipBtn: {
     flexDirection: 'row',
@@ -362,14 +362,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FFB800',
+    shadowColor: '#0084FF',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 4,
   },
   primaryBtnText: {
-    color: '#0B0F19',
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   loginLinkText: {
-    color: '#FFB800',
+    color: '#0084FF',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -404,10 +404,10 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 24,
-    backgroundColor: '#FFB800',
+    backgroundColor: '#0084FF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FFB800',
+    shadowColor: '#0084FF',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(255, 184, 0, 0.12)',
+    backgroundColor: 'rgba(0, 132, 255, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(255, 184, 0, 0.25)',
+    backgroundColor: 'rgba(0, 132, 255, 0.25)',
   },
   brandContainer: {
     flexDirection: 'row',
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   brandLast: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#FFB800',
+    color: '#0084FF',
     letterSpacing: -1,
   },
   splashTagline: {

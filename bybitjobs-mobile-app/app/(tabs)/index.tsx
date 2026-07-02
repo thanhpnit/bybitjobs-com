@@ -268,7 +268,8 @@ function CandidateHomeScreen() {
       .toUpperCase() || 'NT';
   };
 
-  const jobListings: JobItem[] = jobs.map(job => {
+  const openJobs = jobs.filter(job => job.isOpen !== false);
+  const jobListings: JobItem[] = openJobs.map(job => {
     const posterName = getPosterName(job);
 
     return {
