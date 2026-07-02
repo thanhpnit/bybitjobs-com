@@ -29,14 +29,10 @@ export default function JobDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { isLoggedIn, jobs, savedJobs, toggleSavedJob, addViewedJob } = useAuth();
+  const { isLoggedIn, userRole, userData, jobs, savedJobs, toggleSavedJob, addViewedJob } = useAuth();
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
   const [reportForm, setReportForm] = useState({
-    fullName: '',
-    phone: '',
-    address: '',
-    email: '',
     content: ''
   });
 
@@ -65,6 +61,10 @@ export default function JobDetailsScreen() {
   const displayLocation = currentJob?.location || location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
   const displayJobId = currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
   const isSaved = savedJobs.some((savedJob) => savedJob.jobId === displayJobId);
+  const isEmployerView = userRole === 'employer';
+  const reporterName = userData?.fullName || 'Người dùng';
+  const reporterEmail = userData?.emailOrPhone || 'Chưa cập nhật';
+  const reporterPhone = userData?.phone || 'Chưa cập nhật';
   const addViewedJobRef = React.useRef(addViewedJob);
   const storedPosterName =
     currentJob?.posterName ||
@@ -423,24 +423,26 @@ export default function JobDetailsScreen() {
       </SafeAreaView>
 
       {/* Sticky Action Footer */}
-      <View style={[styles.fixedFooter, isDark && styles.darkFooter]}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleSaveJob}
-          style={[styles.saveJobButton, isSaved && styles.saveJobButtonActive]}
-        >
-          <Ionicons
-            name={isSaved ? 'bookmark' : 'bookmark-outline'}
-            size={22}
-            color={isSaved ? '#FFF' : '#0084FF'}
-          />
-        </TouchableOpacity>
+      {!isEmployerView && (
+        <View style={[styles.fixedFooter, isDark && styles.darkFooter]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleSaveJob}
+            style={[styles.saveJobButton, isSaved && styles.saveJobButtonActive]}
+          >
+            <Ionicons
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={22}
+              color={isSaved ? '#FFF' : '#0084FF'}
+            />
+          </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.85} onPress={handleApply} style={styles.applyButton}>
-          <Text style={styles.applyButtonText}>Ứng tuyển ngay</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFF" style={styles.applyIcon} />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity activeOpacity={0.85} onPress={handleApply} style={styles.applyButton}>
+            <Text style={styles.applyButtonText}>Ứng tuyển ngay</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFF" style={styles.applyIcon} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Report Modal */}
       <Modal
@@ -474,50 +476,19 @@ export default function JobDetailsScreen() {
                 <Text style={[styles.formValue, { color: isDark ? '#ECEDEE' : '#333' }]}>{displayTitle}</Text>
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Họ và tên <Text style={styles.requiredStar}>*</Text></Text>
-                <TextInput
-                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
-                  placeholder="Nhập họ và tên"
-                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
-                  value={reportForm.fullName}
-                  onChangeText={(text) => setReportForm({...reportForm, fullName: text})}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Số điện thoại <Text style={styles.requiredStar}>*</Text></Text>
-                <TextInput
-                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
-                  placeholder="0123xxxxxxx"
-                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
-                  keyboardType="phone-pad"
-                  value={reportForm.phone}
-                  onChangeText={(text) => setReportForm({...reportForm, phone: text})}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Địa chỉ <Text style={styles.requiredStar}>*</Text></Text>
-                <TextInput
-                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
-                  placeholder="Nhập địa chỉ"
-                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
-                  value={reportForm.address}
-                  onChangeText={(text) => setReportForm({...reportForm, address: text})}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Địa chỉ email <Text style={styles.requiredStar}>*</Text></Text>
-                <TextInput
-                  style={[styles.input, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
-                  placeholder="Nhập email"
-                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
-                  keyboardType="email-address"
-                  value={reportForm.email}
-                  onChangeText={(text) => setReportForm({...reportForm, email: text})}
-                />
+              <View style={[styles.reporterInfoBox, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
+                <View style={styles.reporterInfoRow}>
+                  <Text style={styles.reporterInfoLabel}>Người báo cáo</Text>
+                  <Text style={[styles.reporterInfoValue, { color: isDark ? '#FFF' : '#11181C' }]}>{reporterName}</Text>
+                </View>
+                <View style={styles.reporterInfoRow}>
+                  <Text style={styles.reporterInfoLabel}>Số điện thoại</Text>
+                  <Text style={[styles.reporterInfoValue, { color: isDark ? '#FFF' : '#11181C' }]}>{reporterPhone}</Text>
+                </View>
+                <View style={styles.reporterInfoRow}>
+                  <Text style={styles.reporterInfoLabel}>Email</Text>
+                  <Text style={[styles.reporterInfoValue, { color: isDark ? '#FFF' : '#11181C' }]}>{reporterEmail}</Text>
+                </View>
               </View>
 
               <View style={styles.formGroup}>
@@ -538,19 +509,30 @@ export default function JobDetailsScreen() {
                 style={[styles.modalButton, styles.sendButton]}
                 activeOpacity={0.85}
                 onPress={async () => {
+                  if (!reportForm.content.trim()) {
+                    Alert.alert('Thông báo', 'Vui lòng nhập nội dung báo cáo.');
+                    return;
+                  }
+
                   try {
                     await addDoc(collection(db, 'reports'), {
                       type: 'Phản ánh tin tuyển dụng',
-                      desc: reportForm.content,
+                      desc: reportForm.content.trim(),
                       target: displayTitle,
-                      targetBy: `Họ tên: ${reportForm.fullName} - SĐT: ${reportForm.phone} - Email: ${reportForm.email}`,
-                      address: reportForm.address,
+                      targetBy: `Họ tên: ${reporterName} - SĐT: ${reporterPhone} - Email: ${reporterEmail}`,
+                      reporterId: userData?.uid || '',
+                      reporterName,
+                      reporterPhone,
+                      reporterEmail,
+                      jobId: displayJobId,
+                      companyName: employerName,
+                      address: displayLocation,
                       status: 'pending',
                       createdAt: serverTimestamp()
                     });
                     Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');
                     setReportModalVisible(false);
-                    setReportForm({ fullName: '', phone: '', address: '', email: '', content: '' });
+                    setReportForm({ content: '' });
                   } catch (e) {
                     console.error(e);
                     Alert.alert('Lỗi', 'Không thể gửi báo cáo lúc này. Vui lòng thử lại sau.');
@@ -968,6 +950,25 @@ const styles = StyleSheet.create({
   },
   formValue: {
     fontSize: 14,
+    lineHeight: 20,
+  },
+  reporterInfoBox: {
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
+  },
+  reporterInfoRow: {
+    gap: 4,
+  },
+  reporterInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  reporterInfoValue: {
+    fontSize: 14,
+    fontWeight: '600',
     lineHeight: 20,
   },
   requiredStar: {

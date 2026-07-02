@@ -693,17 +693,16 @@ function CandidateProfileScreen() {
     const employerJobs = jobs.filter(job => job.employerId === userData?.uid);
     
     // Stats calculation
-    const totalJobsCount = employerJobs.length > 0 ? employerJobs.length : 12;
-    const activeJobsCount = employerJobs.length > 0 ? employerJobs.filter(j => j.isOpen).length : 8;
+    const totalJobsCount = employerJobs.length;
+    const activeJobsCount = employerJobs.filter(j => j.isOpen).length;
     
     let realApplicantsCount = 0;
     employerJobs.forEach(job => {
       realApplicantsCount += job.applicantsCount || 0;
     });
-    const totalApplicants = employerJobs.length > 0 ? `${realApplicantsCount}+` : '150+';
+    const totalApplicants = realApplicantsCount;
 
-    // Fallback jobs list if empty
-    const displayJobs = employerJobs.length > 0 ? employerJobs.map(job => ({
+    const displayJobs = employerJobs.map(job => ({
       id: job.id,
       title: job.title,
       isOpen: job.isOpen,
@@ -712,43 +711,7 @@ function CandidateProfileScreen() {
       applicantsCount: job.applicantsCount || 0,
       salary: job.salary,
       avatars: [] as string[]
-    })) : [
-      {
-        id: 'mock-1',
-        title: 'Nhân viên giao hàng khu vực Quận 7',
-        isOpen: true,
-        type: 'Toàn thời gian',
-        requiredCount: 5,
-        applicantsCount: 14,
-        salary: '300k/ngày',
-        avatars: [
-          'https://randomuser.me/api/portraits/men/32.jpg',
-          'https://randomuser.me/api/portraits/women/44.jpg'
-        ]
-      },
-      {
-        id: 'mock-2',
-        title: 'Nhân viên đóng gói hàng hóa ca tối',
-        isOpen: true,
-        type: 'Bán thời gian',
-        requiredCount: 2,
-        applicantsCount: 5,
-        salary: '25k/giờ',
-        avatars: [
-          'https://randomuser.me/api/portraits/men/45.jpg'
-        ]
-      },
-      {
-        id: 'mock-3',
-        title: 'Cộng tác viên nhập liệu Online',
-        isOpen: false,
-        type: 'Từ xa',
-        requiredCount: 0,
-        applicantsCount: 0,
-        salary: '50k/đơn',
-        avatars: [] as string[]
-      }
-    ];
+    }));
 
     const [servicePackages, setServicePackages] = React.useState<any[]>([]);
 
@@ -914,14 +877,22 @@ function CandidateProfileScreen() {
             </View>
 
             <View style={styles.empJobsList}>
-              {displayJobs.map((job) => (
-                <TouchableOpacity
-                  key={job.id}
-                  activeOpacity={0.9}
-                  onPress={() => {
-                    if (job.id.startsWith('mock-')) {
-                      Alert.alert('Thông báo', `Chi tiết tin đăng mẫu: ${job.title}`);
-                    } else {
+              {displayJobs.length === 0 ? (
+                <View style={[styles.empEmptyJobsBox, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                  <Ionicons name="file-tray-outline" size={34} color="#8E8E93" />
+                  <Text style={[styles.empEmptyJobsTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Chưa có tin tuyển dụng
+                  </Text>
+                  <Text style={styles.empEmptyJobsText}>
+                    Các bài đăng thật của công ty sẽ hiển thị tại đây sau khi bạn đăng tin.
+                  </Text>
+                </View>
+              ) : (
+                displayJobs.map((job) => (
+                  <TouchableOpacity
+                    key={job.id}
+                    activeOpacity={0.9}
+                    onPress={() => {
                       router.push({
                         pathname: '/job-details',
                         params: {
@@ -931,68 +902,69 @@ function CandidateProfileScreen() {
                           location: employerData?.address || 'TP. Hồ Chí Minh',
                         },
                       });
-                    }
-                  }}
-                  style={[styles.empJobCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
-                >
-                  <View style={styles.empJobHeader}>
-                    <Text style={[styles.empJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
-                      {job.title}
-                    </Text>
-                    <View style={[styles.empJobBadge, { backgroundColor: job.isOpen ? '#E8F5E9' : '#ECEFF1' }]}>
-                      <Text style={[styles.empJobBadgeText, { color: job.isOpen ? '#2E7D32' : '#8E8E93' }]}>
-                        {job.isOpen ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+                    }}
+                    style={[styles.empJobCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
+                  >
+                    <View style={styles.empJobHeader}>
+                      <Text style={[styles.empJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                        {job.title}
                       </Text>
+                      <View style={[styles.empJobBadge, { backgroundColor: job.isOpen ? '#E8F5E9' : '#ECEFF1' }]}>
+                        <Text style={[styles.empJobBadgeText, { color: job.isOpen ? '#2E7D32' : '#8E8E93' }]}>
+                          {job.isOpen ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
 
-                  <View style={styles.empJobMetaRow}>
-                    <View style={styles.empJobMetaItem}>
-                      <Ionicons name="time-outline" size={13} color="#8E8E93" />
-                      <Text style={styles.empJobMetaText}>{job.type}</Text>
+                    <View style={styles.empJobMetaRow}>
+                      <View style={styles.empJobMetaItem}>
+                        <Ionicons name="time-outline" size={13} color="#8E8E93" />
+                        <Text style={styles.empJobMetaText}>{job.type}</Text>
+                      </View>
+                      <View style={styles.empJobMetaItem}>
+                        <Ionicons name="people-outline" size={13} color="#8E8E93" />
+                        <Text style={styles.empJobMetaText}>
+                          {job.requiredCount > 0 ? `Cần ${job.requiredCount} người` : 'Đã tuyển đủ'}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.empJobMetaItem}>
-                      <Ionicons name="people-outline" size={13} color="#8E8E93" />
-                      <Text style={styles.empJobMetaText}>
-                        {job.requiredCount > 0 ? `Cần ${job.requiredCount} người` : 'Đã tuyển đủ'}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.empJobFooter}>
-                    <View style={styles.empApplicantsRow}>
-                      {job.avatars && job.avatars.length > 0 ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          {job.avatars.map((url, idx) => (
-                            <Image
-                              key={idx}
-                              source={{ uri: url }}
-                              style={[styles.empApplicantAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
-                            />
-                          ))}
-                          {job.applicantsCount > job.avatars.length && (
-                            <Text style={styles.empApplicantsMore}>
-                              +{job.applicantsCount - job.avatars.length}
-                            </Text>
-                          )}
-                        </View>
-                      ) : (
-                        job.applicantsCount > 0 ? (
-                          <Text style={{ fontSize: 11, color: '#0084FF', fontWeight: 'bold' }}>
-                            {job.applicantsCount} ứng viên đã ứng tuyển
-                          </Text>
+                    <View style={styles.empJobFooter}>
+                      <View style={styles.empApplicantsRow}>
+                        {job.avatars && job.avatars.length > 0 ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {job.avatars.map((url, idx) => (
+                              <Image
+                                key={idx}
+                                source={{ uri: url }}
+                                style={[styles.empApplicantAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
+                              />
+                            ))}
+                            {job.applicantsCount > job.avatars.length && (
+                              <Text style={styles.empApplicantsMore}>
+                                +{job.applicantsCount - job.avatars.length}
+                              </Text>
+                            )}
+                          </View>
                         ) : (
-                          <Text style={{ fontSize: 11, color: '#8E8E93' }}>Chưa có ứng viên</Text>
+                          job.applicantsCount > 0 ? (
+                            <Text style={{ fontSize: 11, color: '#0084FF', fontWeight: 'bold' }}>
+                              {job.applicantsCount} ứng viên đã ứng tuyển
+                            </Text>
+                          ) : (
+                            <Text style={{ fontSize: 11, color: '#8E8E93' }}>Chưa có ứng viên</Text>
+                          )
                         )
-                      )}
-                    </View>
+                        }
+                      </View>
 
-                    <View style={[styles.empJobSalaryBox, { backgroundColor: isDark ? '#1C2A3A' : '#EBF5FF' }]}>
-                      <Text style={styles.empJobSalaryText}>{job.salary}</Text>
+                      <View style={[styles.empJobSalaryBox, { backgroundColor: isDark ? '#1C2A3A' : '#EBF5FF' }]}>
+                        <Text style={styles.empJobSalaryText}>{job.salary}</Text>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                ))
+              )}
             </View>
 
             {/* 6. Pricing Packages Section */}
@@ -1441,32 +1413,42 @@ function CandidateProfileScreen() {
           {/* Employer Upgrade Promo (Shown if candidate) */}
           {userRole !== 'employer' && (
             employerData ? (
-              <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#4CAF50' }]}>
+              <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: employerData.status === 'Chờ duyệt' ? '#FF9500' : '#4CAF50' }]}>
                 <View style={styles.cardHeader}>
-                  <Ionicons name="business-outline" size={20} color="#4CAF50" style={styles.cardHeaderIcon} />
+                  <Ionicons
+                    name={employerData.status === 'Chờ duyệt' ? 'time-outline' : 'business-outline'}
+                    size={20}
+                    color={employerData.status === 'Chờ duyệt' ? '#FF9500' : '#4CAF50'}
+                    style={styles.cardHeaderIcon}
+                  />
                   <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    Giao diện Nhà tuyển dụng
+                    {employerData.status === 'Chờ duyệt' ? 'Đang chờ duyệt Nhà tuyển dụng' : 'Giao diện Nhà tuyển dụng'}
                   </Text>
                 </View>
                 <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
                 <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16, lineHeight: 18 }}>
-                  Tài khoản của bạn đã được đăng ký làm Nhà tuyển dụng. Bấm nút dưới để chuyển đổi sang giao diện quản lý tuyển dụng.
+                  {employerData.status === 'Chờ duyệt'
+                    ? 'Hồ sơ doanh nghiệp của bạn đã được gửi và đang chờ Admin xét duyệt. Sau khi được duyệt, nút chuyển sang giao diện Nhà tuyển dụng sẽ xuất hiện.'
+                    : 'Tài khoản của bạn đã được đăng ký làm Nhà tuyển dụng. Bấm nút dưới để chuyển đổi sang giao diện quản lý tuyển dụng.'}
                 </Text>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    if (employerData?.status === 'Chờ duyệt') {
-                      Alert.alert('Đang chờ duyệt', 'Hồ sơ doanh nghiệp của bạn đang được Admin xét duyệt. Vui lòng quay lại sau nhé!');
-                    } else {
+                {employerData.status === 'Chờ duyệt' ? (
+                  <View style={[styles.pendingEmployerBadge, { backgroundColor: isDark ? '#3A2A12' : '#FFF4E5' }]}>
+                    <Ionicons name="hourglass-outline" size={16} color="#FF9500" style={{ marginRight: 6 }} />
+                    <Text style={styles.pendingEmployerText}>Đang chờ duyệt</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
                       switchRole('employer');
                       router.replace('/(tabs)');
-                    }
-                  }}
-                  style={[styles.upgradeButton, { backgroundColor: '#4CAF50' }]}
-                >
-                  <Ionicons name="swap-horizontal-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.upgradeButtonText}>Chuyển sang giao diện Nhà tuyển dụng</Text>
-                </TouchableOpacity>
+                    }}
+                    style={[styles.upgradeButton, { backgroundColor: '#4CAF50' }]}
+                  >
+                    <Ionicons name="swap-horizontal-outline" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.upgradeButtonText}>Chuyển sang giao diện Nhà tuyển dụng</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#0084FF' }]}>
@@ -3144,6 +3126,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
   },
+  pendingEmployerBadge: {
+    height: 40,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
+  pendingEmployerText: {
+    color: '#FF9500',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
 
   appliedCountBadge: {
     marginLeft: 'auto',
@@ -3953,6 +3949,26 @@ const styles = StyleSheet.create({
   empJobsList: {
     paddingHorizontal: 16,
     gap: 12,
+  },
+  empEmptyJobsBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  empEmptyJobsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  empEmptyJobsText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    lineHeight: 17,
+    textAlign: 'center',
   },
   empJobCard: {
     borderWidth: 1,

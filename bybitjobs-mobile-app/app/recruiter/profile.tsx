@@ -28,9 +28,9 @@ export default function RecruiterProfileScreen() {
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
-  
+
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, isLoggedIn, switchRole, unreadNotificationsCount } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -118,16 +118,20 @@ export default function RecruiterProfileScreen() {
       'Tải lên Logo',
       'Chọn phương thức tải ảnh đại diện công ty:',
       [
-        { text: 'Chụp ảnh mới', onPress: () => {
-          Alert.alert('Thành công', 'Đã chụp ảnh và cập nhật Logo công ty mới.');
-          setLogoColor('#34C759'); // Green color indicates success
-          setLogoUploaded(true);
-        }},
-        { text: 'Chọn từ Thư viện', onPress: () => {
-          Alert.alert('Thành công', 'Đã chọn ảnh từ thư viện và cập nhật Logo.');
-          setLogoColor('#FF9500'); // Orange color indicates success
-          setLogoUploaded(true);
-        }},
+        {
+          text: 'Chụp ảnh mới', onPress: () => {
+            Alert.alert('Thành công', 'Đã chụp ảnh và cập nhật Logo công ty mới.');
+            setLogoColor('#34C759'); // Green color indicates success
+            setLogoUploaded(true);
+          }
+        },
+        {
+          text: 'Chọn từ Thư viện', onPress: () => {
+            Alert.alert('Thành công', 'Đã chọn ảnh từ thư viện và cập nhật Logo.');
+            setLogoColor('#FF9500'); // Orange color indicates success
+            setLogoUploaded(true);
+          }
+        },
         { text: 'Hủy', style: 'cancel' }
       ]
     );
@@ -138,12 +142,16 @@ export default function RecruiterProfileScreen() {
       'Tải lên Ảnh bìa (Banner)',
       'Chọn phương thức tải ảnh bìa công ty:',
       [
-        { text: 'Chụp ảnh mới', onPress: () => {
-          Alert.alert('Thành công', 'Đã cập nhật ảnh bìa (Banner) công ty mới.');
-        }},
-        { text: 'Chọn từ Thư viện', onPress: () => {
-          Alert.alert('Thành công', 'Đã tải ảnh bìa (Banner) thành công.');
-        }},
+        {
+          text: 'Chụp ảnh mới', onPress: () => {
+            Alert.alert('Thành công', 'Đã cập nhật ảnh bìa (Banner) công ty mới.');
+          }
+        },
+        {
+          text: 'Chọn từ Thư viện', onPress: () => {
+            Alert.alert('Thành công', 'Đã tải ảnh bìa (Banner) thành công.');
+          }
+        },
         { text: 'Hủy', style: 'cancel' }
       ]
     );
@@ -282,17 +290,16 @@ export default function RecruiterProfileScreen() {
 
   // Stats & listings computations
   const employerJobs = (jobs || []).filter(job => job.employerId === userData?.uid);
-  const totalJobsCount = employerJobs.length > 0 ? employerJobs.length : 12;
-  const activeJobsCount = employerJobs.length > 0 ? employerJobs.filter(j => j.isOpen).length : 8;
-  
+  const totalJobsCount = employerJobs.length;
+  const activeJobsCount = employerJobs.filter(j => j.isOpen).length;
+
   let realApplicantsCount = 0;
   employerJobs.forEach(job => {
     realApplicantsCount += job.applicantsCount || 0;
   });
-  const totalApplicants = employerJobs.length > 0 ? `${realApplicantsCount}+` : '150+';
+  const totalApplicants = realApplicantsCount;
 
-  // Fallback jobs list if empty
-  const displayJobs = employerJobs.length > 0 ? employerJobs.map(job => ({
+  const displayJobs = employerJobs.map(job => ({
     id: job.id,
     title: job.title,
     isOpen: job.isOpen,
@@ -301,43 +308,7 @@ export default function RecruiterProfileScreen() {
     applicantsCount: job.applicantsCount || 0,
     salary: job.salary,
     avatars: [] as string[]
-  })) : [
-    {
-      id: 'mock-1',
-      title: 'Nhân viên giao hàng khu vực Quận 7',
-      isOpen: true,
-      type: 'Toàn thời gian',
-      requiredCount: 5,
-      applicantsCount: 14,
-      salary: '300k/ngày',
-      avatars: [
-        'https://randomuser.me/api/portraits/men/32.jpg',
-        'https://randomuser.me/api/portraits/women/44.jpg'
-      ]
-    },
-    {
-      id: 'mock-2',
-      title: 'Nhân viên đóng gói hàng hóa ca tối',
-      isOpen: true,
-      type: 'Bán thời gian',
-      requiredCount: 2,
-      applicantsCount: 5,
-      salary: '25k/giờ',
-      avatars: [
-        'https://randomuser.me/api/portraits/men/45.jpg'
-      ]
-    },
-    {
-      id: 'mock-3',
-      title: 'Cộng tác viên nhập liệu Online',
-      isOpen: false,
-      type: 'Từ xa',
-      requiredCount: 0,
-      applicantsCount: 0,
-      salary: '50k/đơn',
-      avatars: [] as string[]
-    }
-  ];
+  }));
 
   const [servicePackages, setServicePackages] = React.useState<any[]>([]);
 
@@ -349,7 +320,7 @@ export default function RecruiterProfileScreen() {
         if (!res.ok) throw new Error('API response was not ok');
         const rawData = await res.json();
         const data: any[] = [];
-        
+
         rawData.forEach((pkg: any) => {
           data.push({
             id: pkg.id,
@@ -426,10 +397,10 @@ export default function RecruiterProfileScreen() {
                 <Ionicons name="camera-outline" size={18} color="#FFF" />
               </View>
             </TouchableOpacity>
-            
+
             {/* Overlapping company logo */}
-            <TouchableOpacity 
-              activeOpacity={0.85} 
+            <TouchableOpacity
+              activeOpacity={0.85}
               onPress={handleSelectLogo}
               style={[styles.logoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}
             >
@@ -463,9 +434,9 @@ export default function RecruiterProfileScreen() {
 
             {/* Lĩnh vực & Quy mô side by side */}
             <View style={styles.rowGrid}>
-              <TouchableOpacity 
-                activeOpacity={0.7} 
-                onPress={handleSelectIndustry} 
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleSelectIndustry}
                 style={styles.colHalf}
               >
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Lĩnh vực</Text>
@@ -475,9 +446,9 @@ export default function RecruiterProfileScreen() {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                activeOpacity={0.7} 
-                onPress={handleSelectScale} 
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={handleSelectScale}
                 style={styles.colHalf}
               >
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Quy mô</Text>
@@ -623,8 +594,8 @@ export default function RecruiterProfileScreen() {
             <Ionicons name="menu-outline" size={26} color="#FFF" />
           </TouchableOpacity>
           <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>BybitJobs</Text>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
+          <TouchableOpacity
+            activeOpacity={0.7}
             style={styles.iconBtn}
             onPress={() => router.push('/(tabs)/notifications')}
           >
@@ -717,14 +688,22 @@ export default function RecruiterProfileScreen() {
           </View>
 
           <View style={styles.empJobsList}>
-            {displayJobs.map((job) => (
-              <TouchableOpacity
-                key={job.id}
-                activeOpacity={0.9}
-                onPress={() => {
-                  if (job.id.startsWith('mock-')) {
-                    Alert.alert('Thông báo', `Chi tiết tin đăng mẫu: ${job.title}`);
-                  } else {
+            {displayJobs.length === 0 ? (
+              <View style={[styles.empEmptyJobsBox, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+                <Ionicons name="file-tray-outline" size={34} color="#8E8E93" />
+                <Text style={[styles.empEmptyJobsTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Chưa có tin tuyển dụng
+                </Text>
+                <Text style={styles.empEmptyJobsText}>
+                  Các bài đăng thật của công ty sẽ hiển thị tại đây sau khi bạn đăng tin.
+                </Text>
+              </View>
+            ) : (
+              displayJobs.map((job) => (
+                <TouchableOpacity
+                  key={job.id}
+                  activeOpacity={0.9}
+                  onPress={() => {
                     router.push({
                       pathname: '/job-details',
                       params: {
@@ -734,68 +713,68 @@ export default function RecruiterProfileScreen() {
                         location: address,
                       },
                     });
-                  }
-                }}
-                style={[styles.empJobCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
-              >
-                <View style={styles.empJobHeader}>
-                  <Text style={[styles.empJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
-                    {job.title}
-                  </Text>
-                  <View style={[styles.empJobBadge, { backgroundColor: job.isOpen ? '#E8F5E9' : '#ECEFF1' }]}>
-                    <Text style={[styles.empJobBadgeText, { color: job.isOpen ? '#2E7D32' : '#8E8E93' }]}>
-                      {job.isOpen ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+                  }}
+                  style={[styles.empJobCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}
+                >
+                  <View style={styles.empJobHeader}>
+                    <Text style={[styles.empJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                      {job.title}
                     </Text>
+                    <View style={[styles.empJobBadge, { backgroundColor: job.isOpen ? '#E8F5E9' : '#ECEFF1' }]}>
+                      <Text style={[styles.empJobBadgeText, { color: job.isOpen ? '#2E7D32' : '#8E8E93' }]}>
+                        {job.isOpen ? 'ĐANG MỞ' : 'ĐÃ ĐÓNG'}
+                      </Text>
+                    </View>
                   </View>
-                </View>
 
-                <View style={styles.empJobMetaRow}>
-                  <View style={styles.empJobMetaItem}>
-                    <Ionicons name="time-outline" size={13} color="#8E8E93" />
-                    <Text style={styles.empJobMetaText}>{job.type}</Text>
+                  <View style={styles.empJobMetaRow}>
+                    <View style={styles.empJobMetaItem}>
+                      <Ionicons name="time-outline" size={13} color="#8E8E93" />
+                      <Text style={styles.empJobMetaText}>{job.type}</Text>
+                    </View>
+                    <View style={styles.empJobMetaItem}>
+                      <Ionicons name="people-outline" size={13} color="#8E8E93" />
+                      <Text style={styles.empJobMetaText}>
+                        {job.requiredCount > 0 ? `Cần ${job.requiredCount} người` : 'Đã tuyển đủ'}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.empJobMetaItem}>
-                    <Ionicons name="people-outline" size={13} color="#8E8E93" />
-                    <Text style={styles.empJobMetaText}>
-                      {job.requiredCount > 0 ? `Cần ${job.requiredCount} người` : 'Đã tuyển đủ'}
-                    </Text>
-                  </View>
-                </View>
 
-                <View style={styles.empJobFooter}>
-                  <View style={styles.empApplicantsRow}>
-                    {job.avatars && job.avatars.length > 0 ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        {job.avatars.map((url, idx) => (
-                          <Image
-                            key={idx}
-                            source={{ uri: url }}
-                            style={[styles.empApplicantAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
-                          />
-                        ))}
-                        {job.applicantsCount > job.avatars.length && (
-                          <Text style={styles.empApplicantsMore}>
-                            +{job.applicantsCount - job.avatars.length}
-                          </Text>
-                        )}
-                      </View>
-                    ) : (
-                      job.applicantsCount > 0 ? (
-                        <Text style={{ fontSize: 11, color: '#0084FF', fontWeight: 'bold' }}>
-                          {job.applicantsCount} ứng viên đã ứng tuyển
-                        </Text>
+                  <View style={styles.empJobFooter}>
+                    <View style={styles.empApplicantsRow}>
+                      {job.avatars && job.avatars.length > 0 ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          {job.avatars.map((url, idx) => (
+                            <Image
+                              key={idx}
+                              source={{ uri: url }}
+                              style={[styles.empApplicantAvatar, { marginLeft: idx > 0 ? -10 : 0 }]}
+                            />
+                          ))}
+                          {job.applicantsCount > job.avatars.length && (
+                            <Text style={styles.empApplicantsMore}>
+                              +{job.applicantsCount - job.avatars.length}
+                            </Text>
+                          )}
+                        </View>
                       ) : (
-                        <Text style={{ fontSize: 11, color: '#8E8E93' }}>Chưa có ứng viên</Text>
-                      )
-                    )}
-                  </View>
+                        job.applicantsCount > 0 ? (
+                          <Text style={{ fontSize: 11, color: '#0084FF', fontWeight: 'bold' }}>
+                            {job.applicantsCount} ứng viên đã ứng tuyển
+                          </Text>
+                        ) : (
+                          <Text style={{ fontSize: 11, color: '#8E8E93' }}>Chưa có ứng viên</Text>
+                        )
+                      )}
+                    </View>
 
-                  <View style={[styles.empJobSalaryBox, { backgroundColor: isDark ? '#1C2A3A' : '#EBF5FF' }]}>
-                    <Text style={styles.empJobSalaryText}>{job.salary}</Text>
+                    <View style={[styles.empJobSalaryBox, { backgroundColor: isDark ? '#1C2A3A' : '#EBF5FF' }]}>
+                      <Text style={styles.empJobSalaryText}>{job.salary}</Text>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            )}
           </View>
 
           {/* 6. Pricing Packages Section */}
@@ -870,166 +849,163 @@ export default function RecruiterProfileScreen() {
                       styles.empPkgPrice,
                       { color: pkg.isPopular ? '#0084FF' : pkg.isVip ? '#FFF' : '#0084FF' },
                     ]}
-                  >
-                    {pkg.price}
-                    {pkg.duration ? ` / ${pkg.duration}` : ''}
-                  </Text>
-                </View>
 
                 <View style={{ marginBottom: 16 }}>
-                  {pkg.features.map((feature: string, idx: number) => (
-                    <View key={idx} style={styles.empPkgFeatureItem}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color={pkg.isVip ? '#82C1F5' : '#4CAF50'}
-                        style={styles.empPkgFeatureIcon}
-                      />
-                      <Text style={[styles.empPkgFeatureText, { color: descColor }]}>{feature}</Text>
+                    {pkg.features.map((feature: string, idx: number) => (
+                      <View key={idx} style={styles.empPkgFeatureItem}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={16}
+                          color={pkg.isVip ? '#82C1F5' : '#4CAF50'}
+                          style={styles.empPkgFeatureIcon}
+                        />
+                        <Text style={[styles.empPkgFeatureText, { color: descColor }]}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => handleBuyPackage(pkg)}
+                    style={[styles.empPkgBuyBtn, { backgroundColor: buttonBg }]}
+                  >
+                    <Text style={[styles.empPkgBuyBtnText, { color: buttonText }]}>Mua ngay</Text>
+                  </TouchableOpacity>
+                </View>
+                );
+          })}
+
+                {/* 7. Benefits Section */}
+                <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 20, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>
+                  Lợi ích khi nâng cấp
+                </Text>
+
+                {benefits.map((benefit, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.empBenefitCard,
+                      { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' },
+                    ]}
+                  >
+                    <View style={[styles.empBenefitIconFrame, { backgroundColor: isDark ? '#2C2C2E' : '#E6F4FE' }]}>
+                      <Ionicons name={benefit.icon} size={20} color="#0084FF" />
                     </View>
-                  ))}
+                    <View style={styles.empBenefitTextCol}>
+                      <Text style={[styles.empBenefitCardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                        {benefit.title}
+                      </Text>
+                      <Text style={[styles.empBenefitCardDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                        {benefit.desc}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                {/* 8. Elegant Bottom Promo Banner */}
+                <View style={styles.empPromoFrame}>
+                  <Image
+                    source={require('../../assets/images/small_jobs_banner.png')}
+                    style={styles.empPromoImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.empPromoOverlay}>
+                    <Text style={styles.empPromoText}>Hàng ngàn doanh nghiệp đã tin dùng</Text>
+                  </View>
+                </View>
+
+                {/* 9. Settings Options & Logout for Employer */}
+                <View style={[styles.whiteCard, isDark && styles.darkCard, { marginHorizontal: 16, paddingBottom: 6 }]}>
+                  <View style={styles.cardHeader}>
+                    <Ionicons name="settings-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+                    <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      Cài đặt tài khoản & Hỗ trợ
+                    </Text>
+                  </View>
+                  <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+                  {renderSettingRow('business-outline', 'Thông tin công ty', () => setIsEditing(true))}
+                  {renderSettingRow('receipt-outline', 'Lịch sử giao dịch', () => router.push('/recruiter/transactions' as any))}
                 </View>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => handleBuyPackage(pkg)}
-                  style={[styles.empPkgBuyBtn, { backgroundColor: buttonBg }]}
+                  onPress={() => {
+                    Alert.alert(
+                      'Chuyển vai trò',
+                      'Bạn có chắc chắn muốn quay lại giao diện Người tìm việc không?',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        {
+                          text: 'Đồng ý',
+                          onPress: () => {
+                            switchRole('candidate');
+                            router.replace('/(tabs)/profile');
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 16, marginBottom: 8, backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', width: undefined }]}
                 >
-                  <Text style={[styles.empPkgBuyBtnText, { color: buttonText }]}>Mua ngay</Text>
+                  <Ionicons name="people-outline" size={20} color="#0084FF" style={{ marginRight: 8 }} />
+                  <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Quay lại vai trò Người tìm việc</Text>
                 </TouchableOpacity>
-              </View>
-            );
-          })}
 
-          {/* 7. Benefits Section */}
-          <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 20, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>
-            Lợi ích khi nâng cấp
-          </Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleLogout}
+                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 20, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
+                >
+                  <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+                  <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
+                </TouchableOpacity>
 
-          {benefits.map((benefit, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.empBenefitCard,
-                { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' },
-              ]}
-            >
-              <View style={[styles.empBenefitIconFrame, { backgroundColor: isDark ? '#2C2C2E' : '#E6F4FE' }]}>
-                <Ionicons name={benefit.icon} size={20} color="#0084FF" />
-              </View>
-              <View style={styles.empBenefitTextCol}>
-                <Text style={[styles.empBenefitCardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  {benefit.title}
-                </Text>
-                <Text style={[styles.empBenefitCardDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  {benefit.desc}
-                </Text>
-              </View>
-            </View>
-          ))}
+              </ScrollView>
 
-          {/* 8. Elegant Bottom Promo Banner */}
-          <View style={styles.empPromoFrame}>
-            <Image
-              source={require('../../assets/images/small_jobs_banner.png')}
-              style={styles.empPromoImage}
-              resizeMode="cover"
-            />
-            <View style={styles.empPromoOverlay}>
-              <Text style={styles.empPromoText}>Hàng ngàn doanh nghiệp đã tin dùng</Text>
-            </View>
-          </View>
-
-          {/* 9. Settings Options & Logout for Employer */}
-          <View style={[styles.whiteCard, isDark && styles.darkCard, { marginHorizontal: 16, paddingBottom: 6 }]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="settings-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
-              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Cài đặt tài khoản & Hỗ trợ
-              </Text>
-            </View>
-            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-            {renderSettingRow('business-outline', 'Thông tin công ty', () => setIsEditing(true))}
-            {renderSettingRow('receipt-outline', 'Lịch sử giao dịch', () => router.push('/recruiter/transactions' as any))}
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              Alert.alert(
-                'Chuyển vai trò',
-                'Bạn có chắc chắn muốn quay lại giao diện Người tìm việc không?',
-                [
-                  { text: 'Hủy', style: 'cancel' },
+        {/* Custom Raised FAB Bottom Navigation Bar for Recruiter */ }
+            {
+              false && (
+                <View style={[
+                  styles.bottomNavBar,
                   {
-                    text: 'Đồng ý',
-                    onPress: () => {
-                      switchRole('candidate');
-                      router.replace('/(tabs)/profile');
-                    }
+                    backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                    borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                    height: isIphoneWithNotch ? 82 : 64,
+                    paddingBottom: isIphoneWithNotch ? 22 : 6,
+                    paddingTop: 8
                   }
-                ]
-              );
-            }}
-            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 16, marginBottom: 8, backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', width: undefined }]}
-          >
-            <Ionicons name="people-outline" size={20} color="#0084FF" style={{ marginRight: 8 }} />
-            <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Quay lại vai trò Người tìm việc</Text>
-          </TouchableOpacity>
+                ]}>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
+                    <Ionicons name="home-outline" size={24} color="#8E8E93" />
+                    <Text style={styles.navItemText}>Trang chủ</Text>
+                  </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleLogout}
-            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 20, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
-          >
-            <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
-            <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
-          </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+                    <Ionicons name="people-outline" size={24} color="#8E8E93" />
+                    <Text style={styles.navItemText}>Quản lý ứng viên</Text>
+                  </TouchableOpacity>
 
-        </ScrollView>
+                  {/* Center Raised FAB */}
+                  <TouchableOpacity activeOpacity={0.85} onPress={handlePostJob} style={styles.fabNavItem}>
+                    <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                      <Ionicons name="add" size={32} color="#FFF" />
+                    </View>
+                    <Text style={styles.fabItemText}>Đăng tin</Text>
+                  </TouchableOpacity>
 
-        {/* Custom Raised FAB Bottom Navigation Bar for Recruiter */}
-        {false && (
-        <View style={[
-          styles.bottomNavBar, 
-          { 
-            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
-            borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
-            height: isIphoneWithNotch ? 82 : 64,
-            paddingBottom: isIphoneWithNotch ? 22 : 6,
-            paddingTop: 8
-          }
-        ]}>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
-            <Ionicons name="home-outline" size={24} color="#8E8E93" />
-            <Text style={styles.navItemText}>Trang chủ</Text>
-          </TouchableOpacity>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
+                    <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
+                    <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
+                  </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
-            <Ionicons name="people-outline" size={24} color="#8E8E93" />
-            <Text style={styles.navItemText}>Quản lý ứng viên</Text>
-          </TouchableOpacity>
-
-          {/* Center Raised FAB */}
-          <TouchableOpacity activeOpacity={0.85} onPress={handlePostJob} style={styles.fabNavItem}>
-            <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
-              <Ionicons name="add" size={32} color="#FFF" />
-            </View>
-            <Text style={styles.fabItemText}>Đăng tin</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
-            <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
-            <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
-            <Ionicons name="person" size={24} color="#0084FF" />
-            <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
-          </TouchableOpacity>
-        </View>
-        )}
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
+                    <Ionicons name="person" size={24} color="#0084FF" />
+                    <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
+                  </TouchableOpacity>
+                </View>
+              )
+            }
       </SafeAreaView>
     );
   };
@@ -1396,6 +1372,26 @@ const styles = StyleSheet.create({
   empJobsList: {
     paddingHorizontal: 16,
     gap: 12,
+  },
+  empEmptyJobsBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  empEmptyJobsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  empEmptyJobsText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    lineHeight: 17,
+    textAlign: 'center',
   },
   empJobCard: {
     borderWidth: 1,
