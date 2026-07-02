@@ -8,6 +8,8 @@ import {
   ScrollView,
   Image,
   Alert,
+  Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,6 +60,12 @@ export default function RecruiterProfileScreen() {
       { id: 'branch-2', name: 'Văn phòng đại diện', address: 'Quận Cầu Giấy, Hà Nội' },
     ]
   );
+
+  // Branch Modal States
+  const [isBranchModalVisible, setIsBranchModalVisible] = React.useState(false);
+  const [editingBranchId, setEditingBranchId] = React.useState<string | null>(null);
+  const [branchNameInput, setBranchNameInput] = React.useState('');
+  const [branchAddressInput, setBranchAddressInput] = React.useState('');
 
   React.useEffect(() => {
     if (employerData) {
@@ -188,19 +196,10 @@ export default function RecruiterProfileScreen() {
   };
 
   const handleAddBranch = () => {
-    const newId = `branch-${Date.now()}`;
-    const mockBranchNames = ['Văn phòng Đà Nẵng', 'Văn phòng Cần Thơ', 'Chi nhánh Hải Phòng'];
-    const mockAddresses = ['Quận Hải Châu, Đà Nẵng', 'Quận Ninh Kiều, Cần Thơ', 'Quận Hồng Bàng, Hải Phòng'];
-    const randomIndex = Math.floor(Math.random() * mockBranchNames.length);
-
-    const newBranch: BranchItem = {
-      id: newId,
-      name: mockBranchNames[randomIndex],
-      address: mockAddresses[randomIndex],
-    };
-
-    setBranches([...branches, newBranch]);
-    Alert.alert('Thêm mới', `Đã thêm văn phòng đại diện: ${newBranch.name}`);
+    setEditingBranchId(null);
+    setBranchNameInput('');
+    setBranchAddressInput('');
+    setIsBranchModalVisible(true);
   };
 
   const handleDeleteBranch = (id: string, name: string) => {
@@ -220,8 +219,45 @@ export default function RecruiterProfileScreen() {
     );
   };
 
-  const handleEditBranch = (name: string) => {
-    Alert.alert('Chỉnh sửa', `Tính năng chỉnh sửa văn phòng "${name}" đang được cập nhật.`);
+  const handleEditBranch = (id: string, name: string, address: string) => {
+    setEditingBranchId(id);
+    setBranchNameInput(name);
+    setBranchAddressInput(address);
+    setIsBranchModalVisible(true);
+  };
+
+  const handleSaveBranch = () => {
+    if (!branchNameInput.trim()) {
+      Alert.alert('Cảnh báo', 'Vui lòng nhập tên văn phòng / chi nhánh.');
+      return;
+    }
+    if (!branchAddressInput.trim()) {
+      Alert.alert('Cảnh báo', 'Vui lòng nhập địa chỉ văn phòng.');
+      return;
+    }
+
+    if (editingBranchId) {
+      setBranches(
+        branches.map((b) =>
+          b.id === editingBranchId
+            ? { ...b, name: branchNameInput.trim(), address: branchAddressInput.trim() }
+            : b
+        )
+      );
+      Alert.alert('Thành công', 'Đã cập nhật thông tin văn phòng.');
+    } else {
+      const newBranch: BranchItem = {
+        id: `branch-${Date.now()}`,
+        name: branchNameInput.trim(),
+        address: branchAddressInput.trim(),
+      };
+      setBranches([...branches, newBranch]);
+      Alert.alert('Thành công', 'Đã thêm văn phòng đại diện mới.');
+    }
+    setIsBranchModalVisible(false);
+    setEditingBranchId(null);
+    setBranchNameInput('');
+    setBranchAddressInput('');
   };
 
   const handleBuyPackage = (pkg: any) => {
@@ -554,7 +590,7 @@ export default function RecruiterProfileScreen() {
                   <Text style={styles.branchAddressText}>{branch.address}</Text>
                 </View>
                 <View style={styles.branchActions}>
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => handleEditBranch(branch.name)} style={styles.actionBtn}>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => handleEditBranch(branch.id, branch.name, branch.address)} style={styles.actionBtn}>
                     <Ionicons name="pencil" size={16} color="#8E8E93" />
                   </TouchableOpacity>
                   <TouchableOpacity activeOpacity={0.7} onPress={() => handleDeleteBranch(branch.id, branch.name)} style={styles.actionBtn}>
@@ -580,6 +616,70 @@ export default function RecruiterProfileScreen() {
             <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={styles.saveButtonIcon} />
           </TouchableOpacity>
         </View>
+
+        {/* Modal: Thêm / Sửa Văn phòng đại diện */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isBranchModalVisible}
+          onRequestClose={() => setIsBranchModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.branchModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+              {/* Header */}
+              <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+                <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {editingBranchId ? 'Chỉnh sửa văn phòng' : 'Thêm văn phòng đại diện'}
+                </Text>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setIsBranchModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Inputs */}
+              <View style={{ padding: 20 }}>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }]}>
+                    Tên văn phòng / chi nhánh
+                  </Text>
+                  <View style={[styles.inputBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+                    <TextInput
+                      style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                      placeholder="Ví dụ: Văn phòng Hà Nội"
+                      placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                      value={branchNameInput}
+                      onChangeText={setBranchNameInput}
+                    />
+                  </View>
+                </View>
+
+                <View style={[styles.inputGroup, { marginTop: 16 }]}>
+                  <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }]}>
+                    Địa chỉ văn phòng
+                  </Text>
+                  <View style={[styles.inputBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+                    <TextInput
+                      style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                      placeholder="Ví dụ: Số 123 Đường Nguyễn Trãi, Thanh Xuân, Hà Nội"
+                      placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                      value={branchAddressInput}
+                      onChangeText={setBranchAddressInput}
+                    />
+                  </View>
+                </View>
+
+                {/* Save Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleSaveBranch}
+                  style={[styles.saveBranchBtn, { backgroundColor: '#0084FF', marginTop: 24 }]}
+                >
+                  <Text style={styles.saveBranchBtnText}>Lưu thông tin</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     );
   };
@@ -1732,5 +1832,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0060B6',
     marginTop: 34,
+  },
+
+  // Custom Branch Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  branchModalContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  saveBranchBtn: {
+    height: 46,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  saveBranchBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
