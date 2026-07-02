@@ -7,6 +7,8 @@ import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { Filter, Download, ArrowUpRight, MoreVertical } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
+import { Input } from '../components/ui/Input';
+import { Modal } from '../components/ui/Modal';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -14,6 +16,10 @@ import { useEffect } from 'react';
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterForm, setFilterForm] = useState({ company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' });
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật
   const apiHost = '160.250.246.119';
@@ -36,7 +42,10 @@ export const Payments: React.FC = () => {
               company: item.companyName || 'Không xác định',
               package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
               amount: `${Number(item.price || 0).toLocaleString()} đ`,
+              rawPrice: Number(item.price || 0),
+              rawDate: dateObj,
               method: 'PayOS',
+              time: dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
               status: finalStatus === 'success' ? 'Completed' : finalStatus === 'pending' ? 'Pending' : 'Failed',
               color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
               bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
@@ -47,6 +56,57 @@ export const Payments: React.FC = () => {
       })
       .catch(err => console.error('Lỗi lấy danh sách giao dịch:', err));
   }, []);
+
+  const filteredTransactions = transactions.filter(item => {
+    // Basic search
+    const matchSearch = item.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.package.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchSearch) return false;
+
+    // Advanced filters
+    if (appliedFilters.company && !item.company.toLowerCase().includes(appliedFilters.company.toLowerCase())) return false;
+    
+    if (appliedFilters.minPrice) {
+      const min = parseInt(appliedFilters.minPrice, 10);
+      if (!isNaN(min) && item.rawPrice < min) return false;
+    }
+    
+    if (appliedFilters.maxPrice) {
+      const max = parseInt(appliedFilters.maxPrice, 10);
+      if (!isNaN(max) && item.rawPrice > max) return false;
+    }
+    
+    if (appliedFilters.startDate) {
+      const parts = appliedFilters.startDate.split('/');
+      if (parts.length === 3) {
+        const start = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+        if (!isNaN(start.getTime()) && item.rawDate < start) return false;
+      }
+    }
+    
+    if (appliedFilters.endDate) {
+      const parts = appliedFilters.endDate.split('/');
+      if (parts.length === 3) {
+        const end = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T23:59:59`);
+        if (!isNaN(end.getTime()) && item.rawDate > end) return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const handleApplyFilter = () => {
+    setAppliedFilters(filterForm);
+    setIsFilterModalOpen(false);
+  };
+
+  const handleClearFilter = () => {
+    const empty = { company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' };
+    setFilterForm(empty);
+    setAppliedFilters(empty);
+    setIsFilterModalOpen(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -96,8 +156,15 @@ export const Payments: React.FC = () => {
       <Card style={styles.tableCard}>
         <View style={styles.filterBar}>
           <Typography variant="h3">Danh sách giao dịch</Typography>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <Button variant="outline" icon={<Filter size={18} color={colors.textSecondary} />}>Bộ lọc</Button>
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <View style={{ width: 250, marginBottom: -16 }}>
+              <Input
+                placeholder="Tìm nhà tuyển dụng..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <Button variant="outline" onPress={() => setIsFilterModalOpen(true)} icon={<Filter size={18} color={colors.textSecondary} />}>Bộ lọc</Button>
             <Button variant="outline" icon={<Download size={18} color={colors.textSecondary} />}>Xuất Excel</Button>
           </View>
         </View>
@@ -110,11 +177,12 @@ export const Payments: React.FC = () => {
               <Typography variant="caption" color="muted" style={styles.colPackage}>Gói dịch vụ</Typography>
               <Typography variant="caption" color="muted" style={styles.colAmount}>Số tiền</Typography>
               <Typography variant="caption" color="muted" style={styles.colMethod}>Phương thức</Typography>
+              <Typography variant="caption" color="muted" style={styles.colTime}>Thời gian</Typography>
               <Typography variant="caption" color="muted" style={styles.colStatus}>Trạng thái</Typography>
               <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
             </View>
 
-            {transactions.map((item, index) => (
+            {filteredTransactions.map((item, index) => (
               <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
                 <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
                 <View style={[styles.colCompany, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
@@ -129,6 +197,7 @@ export const Payments: React.FC = () => {
                   <View style={[styles.methodIcon, { backgroundColor: colors.bgSecondary }]} />
                   <Typography variant="body2">{item.method}</Typography>
                 </View>
+                <Typography variant="body2" color="secondary" style={styles.colTime}>{item.time}</Typography>
                 <View style={styles.colStatus}>
                   <Badge status={item.status === 'Completed' ? 'success' : item.status === 'Pending' ? 'warning' : 'danger'}>
                     • {item.status}
@@ -143,7 +212,7 @@ export const Payments: React.FC = () => {
         </ScrollView>
 
         <View style={styles.pagination}>
-          <Typography variant="body2" color="secondary">Hiển thị 1 - 4 trên 150 giao dịch</Typography>
+          <Typography variant="body2" color="secondary">Hiển thị {filteredTransactions.length > 0 ? 1 : 0} - {Math.min(4, filteredTransactions.length)} trên {filteredTransactions.length} giao dịch</Typography>
           <View style={styles.pageNumbers}>
             <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><Typography variant="body2" color="secondary">Trước</Typography></TouchableOpacity>
             <TouchableOpacity style={[styles.pageBtn, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}><Typography variant="body2" style={{ color: '#fff' }}>1</Typography></TouchableOpacity>
@@ -153,6 +222,60 @@ export const Payments: React.FC = () => {
           </View>
         </View>
       </Card>
+
+      <Modal 
+        visible={isFilterModalOpen} 
+        title="Bộ lọc nâng cao" 
+        onClose={() => setIsFilterModalOpen(false)}
+      >
+        <Input 
+          label="Tên nhà tuyển dụng" 
+          placeholder="Ví dụ: Bybit..." 
+          value={filterForm.company}
+          onChangeText={(t) => setFilterForm({...filterForm, company: t})}
+        />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Input 
+              label="Giá trị từ (VNĐ)" 
+              placeholder="VD: 100000" 
+              value={filterForm.minPrice}
+              onChangeText={(t) => setFilterForm({...filterForm, minPrice: t})}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Input 
+              label="Đến (VNĐ)" 
+              placeholder="VD: 500000" 
+              value={filterForm.maxPrice}
+              onChangeText={(t) => setFilterForm({...filterForm, maxPrice: t})}
+            />
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Input 
+              label="Từ ngày (DD/MM/YYYY)" 
+              placeholder="VD: 01/05/2026" 
+              value={filterForm.startDate}
+              onChangeText={(t) => setFilterForm({...filterForm, startDate: t})}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Input 
+              label="Đến ngày (DD/MM/YYYY)" 
+              placeholder="VD: 31/05/2026" 
+              value={filterForm.endDate}
+              onChangeText={(t) => setFilterForm({...filterForm, endDate: t})}
+            />
+          </View>
+        </View>
+        
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+          <Button variant="secondary" style={{ flex: 1 }} onPress={handleClearFilter}>Xóa bộ lọc</Button>
+          <Button variant="primary" style={{ flex: 1 }} onPress={handleApplyFilter}>Áp dụng</Button>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -174,6 +297,7 @@ const styles = StyleSheet.create({
   colPackage: { flex: 1.5 },
   colAmount: { flex: 1.5 },
   colMethod: { flex: 1.5 },
+  colTime: { flex: 1.5 },
   colStatus: { flex: 1.5 },
   colAction: { flex: 0.5, alignItems: 'flex-end' },
   avatarRound: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
