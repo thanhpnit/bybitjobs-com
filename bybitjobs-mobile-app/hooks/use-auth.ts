@@ -1082,6 +1082,7 @@ export function useAuth() {
   const addJob = async (job: Omit<JobItem, 'id' | 'createdAt'>): Promise<boolean> => {
     try {
       if (globalEmployerData) {
+        const currentPackage = globalEmployerData.currentPackage || '';
         // Fallback backward compatibility for users still having postsLimit string
         let used = globalEmployerData.usedPosts || 0;
         if (globalEmployerData.postsLimit && globalEmployerData.postsLimit.includes('/')) {
@@ -1109,13 +1110,13 @@ export function useAuth() {
         let limit = 0;
         packagesSnap.forEach((d) => {
           const pkg = d.data();
-          if (pkg.name === globalEmployerData.currentPackage || pkg.id === globalEmployerData.currentPackage) {
+          if (pkg.name === currentPackage || pkg.id === currentPackage) {
             limit = pkg.maxPosts || 0;
           }
         });
 
         if (!limit) {
-           const cp = (globalEmployerData.currentPackage || '').toLowerCase();
+           const cp = currentPackage.toLowerCase();
            if (cp.includes('starter') || cp.includes('basic')) limit = 2;
            else if (cp.includes('pro') || cp.includes('standard')) limit = 5;
            else if (cp.includes('premium')) limit = 9999;

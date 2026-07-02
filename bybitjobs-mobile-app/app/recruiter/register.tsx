@@ -9,12 +9,78 @@ import {
   ScrollView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+
+type CompanySuggestion = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
+const COMPANY_KEYWORDS = [
+  'công ty',
+  'doanh nghiệp',
+  'tập đoàn',
+  'corporation',
+  'company',
+  'enterprise',
+  'business',
+  'inc.',
+  'incorporated',
+  'limited',
+  'ltd',
+  'plc',
+  'jsc',
+  'joint stock',
+  'multinational',
+  'conglomerate',
+  'startup',
+];
+
+const looksLikeCompany = (suggestion: CompanySuggestion) => {
+  const text = `${suggestion.name} ${suggestion.description || ''}`.toLowerCase();
+  return COMPANY_KEYWORDS.some((keyword) => text.includes(keyword));
+};
+
+const buildCompanyAddressQuery = (companyId: string) => `
+SELECT ?headquartersLabel ?locatedLabel ?countryLabel ?street WHERE {
+  OPTIONAL {
+    wd:${companyId} wdt:P159 ?headquarters.
+    OPTIONAL { ?headquarters wdt:P6375 ?street. }
+    OPTIONAL { ?headquarters wdt:P131 ?located. }
+    OPTIONAL { ?headquarters wdt:P17 ?country. }
+  }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "vi,en". }
+}
+LIMIT 1
+`;
+
+const getCompanyAddress = async (companyId: string) => {
+  if (!/^Q\d+$/.test(companyId)) return '';
+
+  const response = await fetch(
+    `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(buildCompanyAddressQuery(companyId))}`
+  );
+  const data = await response.json();
+  const result = data?.results?.bindings?.[0];
+
+  if (!result) return '';
+
+  const parts = [
+    result.street?.value,
+    result.headquartersLabel?.value,
+    result.locatedLabel?.value,
+    result.countryLabel?.value,
+  ].filter(Boolean);
+
+  return Array.from(new Set(parts)).join(', ');
+};
 
 export default function RecruiterRegisterScreen() {
   const colorScheme = useColorScheme();
@@ -27,6 +93,88 @@ export default function RecruiterRegisterScreen() {
   const [taxId, setTaxId] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [address, setAddress] = React.useState('');
+  const [companySuggestions, setCompanySuggestions] = React.useState<CompanySuggestion[]>([]);
+  const [isSearchingCompany, setIsSearchingCompany] = React.useState(false);
+  const [showCompanySuggestions, setShowCompanySuggestions] = React.useState(false);
+  const [isLoadingCompanyAddress, setIsLoadingCompanyAddress] = React.useState(false);
+
+  React.useEffect(() => {
+    const keyword = companyName.trim();
+
+    if (keyword.length < 1 || !showCompanySuggestions) {
+      setCompanySuggestions([]);
+      setIsSearchingCompany(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsSearchingCompany(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const searchUrls = ['vi', 'en'].map(
+          (language) =>
+            `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(keyword)}&language=${language}&uselang=vi&format=json&origin=*&limit=10`
+        );
+        const responses = await Promise.all(searchUrls.map((url) => fetch(url)));
+        const results = await Promise.all(responses.map((response) => response.json()));
+
+        if (!isActive) return;
+
+        const suggestionMap = new Map<string, CompanySuggestion>();
+
+        results.forEach((data) => {
+          if (!Array.isArray(data?.search)) return;
+
+          data.search.forEach((item: any) => {
+            const suggestion = {
+              id: String(item.id || item.concepturi || item.label),
+              name: String(item.label || '').trim(),
+              description: item.description ? String(item.description) : undefined,
+            };
+
+            if (suggestion.name && looksLikeCompany(suggestion)) {
+              suggestionMap.set(suggestion.id, suggestion);
+            }
+          });
+        });
+
+        const suggestions = Array.from(suggestionMap.values()).slice(0, 8);
+
+        setCompanySuggestions(suggestions);
+      } catch {
+        if (isActive) {
+          setCompanySuggestions([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsSearchingCompany(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
+  }, [companyName, showCompanySuggestions]);
+
+  const handleSelectCompanySuggestion = async (suggestion: CompanySuggestion) => {
+    setCompanyName(suggestion.name);
+    setCompanySuggestions([]);
+    setShowCompanySuggestions(false);
+    setIsLoadingCompanyAddress(true);
+    setAddress('Đang lấy địa chỉ công ty...');
+
+    try {
+      const companyAddress = await getCompanyAddress(suggestion.id);
+      setAddress(companyAddress || 'Chưa có địa chỉ công khai trên Wikidata');
+    } catch {
+      setAddress('Chưa có địa chỉ công khai trên Wikidata');
+    } finally {
+      setIsLoadingCompanyAddress(false);
+    }
+  };
 
   const handleRegister = () => {
     // 1. Validation Logic
@@ -42,8 +190,12 @@ export default function RecruiterRegisterScreen() {
       Alert.alert('Cảnh báo', 'Số điện thoại liên hệ không được để trống.');
       return;
     }
+    if (isLoadingCompanyAddress) {
+      Alert.alert('Cảnh báo', 'Vui lòng đợi hệ thống lấy địa chỉ công ty.');
+      return;
+    }
     if (!address.trim()) {
-      Alert.alert('Cảnh báo', 'Địa chỉ công ty không được để trống.');
+      Alert.alert('Cảnh báo', 'Vui lòng chọn công ty từ danh sách gợi ý để tự lấy địa chỉ.');
       return;
     }
 
@@ -113,9 +265,41 @@ export default function RecruiterRegisterScreen() {
                   placeholder="Ví dụ: Công ty TNHH ABC"
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                   value={companyName}
-                  onChangeText={setCompanyName}
+                  onFocus={() => setShowCompanySuggestions(true)}
+                  onChangeText={(text) => {
+                    setCompanyName(text);
+                    setAddress('');
+                    setShowCompanySuggestions(true);
+                  }}
                 />
+                {isSearchingCompany && (
+                  <ActivityIndicator size="small" color="#0084FF" />
+                )}
               </View>
+              {showCompanySuggestions && companySuggestions.length > 0 && (
+                <View style={[styles.suggestionBox, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#D1D5DB' }]}>
+                  {companySuggestions.map((suggestion) => (
+                    <TouchableOpacity
+                      key={suggestion.id}
+                      activeOpacity={0.75}
+                      style={[styles.suggestionItem, { borderBottomColor: isDark ? '#2C2C2E' : '#EEF0F3' }]}
+                      onPress={() => handleSelectCompanySuggestion(suggestion)}
+                    >
+                      <Ionicons name="business" size={18} color="#0084FF" style={styles.suggestionIcon} />
+                      <View style={styles.suggestionTextWrap}>
+                        <Text numberOfLines={1} style={[styles.suggestionName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                          {suggestion.name}
+                        </Text>
+                        {!!suggestion.description && (
+                          <Text numberOfLines={1} style={styles.suggestionDesc}>
+                            {suggestion.description}
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Input 2: Tax Code */}
@@ -167,15 +351,19 @@ export default function RecruiterRegisterScreen() {
                 <Ionicons name="location-outline" size={20} color="#8E8E93" style={[styles.leftIcon, { marginTop: 2 }]} />
                 <TextInput
                   style={[styles.textareaInput, { color: isDark ? '#FFF' : '#11181C' }]}
-                  placeholder="Nhập địa chỉ trụ sở chính"
+                  placeholder="Chọn công ty ở trên để tự lấy địa chỉ"
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  editable={false}
                   multiline={true}
                   numberOfLines={4}
                   textAlignVertical="top"
                   value={address}
-                  onChangeText={setAddress}
                 />
+                {isLoadingCompanyAddress && (
+                  <ActivityIndicator size="small" color="#0084FF" style={styles.addressLoading} />
+                )}
               </View>
+              <Text style={styles.subtext}>Địa chỉ được tự động lấy theo công ty đã chọn.</Text>
             </View>
 
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#E5E7EB' }]} />
@@ -296,6 +484,34 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     height: '100%',
   },
+  suggestionBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+  },
+  suggestionIcon: {
+    marginRight: 10,
+  },
+  suggestionTextWrap: {
+    flex: 1,
+  },
+  suggestionName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  suggestionDesc: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
   subtext: {
     fontSize: 11,
     color: '#8E8E93',
@@ -314,6 +530,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     minHeight: 80,
+  },
+  addressLoading: {
+    marginLeft: 8,
+    marginTop: 2,
   },
   divider: {
     height: 1,
