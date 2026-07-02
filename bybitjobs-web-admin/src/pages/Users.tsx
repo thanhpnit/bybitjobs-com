@@ -61,38 +61,7 @@ export const Users: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const requestDelete = (id: string) => {
-    const isMockUser = id.startsWith('#US-');
-    setConfirmProps({
-      visible: true,
-      title: 'Xóa người dùng',
-      message: `Bạn có chắc chắn muốn xóa người dùng này không? ${isMockUser ? 'Người dùng mẫu sẽ bị xóa khỏi bộ nhớ tạm.' : 'Tài khoản này sẽ bị xóa VĨNH VIỄN khỏi Firebase Auth và không thể khôi phục.'}`,
-      onConfirm: async () => {
-        if (isMockUser) {
-          // Xóa mock user khỏi local state & localStorage
-          setUsers(users.filter(i => i.id !== id));
-          setConfirmProps(prev => ({ ...prev, visible: false }));
-          return;
-        }
 
-        try {
-          const response = await fetch(`http://${apiHost}:4000/api/users/${id}`, {
-            method: 'DELETE',
-          });
-          const result = await response.json();
-          if (response.ok) {
-            setUsers(users.filter(i => (i.uid || i.id) !== id));
-          } else {
-            alert(`Lỗi: ${result.error || 'Không thể xóa người dùng'}`);
-          }
-        } catch (error) {
-          console.error('Lỗi khi gọi API xóa người dùng:', error);
-          setUsers(users.filter(i => (i.uid || i.id) !== id));
-        }
-        setConfirmProps(prev => ({ ...prev, visible: false }));
-      }
-    });
-  };
 
   const requestToggleStatus = (id: string, currentStatus: string) => {
     const isMockUser = id.startsWith('#US-');
@@ -238,9 +207,7 @@ export const Users: React.FC = () => {
                       <Ban size={18} color={colors.warningText || '#F59E0B'} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => requestDelete(item.uid || item.id)}>
-                    <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
-                  </TouchableOpacity>
+
                 </View>
               </View>
             ))}
