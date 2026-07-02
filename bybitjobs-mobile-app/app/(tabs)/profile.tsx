@@ -2070,7 +2070,7 @@ function CandidateProfileScreen() {
                       try {
                         await addDoc(collection(db, 'feedbacks'), {
                           userId: userData?.uid || 'guest',
-                          userEmail: userData?.email || 'guest@bybitjobs.com',
+                          userEmail: userData?.emailOrPhone || 'guest@bybitjobs.com',
                           role: 'candidate',
                           rating: feedbackRating,
                           comment: feedbackText.trim(),
@@ -3927,6 +3927,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  explorerCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   policyTitle: {
     fontSize: 20,

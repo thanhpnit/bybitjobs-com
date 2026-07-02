@@ -25,13 +25,23 @@ const getFirstText = (...values: unknown[]) => {
   return typeof value === 'string' ? value.trim() : '';
 };
 
+type EmployerProfileInfo = {
+  displayName: string;
+  companyName: string;
+  phone: string;
+  email: string;
+  address: string;
+};
+
 export default function JobDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { isLoggedIn, userRole, userData, jobs, savedJobs, toggleSavedJob, addViewedJob } = useAuth();
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [employerInfoModalVisible, setEmployerInfoModalVisible] = useState(false);
   const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
+  const [employerInfo, setEmployerInfo] = useState<EmployerProfileInfo | null>(null);
   const [reportForm, setReportForm] = useState({
     content: ''
   });
@@ -91,48 +101,70 @@ export default function JobDetailsScreen() {
     let isActive = true;
 
     const loadEmployerName = async () => {
-      if (typeof storedPosterName === 'string' && storedPosterName.trim()) {
-        if (isActive) setEmployerName(storedPosterName.trim());
-        return;
-      }
-
       if (!currentJob?.employerId) {
-        if (isActive) setEmployerName('Nhà tuyển dụng');
+        const fallbackName = getFirstText(storedPosterName, 'Nhà tuyển dụng');
+        if (isActive) {
+          setEmployerName(fallbackName);
+          setEmployerInfo({
+            displayName: fallbackName,
+            companyName: fallbackName,
+            phone: 'Chưa cập nhật',
+            email: 'Chưa cập nhật',
+            address: displayLocation,
+          });
+        }
         return;
       }
 
       try {
+        let apiUserData: any = null;
+        let employerData: any = null;
+
         const userResponse = await fetch(`http://160.250.246.119:4000/api/users/${currentJob.employerId}`);
         if (userResponse.ok) {
-          const userData = await userResponse.json();
-          const userName = getFirstText(
-            userData.fullName,
-            userData.full_name,
-            userData.displayName,
-            userData.name
-          );
-
-          if (userName) {
-            if (isActive) setEmployerName(userName);
-            return;
-          }
+          apiUserData = await userResponse.json();
         }
 
         const employerSnapshot = await getDoc(doc(db, 'employers', currentJob.employerId));
-        const employerData = employerSnapshot.exists() ? employerSnapshot.data() : null;
+        employerData = employerSnapshot.exists() ? employerSnapshot.data() : null;
         const name = getFirstText(
+          storedPosterName,
+          employerData?.companyName,
+          employerData?.company,
+          employerData?.name,
           employerData?.posterName,
           employerData?.fullName,
           employerData?.contactName,
           employerData?.ownerName,
-          employerData?.name,
-          employerData?.companyName
+          apiUserData?.fullName,
+          apiUserData?.full_name,
+          apiUserData?.displayName,
+          apiUserData?.name
         ) || 'Nhà tuyển dụng';
 
-        if (isActive) setEmployerName(name);
+        if (isActive) {
+          setEmployerName(name);
+          setEmployerInfo({
+            displayName: name,
+            companyName: getFirstText(employerData?.companyName, employerData?.company, employerData?.name, name),
+            phone: getFirstText(employerData?.phoneNumber, employerData?.phone, apiUserData?.phone, apiUserData?.phoneNumber, 'Chưa cập nhật'),
+            email: getFirstText(employerData?.email, apiUserData?.email, apiUserData?.emailOrPhone, 'Chưa cập nhật'),
+            address: getFirstText(employerData?.address, employerData?.location, displayLocation, 'Chưa cập nhật'),
+          });
+        }
       } catch (error) {
         console.error('Lỗi lấy thông tin nhà tuyển dụng:', error);
-        if (isActive) setEmployerName('Nhà tuyển dụng');
+        const fallbackName = getFirstText(storedPosterName, 'Nhà tuyển dụng');
+        if (isActive) {
+          setEmployerName(fallbackName);
+          setEmployerInfo({
+            displayName: fallbackName,
+            companyName: fallbackName,
+            phone: 'Chưa cập nhật',
+            email: 'Chưa cập nhật',
+            address: displayLocation,
+          });
+        }
       }
     };
 
@@ -141,7 +173,7 @@ export default function JobDetailsScreen() {
     return () => {
       isActive = false;
     };
-  }, [currentJob?.employerId, storedPosterName]);
+  }, [currentJob?.employerId, currentJob?.industry, displayLocation, storedPosterName]);
 
   const handleSaveJob = async () => {
     if (!isLoggedIn) {
@@ -194,6 +226,20 @@ export default function JobDetailsScreen() {
       setReportModalVisible(true);
     }
   };
+
+  const renderEmployerInfoRow = (icon: keyof typeof Ionicons.glyphMap, label: string, value?: string) => (
+    <View style={[styles.employerDetailRow, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
+      <View style={[styles.employerDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+        <Ionicons name={icon} size={17} color="#0084FF" />
+      </View>
+      <View style={styles.employerDetailTextCol}>
+        <Text style={styles.employerDetailLabel}>{label}</Text>
+        <Text style={[styles.employerDetailValue, { color: isDark ? '#FFF' : '#11181C' }]}>
+          {value || 'Chưa cập nhật'}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
@@ -272,7 +318,11 @@ export default function JobDetailsScreen() {
           </View>
 
           {/* Employer Card */}
-          <View style={[styles.whiteCard, styles.employerCard, isDark && styles.darkCard]}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setEmployerInfoModalVisible(true)}
+            style={[styles.whiteCard, styles.employerCard, isDark && styles.darkCard]}
+          >
             <View style={styles.employerLeft}>
               <Image
                 source={require('../assets/images/android-icon-foreground.png')} // Custom smiling profile vector mockup
@@ -296,7 +346,8 @@ export default function JobDetailsScreen() {
                 </View>
               </View>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={20} color={isDark ? '#9BA1A6' : '#8E8E93'} />
+          </TouchableOpacity>
 
           {/* Job Description (Mô tả công việc) */}
           <View style={[styles.whiteCard, styles.sectionCard, isDark && styles.darkCard]}>
@@ -443,6 +494,56 @@ export default function JobDetailsScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Employer Info Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={employerInfoModalVisible}
+        onRequestClose={() => setEmployerInfoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.employerModalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+            <View style={styles.employerModalHeader}>
+              <TouchableOpacity
+                style={[styles.employerModalCloseButton, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                onPress={() => setEmployerInfoModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+              <View style={styles.employerModalHandle} />
+              <View style={[styles.employerHeroCard, { backgroundColor: isDark ? '#152E47' : '#EAF5FF' }]}>
+                <View style={styles.employerHeroTop}>
+                  <View style={[styles.employerModalAvatar, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
+                    <Ionicons name="business" size={34} color="#0084FF" />
+                  </View>
+                  <View style={styles.employerHeroTextCol}>
+                    <Text style={[styles.employerModalTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                      {employerInfo?.companyName || employerName}
+                    </Text>
+                    <View style={[styles.employerVerifiedPill, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
+                      <Ionicons name="checkmark-circle" size={13} color="#0084FF" />
+                      <Text style={styles.employerVerifiedText}>Nhà tuyển dụng</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <ScrollView style={styles.employerModalBody} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.employerSectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Thông tin liên hệ
+              </Text>
+              {renderEmployerInfoRow('person-outline', 'Người đại diện', employerInfo?.displayName || employerName)}
+              {renderEmployerInfoRow('business-outline', 'Tên công ty', employerInfo?.companyName || employerName)}
+              {renderEmployerInfoRow('call-outline', 'Số điện thoại', employerInfo?.phone)}
+              {renderEmployerInfoRow('mail-outline', 'Email', employerInfo?.email)}
+              {renderEmployerInfoRow('location-outline', 'Địa chỉ', employerInfo?.address)}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Report Modal */}
       <Modal
@@ -745,6 +846,118 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: '#8E8E93',
     marginHorizontal: 6,
+  },
+  employerModalContent: {
+    width: '100%',
+    maxHeight: '76%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 22,
+  },
+  employerModalHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
+  },
+  employerModalHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  employerModalCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  employerHeroCard: {
+    borderRadius: 20,
+    padding: 16,
+  },
+  employerHeroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  employerModalAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  employerHeroTextCol: {
+    flex: 1,
+    paddingRight: 28,
+  },
+  employerModalTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    lineHeight: 22,
+  },
+  employerVerifiedPill: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  employerVerifiedText: {
+    color: '#0084FF',
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  employerModalBody: {
+    paddingHorizontal: 16,
+    paddingTop: 2,
+  },
+  employerSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  employerDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 9,
+    backgroundColor: '#F4F5F7',
+  },
+  employerDetailIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  employerDetailTextCol: {
+    flex: 1,
+  },
+  employerDetailLabel: {
+    fontSize: 10,
+    color: '#8E8E93',
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  employerDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 21,
   },
   sectionCard: {
     padding: 16,
