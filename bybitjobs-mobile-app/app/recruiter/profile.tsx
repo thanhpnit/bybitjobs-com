@@ -849,6 +849,11 @@ export default function RecruiterProfileScreen() {
                       styles.empPkgPrice,
                       { color: pkg.isPopular ? '#0084FF' : pkg.isVip ? '#FFF' : '#0084FF' },
                     ]}
+                  >
+                    {pkg.price}
+                    {pkg.duration ? ` / ${pkg.duration}` : ''}
+                  </Text>
+                </View>
 
                 <View style={{ marginBottom: 16 }}>
                     {pkg.features.map((feature: string, idx: number) => (

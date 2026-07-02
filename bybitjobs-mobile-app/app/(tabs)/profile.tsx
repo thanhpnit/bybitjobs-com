@@ -12,9 +12,12 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from '../../src/config/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
@@ -63,6 +66,14 @@ function CandidateProfileScreen() {
   const [isEditPhoneModalVisible, setIsEditPhoneModalVisible] = React.useState(false);
   const [editPhoneInput, setEditPhoneInput] = React.useState('');
   const [isAppliedJobsModalVisible, setIsAppliedJobsModalVisible] = React.useState(false);
+
+  // Policies & Support State
+  const [isPolicyModalVisible, setIsPolicyModalVisible] = React.useState(false);
+  const [policyModalType, setPolicyModalType] = React.useState<'tos' | 'privacy' | 'help' | 'feedback' | 'contact' | null>(null);
+  const [feedbackRating, setFeedbackRating] = React.useState<number>(5);
+  const [feedbackText, setFeedbackText] = React.useState<string>('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = React.useState<boolean>(false);
+  const [expandedFaqIndex, setExpandedFaqIndex] = React.useState<number | null>(null);
   const [selectedAppliedJobId, setSelectedAppliedJobId] = React.useState<string | null>(null);
   const [isSavedJobsModalVisible, setIsSavedJobsModalVisible] = React.useState(false);
   const [selectedSavedJobId, setSelectedSavedJobId] = React.useState<string | null>(null);
@@ -1781,11 +1792,11 @@ function CandidateProfileScreen() {
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-            {renderSettingRow('document-text-outline', 'Điều khoản dịch vụ', () => triggerFeatureMock('Điều khoản dịch vụ'))}
-            {renderSettingRow('shield-outline', 'Chính sách bảo mật', () => triggerFeatureMock('Chính sách bảo mật'))}
-            {renderSettingRow('information-circle-outline', 'Trung tâm trợ giúp', () => triggerFeatureMock('Trung tâm trợ giúp'))}
-            {renderSettingRow('chatbox-ellipses-outline', 'Gửi ý kiến phản hồi', () => triggerFeatureMock('Gửi ý kiến phản hồi'))}
-            {renderSettingRow('call-outline', 'Liên hệ hỗ trợ 24/7', () => triggerFeatureMock('Liên hệ hỗ trợ'))}
+            {renderSettingRow('document-text-outline', 'Điều khoản dịch vụ', () => { setPolicyModalType('tos'); setIsPolicyModalVisible(true); })}
+            {renderSettingRow('shield-outline', 'Chính sách bảo mật', () => { setPolicyModalType('privacy'); setIsPolicyModalVisible(true); })}
+            {renderSettingRow('information-circle-outline', 'Trung tâm trợ giúp', () => { setPolicyModalType('help'); setIsPolicyModalVisible(true); })}
+            {renderSettingRow('chatbox-ellipses-outline', 'Gửi ý kiến phản hồi', () => { setPolicyModalType('feedback'); setIsPolicyModalVisible(true); })}
+            {renderSettingRow('call-outline', 'Liên hệ hỗ trợ 24/7', () => { setPolicyModalType('contact'); setIsPolicyModalVisible(true); })}
           </View>
 
           {/* 8. Elegant Bottom Logout Button */}
@@ -1812,6 +1823,366 @@ function CandidateProfileScreen() {
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isPolicyModalVisible}
+        onRequestClose={() => {
+          setIsPolicyModalVisible(false);
+          setPolicyModalType(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.policyModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            {/* Header */}
+            <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Ionicons 
+                  name={
+                    policyModalType === 'tos' ? 'document-text-outline' :
+                    policyModalType === 'privacy' ? 'shield-outline' :
+                    policyModalType === 'help' ? 'information-circle-outline' :
+                    policyModalType === 'feedback' ? 'chatbox-ellipses-outline' :
+                    'call-outline'
+                  } 
+                  size={22} 
+                  color="#0084FF" 
+                  style={{ marginRight: 8 }} 
+                />
+                <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {policyModalType === 'tos' ? 'Điều khoản dịch vụ' :
+                   policyModalType === 'privacy' ? 'Chính sách bảo mật' :
+                   policyModalType === 'help' ? 'Trung tâm trợ giúp' :
+                   policyModalType === 'feedback' ? 'Ý kiến phản hồi' :
+                   'Liên hệ hỗ trợ 24/7'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  setIsPolicyModalVisible(false);
+                  setPolicyModalType(null);
+                  setFeedbackText('');
+                  setFeedbackRating(5);
+                  setExpandedFaqIndex(null);
+                }}
+                style={styles.explorerCloseButton}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content body */}
+            <ScrollView 
+              showsVerticalScrollIndicator={true} 
+              contentContainerStyle={{ padding: 20 }}
+            >
+              {policyModalType === 'tos' && (
+                <View>
+                  <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Điều khoản & Điều kiện Sử dụng BybitJobs</Text>
+                  <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076' }]}>Cập nhật lần cuối: Ngày 02 tháng 07 năm 2026</Text>
+                  
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>1. Chấp thuận Điều khoản</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Bằng việc tải xuống, truy cập hoặc sử dụng ứng dụng BybitJobs, bạn đồng ý tuân thủ và chịu sự ràng buộc bởi các điều khoản dịch vụ này. Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng không sử dụng dịch vụ của chúng tôi.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>2. Tài khoản Người dùng</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Để sử dụng một số tính năng nhất định, bạn phải đăng ký tài khoản. Bạn cam kết cung cấp thông tin chính xác, đầy đủ và chịu trách nhiệm bảo mật mật khẩu của mình. BybitJobs không chịu trách nhiệm cho bất kỳ tổn thất nào phát sinh từ việc sử dụng tài khoản trái phép.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>3. Cam kết Người tìm việc</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Ứng viên cam kết toàn bộ hồ sơ năng lực (CV), thông tin liên hệ, bằng cấp cung cấp trên BybitJobs là trung thực và chính xác. Bạn tự chịu trách nhiệm trước pháp luật về tính chân thực của thông tin cung cấp cho Nhà tuyển dụng.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>4. Hành vi bị Nghiêm cấm</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    - Cung cấp thông tin giả mạo, lừa đảo.{'\n'}
+                    - Sử dụng hệ thống để gửi thư rác, quảng cáo không mong muốn.{'\n'}
+                    - Can thiệp hoặc phá hoại hệ thống an ninh mạng của ứng dụng.{'\n'}
+                    - Sao chép trái phép thông tin tin tuyển dụng cho mục đích thương mại khác.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>5. Sở hữu Trí tuệ</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Mọi logo, biểu tượng, thiết kế, mã nguồn ứng dụng và tài sản trí tuệ khác thuộc về BybitJobs. Nghiêm cấm mọi hành vi sao chép, tái sử dụng mà không được sự đồng ý bằng văn bản của chúng tôi.
+                  </Text>
+                </View>
+              )}
+
+              {policyModalType === 'privacy' && (
+                <View>
+                  <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Chính sách Bảo mật BybitJobs</Text>
+                  <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076' }]}>Cập nhật lần cuối: Ngày 02 tháng 07 năm 2026</Text>
+                  
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>1. Thông tin Chúng tôi Thu thập</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Chúng tôi thu thập các thông tin sau để cải thiện dịch vụ:{'\n'}
+                    - **Thông tin đăng ký**: Email, mật khẩu cá nhân.{'\n'}
+                    - **Thông tin hồ sơ**: Tên, số điện thoại, tệp tin CV (PDF), mức lương mong muốn, lĩnh vực nghề nghiệp.{'\n'}
+                    - **Dữ liệu hoạt động**: Các tin tuyển dụng đã xem, các công việc đã lưu và lịch sử ứng tuyển.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>2. Cách thức Sử dụng Thông tin</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Chúng tôi sử dụng thông tin của bạn để:{'\n'}
+                    - Kết nối bạn với nhà tuyển dụng phù hợp.{'\n'}
+                    - Gửi các thông báo quan trọng về trạng thái ứng tuyển.{'\n'}
+                    - Nâng cấp và cải tiến các tính năng tìm kiếm của ứng dụng.{'\n'}
+                    - Bảo vệ tài khoản thông qua xác thực bảo mật 2 lớp (2FA).
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>3. Chia sẻ Thông tin với Nhà tuyển dụng</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Khi bạn nhấn "Ứng tuyển" vào một công việc, thông tin liên hệ và CV của bạn sẽ được chia sẻ trực tiếp với Nhà tuyển dụng đăng tin đó. Chúng tôi cam kết không bán hay cung cấp dữ liệu cá nhân của bạn cho bên thứ ba cho mục đích quảng cáo ngoài nền tảng BybitJobs.
+                  </Text>
+
+                  <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>4. Quyền của Bạn đối với Dữ liệu</Text>
+                  <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                    Bạn có toàn quyền truy cập, chỉnh sửa hoặc yêu cầu xóa dữ liệu hồ sơ cá nhân của mình trực tiếp ngay trong ứng dụng hoặc yêu cầu vô hiệu hóa tài khoản vĩnh viễn.
+                  </Text>
+                </View>
+              )}
+
+              {policyModalType === 'help' && (
+                <View>
+                  <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 20 }]}>Câu hỏi thường gặp (FAQ)</Text>
+                  
+                  {[
+                    {
+                      q: 'Làm thế nào để ứng tuyển công việc?',
+                      a: 'Bạn chỉ cần tìm kiếm công việc phù hợp trên Trang chủ, nhấn vào để xem chi tiết, chọn nút "Ứng tuyển ngay", điền thông tin liên hệ kèm tệp CV rồi nhấn gửi. Hồ sơ sẽ được chuyển tới nhà tuyển dụng ngay lập tức.'
+                    },
+                    {
+                      q: 'Làm thế nào để tải CV lên hệ thống?',
+                      a: 'Trong phần tab "Cá nhân", bạn chọn mục "Quản lý CV", chọn tệp PDF trực tiếp từ thiết bị của bạn. Dung lượng tệp tối đa được khuyên dùng là dưới 10MB.'
+                    },
+                    {
+                      q: 'Nhà tuyển dụng liên hệ với tôi bằng cách nào?',
+                      a: 'Khi nhà tuyển dụng duyệt hồ sơ ứng tuyển của bạn, bạn sẽ nhận được thông báo thời gian thực. Nhà tuyển dụng cũng có quyền xem số điện thoại và email của bạn để chủ động gọi điện phỏng vấn.'
+                    },
+                    {
+                      q: 'BybitJobs có thu phí từ người tìm việc không?',
+                      a: 'BybitJobs cam kết cung cấp dịch vụ tìm việc làm, tạo hồ sơ, tải lên CV và liên hệ nhà tuyển dụng hoàn toàn miễn phí 100% đối với Ứng viên.'
+                    },
+                    {
+                      q: 'Làm thế nào để tăng cơ hội trúng tuyển?',
+                      a: 'Hãy điền đầy đủ và trung thực thông tin liên hệ, đính kèm một CV chi tiết giới thiệu kinh nghiệm làm việc và kỹ năng, đồng thời bật trạng thái "Đang tìm việc" trong trang cá nhân.'
+                    }
+                  ].map((faq, idx) => {
+                    const isExpanded = expandedFaqIndex === idx;
+                    return (
+                      <View 
+                        key={idx} 
+                        style={[
+                          styles.faqItemContainer, 
+                          { 
+                            backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
+                            borderColor: isDark ? '#3E3E42' : '#ECEFF1'
+                          }
+                        ]}
+                      >
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => setExpandedFaqIndex(isExpanded ? null : idx)}
+                          style={styles.faqHeader}
+                        >
+                          <Text style={[styles.faqQuestionText, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]}>{faq.q}</Text>
+                          <Ionicons 
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+                            size={18} 
+                            color={isDark ? '#9BA1A6' : '#687076'} 
+                          />
+                        </TouchableOpacity>
+                        
+                        {isExpanded && (
+                          <View style={styles.faqAnswerContainer}>
+                            <View style={styles.faqDivider} />
+                            <Text style={[styles.faqAnswerText, { color: isDark ? '#9BA1A6' : '#687076' }]}>{faq.a}</Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {policyModalType === 'feedback' && (
+                <View>
+                  <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Gửi ý kiến đóng góp</Text>
+                  <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 24 }]}>
+                    Ý kiến đóng góp của bạn rất quan trọng để giúp BybitJobs cải tiến ứng dụng tốt hơn mỗi ngày.
+                  </Text>
+
+                  <Text style={[styles.feedbackLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Đánh giá ứng dụng</Text>
+                  <View style={styles.feedbackStarsRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        activeOpacity={0.7}
+                        onPress={() => setFeedbackRating(star)}
+                        style={{ marginRight: 10 }}
+                      >
+                        <Ionicons 
+                          name={star <= feedbackRating ? 'star' : 'star-outline'} 
+                          size={36} 
+                          color="#FFB800" 
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.feedbackLabel, { color: isDark ? '#FFF' : '#11181C', marginTop: 24 }]}>Nội dung đóng góp ý kiến</Text>
+                  <TextInput
+                    style={[
+                      styles.feedbackInputBox,
+                      { 
+                        backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
+                        color: isDark ? '#FFF' : '#11181C',
+                        borderColor: isDark ? '#3E3E42' : '#E0E0E0'
+                      }
+                    ]}
+                    multiline={true}
+                    numberOfLines={6}
+                    placeholder="Hãy chia sẻ trải nghiệm của bạn hoặc những tính năng bạn mong muốn được cải tiến..."
+                    placeholderTextColor={isDark ? '#687076' : '#9BA1A6'}
+                    maxLength={500}
+                    value={feedbackText}
+                    onChangeText={setFeedbackText}
+                  />
+                  <Text style={{ alignSelf: 'flex-end', fontSize: 12, color: '#9BA1A6', marginTop: 4 }}>
+                    {feedbackText.length}/500 ký tự
+                  </Text>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={async () => {
+                      if (!feedbackText.trim()) {
+                        Alert.alert('Thông báo', 'Vui lòng nhập nội dung phản hồi.');
+                        return;
+                      }
+                      setIsSubmittingFeedback(true);
+                      
+                      // Submit to Firestore feedbacks collection
+                      try {
+                        await addDoc(collection(db, 'feedbacks'), {
+                          userId: userData?.uid || 'guest',
+                          userEmail: userData?.email || 'guest@bybitjobs.com',
+                          role: 'candidate',
+                          rating: feedbackRating,
+                          comment: feedbackText.trim(),
+                          createdAt: serverTimestamp(),
+                        });
+                      } catch (err) {
+                        console.error('Error submitting feedback to Firestore:', err);
+                      }
+
+                      setTimeout(() => {
+                        setIsSubmittingFeedback(false);
+                        Alert.alert('Thành công', 'Cảm ơn ý kiến đóng góp của bạn! Chúng tôi đã ghi nhận phản hồi.');
+                        setIsPolicyModalVisible(false);
+                        setPolicyModalType(null);
+                        setFeedbackText('');
+                        setFeedbackRating(5);
+                      }, 1000);
+                    }}
+                    disabled={isSubmittingFeedback}
+                    style={[styles.feedbackSubmitBtn, { backgroundColor: '#0084FF', marginTop: 24 }]}
+                  >
+                    {isSubmittingFeedback ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.feedbackSubmitBtnText}>Gửi phản hồi</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {policyModalType === 'contact' && (
+                <View>
+                  <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }]}>Liên hệ hỗ trợ 24/7</Text>
+                  <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 24 }]}>
+                    Mọi thắc mắc hoặc sự cố về kỹ thuật, vui lòng liên hệ với đội ngũ CSKH của BybitJobs qua các kênh sau:
+                  </Text>
+
+                  {[
+                    {
+                      title: 'Hotline CSKH 24/7',
+                      desc: '1900 8888 (Miễn phí cuộc gọi)',
+                      icon: 'call',
+                      color: '#0084FF',
+                      actionLabel: 'Gọi ngay',
+                      onPress: () => {
+                        Linking.openURL('tel:19008888').catch(() => {
+                          Alert.alert('Thông báo', 'Thiết bị không hỗ trợ cuộc gọi.');
+                        });
+                      }
+                    },
+                    {
+                      title: 'Hỗ trợ qua Email',
+                      desc: 'support@bybitjobs.com',
+                      icon: 'mail',
+                      color: '#E040FB',
+                      actionLabel: 'Gửi mail',
+                      onPress: () => {
+                        Linking.openURL('mailto:support@bybitjobs.com').catch(() => {
+                          Alert.alert('Thông báo', 'Không thể mở trình soạn thư.');
+                        });
+                      }
+                    },
+                    {
+                      title: 'Kênh Telegram Hỗ trợ',
+                      desc: '@bybitjobs_support',
+                      icon: 'paper-plane',
+                      color: '#00C853',
+                      actionLabel: 'Chat ngay',
+                      onPress: () => {
+                        Linking.openURL('https://t.me/bybitjobs_support').catch(() => {
+                          Alert.alert('Thông báo', 'Không thể mở ứng dụng Telegram.');
+                        });
+                      }
+                    }
+                  ].map((card, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      activeOpacity={0.8}
+                      onPress={card.onPress}
+                      style={[
+                        styles.contactCardContainer,
+                        { 
+                          backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
+                          borderColor: isDark ? '#3E3E42' : '#ECEFF1'
+                        }
+                      ]}
+                    >
+                      <View style={[styles.contactIconWrapper, { backgroundColor: card.color + '15' }]}>
+                        <Ionicons name={card.icon as any} size={24} color={card.color} />
+                      </View>
+                      <View style={{ flex: 1, paddingLeft: 12 }}>
+                        <Text style={[styles.contactCardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>{card.title}</Text>
+                        <Text style={[styles.contactCardDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>{card.desc}</Text>
+                      </View>
+                      <View style={[styles.contactActionBtn, { backgroundColor: '#0084FF' }]}>
+                        <Text style={styles.contactActionBtnText}>{card.actionLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+
+                  <View style={[styles.supportFooterBanner, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', borderColor: '#0084FF' }]}>
+                    <Ionicons name="shield-checkmark" size={24} color="#0084FF" style={{ marginRight: 12 }} />
+                    <Text style={{ flex: 1, fontSize: 13, color: '#0084FF', lineHeight: 18, fontWeight: '600' }}>
+                      BybitJobs cam kết bảo vệ toàn bộ thông tin cá nhân của bạn và giải quyết sự cố trong vòng 24 giờ làm việc.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         animationType="slide"
@@ -3542,6 +3913,140 @@ const styles = StyleSheet.create({
   },
   scrollPaddingBottom: {
     height: 60,
+  },
+
+  // Policies & Support styles
+  policyModalContainer: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: '85%',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  policyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  policyMeta: {
+    fontSize: 12,
+    marginBottom: 20,
+  },
+  policySubTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  policyText: {
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  faqItemContainer: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  faqQuestionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  faqAnswerContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  faqDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginBottom: 12,
+  },
+  faqAnswerText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  feedbackLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  feedbackStarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  feedbackInputBox: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    height: 140,
+    textAlignVertical: 'top',
+    fontSize: 14,
+  },
+  feedbackSubmitBtn: {
+    height: 50,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  feedbackSubmitBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  contactCardContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  contactIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contactCardTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  contactCardDesc: {
+    fontSize: 13,
+  },
+  contactActionBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contactActionBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  supportFooterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 10,
   },
 
   // Modal File Explorer styles

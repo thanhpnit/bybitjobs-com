@@ -1587,6 +1587,16 @@ export function useAuth() {
           if (item.role && item.role !== userRole) {
             return false;
           }
+
+          // Candidate status notifications are strictly for candidates.
+          // Hide them from recruiter if they contain candidate keywords or belong to job category
+          if (userRole === 'employer') {
+            const title = (item.title || '').toLowerCase();
+            const desc = (item.description || '').toLowerCase();
+            if (title.includes('hồ sơ') || title.includes('ứng tuyển') || desc.includes('ứng tuyển') || item.category === 'job') {
+              return false;
+            }
+          }
           
           if (item.target === 'ALL') return true;
           if (item.target === 'RECRUITER') return userRole === 'employer';
