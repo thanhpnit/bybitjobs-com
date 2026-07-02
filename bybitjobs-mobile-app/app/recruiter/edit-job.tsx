@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +37,86 @@ export default function RecruiterEditJobScreen() {
   const [requirements, setRequirements] = React.useState(existingJob?.requirements || '');
   const [deadline, setDeadline] = React.useState(existingJob?.deadline || '11/30/2026');
   const [isOpen, setIsOpen] = React.useState(existingJob ? existingJob.isOpen : true);
+
+  // Date Picker Modal States
+  const [isDatePickerVisible, setIsDatePickerVisible] = React.useState(false);
+  const [pickerDate, setPickerDate] = React.useState(() => {
+    if (existingJob?.deadline && existingJob.deadline.includes('/')) {
+      const parts = existingJob.deadline.split('/');
+      if (parts.length === 3) {
+        const m = parseInt(parts[0], 10) - 1;
+        const d = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
+        if (!isNaN(m) && !isNaN(d) && !isNaN(y)) {
+          return new Date(y, m, d);
+        }
+      }
+    }
+    return new Date();
+  });
+  
+  const [activeMonth, setActiveMonth] = React.useState(() => pickerDate.getMonth());
+  const [activeYear, setActiveYear] = React.useState(() => pickerDate.getFullYear());
+
+  const selectDate = (date: Date) => {
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const y = date.getFullYear();
+    setDeadline(`${m}/${d}/${y}`);
+    setPickerDate(date);
+    setIsDatePickerVisible(false);
+  };
+
+  const renderDaysGrid = () => {
+    const days = [];
+    const firstDayIndex = new Date(activeYear, activeMonth, 1).getDay();
+    const totalDays = new Date(activeYear, activeMonth + 1, 0).getDate();
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push(
+        <View key={`empty-${i}`} style={styles.dayGridCellEmpty} />
+      );
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+      const cellDate = new Date(activeYear, activeMonth, i);
+      const isSelected = 
+        pickerDate.getDate() === i && 
+        pickerDate.getMonth() === activeMonth && 
+        pickerDate.getFullYear() === activeYear;
+      
+      const isToday = 
+        new Date().getDate() === i && 
+        new Date().getMonth() === activeMonth && 
+        new Date().getFullYear() === activeYear;
+
+      days.push(
+        <TouchableOpacity
+          key={`day-${i}`}
+          activeOpacity={0.7}
+          onPress={() => selectDate(cellDate)}
+          style={[
+            styles.dayGridCell,
+            isToday && styles.todayGridCell,
+            isSelected && styles.selectedGridCell,
+          ]}
+        >
+          <Text
+            style={[
+              styles.dayText,
+              { color: isDark ? '#FFF' : '#11181C' },
+              isToday && { color: '#0084FF', fontWeight: 'bold' },
+              isSelected && { color: '#FFF', fontWeight: 'bold' },
+            ]}
+          >
+            {i}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+
+    return days;
+  };
 
   const handleSelectIndustry = () => {
     Alert.alert(
@@ -220,16 +301,37 @@ export default function RecruiterEditJobScreen() {
             {/* Input: Deadline */}
             <View style={styles.inputGroup}>
               <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>HẠN ỨNG TUYỂN</Text>
-              <View style={[styles.inputBoxWithIcon, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (deadline && deadline.includes('/')) {
+                    const parts = deadline.split('/');
+                    if (parts.length === 3) {
+                      const m = parseInt(parts[0], 10) - 1;
+                      const d = parseInt(parts[1], 10);
+                      const y = parseInt(parts[2], 10);
+                      if (!isNaN(m) && !isNaN(d) && !isNaN(y)) {
+                        const newD = new Date(y, m, d);
+                        setPickerDate(newD);
+                        setActiveMonth(m);
+                        setActiveYear(y);
+                      }
+                    }
+                  }
+                  setIsDatePickerVisible(true);
+                }}
+                style={[styles.inputBoxWithIcon, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}
+              >
                 <Ionicons name="calendar-outline" size={18} color="#8E8E93" style={styles.fieldIcon} />
                 <TextInput
                   style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
                   placeholder="Ví dụ: 11/30/2026"
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                   value={deadline}
-                  onChangeText={setDeadline}
+                  editable={false}
+                  pointerEvents="none"
                 />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Bottom divider line */}
@@ -284,6 +386,98 @@ export default function RecruiterEditJobScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isDatePickerVisible}
+        onRequestClose={() => setIsDatePickerVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            {/* Header */}
+            <View style={[styles.pickerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
+              <Text style={[styles.pickerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Chọn Hạn Ứng Tuyển</Text>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setIsDatePickerVisible(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Month & Year Selectors */}
+            <View style={styles.monthYearSelectorRow}>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => {
+                  if (activeMonth === 0) {
+                    setActiveMonth(11);
+                    setActiveYear(prev => prev - 1);
+                  } else {
+                    setActiveMonth(prev => prev - 1);
+                  }
+                }}
+                style={styles.navArrow}
+              >
+                <Ionicons name="chevron-back" size={20} color="#0084FF" />
+              </TouchableOpacity>
+              
+              <Text style={[styles.monthYearText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                {`Tháng ${activeMonth + 1}, ${activeYear}`}
+              </Text>
+
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => {
+                  if (activeMonth === 11) {
+                    setActiveMonth(0);
+                    setActiveYear(prev => prev + 1);
+                  } else {
+                    setActiveMonth(prev => prev + 1);
+                  }
+                }}
+                style={styles.navArrow}
+              >
+                <Ionicons name="chevron-forward" size={20} color="#0084FF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Days of Week Header */}
+            <View style={styles.daysOfWeekRow}>
+              {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day, idx) => (
+                <Text key={idx} style={[styles.dayOfWeekText, { color: idx === 0 ? '#FF3B30' : '#8E8E93' }]}>
+                  {day}
+                </Text>
+              ))}
+            </View>
+
+            {/* Days Grid */}
+            <View style={styles.daysGrid}>
+              {renderDaysGrid()}
+            </View>
+
+            {/* Quick Presets */}
+            <View style={styles.quickPresetsRow}>
+              {[
+                { label: '+7 Ngày', days: 7 },
+                { label: '+14 Ngày', days: 14 },
+                { label: '+30 Ngày', days: 30 },
+              ].map((preset, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + preset.days);
+                    selectDate(d);
+                  }}
+                  style={[styles.presetBtn, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]}
+                >
+                  <Text style={[styles.presetBtnText, { color: '#0084FF' }]}>{preset.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -442,5 +636,115 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+
+  // Custom Date Picker Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  datePickerContainer: {
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 320,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+  },
+  pickerTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  monthYearSelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 14,
+  },
+  navArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 132, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthYearText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  daysOfWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayOfWeekText: {
+    width: `${100 / 7}%`,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  dayGridCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginVertical: 2,
+  },
+  dayGridCellEmpty: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+  },
+  dayText: {
+    fontSize: 14,
+  },
+  todayGridCell: {
+    backgroundColor: 'rgba(0, 132, 255, 0.08)',
+  },
+  selectedGridCell: {
+    backgroundColor: '#0084FF',
+  },
+  quickPresetsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    paddingTop: 14,
+  },
+  presetBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  presetBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
