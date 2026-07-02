@@ -1046,46 +1046,23 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
             const employerDoc = await employerRef.get();
             if (employerDoc.exists) {
               const empData = employerDoc.data();
-              const currentLimitStr = empData?.postsLimit || '0/1'; // Vd: '0/1'
-              
-              let used = 0;
-              let limit = 0;
-              if (currentLimitStr.includes('/')) {
-                const parts = currentLimitStr.split('/');
-                used = parseInt(parts[0], 10) || 0;
-                limit = parseInt(parts[1], 10) || 0;
-              } else {
-                limit = parseInt(currentLimitStr, 10) || 0;
+              let usedPosts = empData?.usedPosts || 0;
+              if (empData?.postsLimit && empData.postsLimit.includes('/')) {
+                usedPosts = parseInt(empData.postsLimit.split('/')[0], 10) || 0;
               }
               
-              // Lấy cấu hình package từ Firebase để tính toán số bài đăng
-              const packageRef = db.collection('packages').doc(packageId);
-              const packageDoc = await packageRef.get();
-              
-              if (packageDoc.exists) {
-                const pkgData = packageDoc.data();
-                // Giới hạn số bài đăng của gói
-                const postsStr = pkgData?.posts?.toString()?.toLowerCase() || '';
-                
-                if (postsStr.includes('không giới hạn')) {
-                  limit = 9999;
-                } else {
-                  // Lọc số từ chuỗi "5 bài", "25 bài"...
-                  const postCount = parseInt(postsStr.replace(/[^0-9]/g, ''), 10) || 0;
-                  limit += postCount;
-                }
-              } else {
-                // Fallback nếu không tìm thấy trên Firebase
-                if (packageId === 'basic' || packageId === 'starter') limit += 5;
-                else if (packageId === 'standard' || packageId === 'pro') limit += 25;
-                else if (packageId === 'premium') limit = 9999;
-              }
+              const now = new Date();
+              now.setDate(now.getDate() + 30);
+              const expiresAt = now.toISOString();
+
               await employerRef.update({
-                postsLimit: `${used}/${limit}`,
+                usedPosts: usedPosts,
+                packageExpiresAt: expiresAt,
                 isPremium: packageId === 'premium' ? true : (empData?.isPremium || false),
+                currentPackage: orderData.packageName || packageId,
                 current_package: orderData.packageName || packageId
               });
-              console.log(`Đã cập nhật bài đăng cho Employer ${employerId}: ${used}/${limit}`);
+              console.log(`Đã cập nhật gói ${orderData.packageName || packageId} cho Employer ${employerId} (hết hạn ${expiresAt})`);
 
               // Tự động đẩy tất cả tin tuyển dụng của Employer này lên đầu tiên (cập nhật createdAt)
               try {
