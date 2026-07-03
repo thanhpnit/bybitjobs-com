@@ -162,7 +162,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           employerId: item.employerId || '',
           salary: item.salary || 'Chưa cập nhật',
           location: item.location || 'Toàn quốc',
-          industry: item.industry || 'Chưa cập nhật',
+          industry: item.industry || item.category || 'Chưa cập nhật',
           deadline: item.deadline || 'Chưa cập nhật',
           description: item.description || 'Chưa có mô tả.',
           requirements: item.requirements || 'Chưa có yêu cầu.',

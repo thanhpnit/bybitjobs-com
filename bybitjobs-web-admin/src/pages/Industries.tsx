@@ -16,7 +16,7 @@ import { useData } from '../context/DataContext';
 export const Industries: React.FC = () => {
   const { colors } = useTheme();
   
-  const { industries, setIndustries } = useData();
+  const { industries, setIndustries, jobPosts } = useData();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,6 +83,26 @@ export const Industries: React.FC = () => {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const realIndustryCounts: Record<string, number> = {};
+  if (jobPosts) {
+    jobPosts.forEach((job: any) => {
+      const indName = job.industry || 'Khác';
+      realIndustryCounts[indName] = (realIndustryCounts[indName] || 0) + 1;
+    });
+  }
+
+  const totalPostsCount = jobPosts ? jobPosts.length : 0;
+
+  let hottestName = 'Chưa có';
+  let maxCount = 0;
+  Object.entries(realIndustryCounts).forEach(([name, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      hottestName = name;
+    }
+  });
+  const hottestIndustry = { name: hottestName, posts: maxCount };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -102,7 +122,7 @@ export const Industries: React.FC = () => {
             <View style={[styles.iconWrapper, { backgroundColor: colors.infoBg }]}><LayoutGrid color={colors.infoText} size={20} /></View>
           </View>
             <Typography variant="h2" style={{ marginTop: 8 }}>{industries.length}</Typography>
-          <Typography variant="caption" color="brand" style={{ marginTop: 4 }}>~ +2 ngành mới tháng này</Typography>
+          <Typography variant="caption" color="brand" style={{ marginTop: 4 }}>Cập nhật hôm nay</Typography>
         </Card>
         
         <Card style={styles.statCard}>
@@ -110,8 +130,8 @@ export const Industries: React.FC = () => {
             <Typography variant="subtitle2" color="secondary">NGÀNH HOT NHẤT</Typography>
             <View style={[styles.iconWrapper, { backgroundColor: colors.dangerBg }]}><Flame color={colors.dangerText} size={20} /></View>
           </View>
-          <Typography variant="h2" style={{ marginTop: 8 }}>Giao hàng</Typography>
-          <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>1,240 bài đăng</Typography>
+          <Typography variant="h2" style={{ marginTop: 8 }} numberOfLines={1}>{hottestIndustry.name}</Typography>
+          <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>{hottestIndustry.posts} bài đăng</Typography>
         </Card>
 
         <Card style={styles.statCard}>
@@ -119,8 +139,8 @@ export const Industries: React.FC = () => {
             <Typography variant="subtitle2" color="secondary">TỔNG BÀI ĐĂNG</Typography>
             <View style={[styles.iconWrapper, { backgroundColor: colors.warningBg }]}><FileText color={colors.warningText} size={20} /></View>
           </View>
-          <Typography variant="h2" style={{ marginTop: 8 }}>5,829</Typography>
-          <Typography variant="caption" color="warning" style={{ marginTop: 4 }}>Tăng 12% so với kỳ trước</Typography>
+          <Typography variant="h2" style={{ marginTop: 8 }}>{totalPostsCount.toLocaleString()}</Typography>
+          <Typography variant="caption" color="warning" style={{ marginTop: 4 }}>Trên toàn hệ thống</Typography>
         </Card>
 
         <Card style={styles.statCard}>
@@ -167,7 +187,7 @@ export const Industries: React.FC = () => {
                   </View>
                 </View>
                 <View style={styles.colPosts}>
-                  <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="subtitle2">{item.posts}</Typography></View>
+                  <View style={[styles.chip, { backgroundColor: colors.bgPrimary }]}><Typography variant="subtitle2">{realIndustryCounts[item.name] || 0}</Typography></View>
                 </View>
                 <View style={styles.colStatus}>
                   <Badge status={item.status === 'Active' ? 'success' : 'default'}>
