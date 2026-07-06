@@ -112,36 +112,12 @@ export default function RecruiterRegisterScreen() {
 
     const timeoutId = setTimeout(async () => {
       try {
-        const searchUrls = ['vi', 'en'].map(
-          (language) =>
-            `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(keyword)}&language=${language}&uselang=vi&format=json&origin=*&limit=10`
-        );
-        const responses = await Promise.all(searchUrls.map((url) => fetch(url)));
-        const results = await Promise.all(responses.map((response) => response.json()));
+        const response = await fetch(`http://160.250.246.119:4000/api/companies/suggest?q=${encodeURIComponent(keyword)}`);
+        const suggestions = await response.json();
 
         if (!isActive) return;
 
-        const suggestionMap = new Map<string, CompanySuggestion>();
-
-        results.forEach((data) => {
-          if (!Array.isArray(data?.search)) return;
-
-          data.search.forEach((item: any) => {
-            const suggestion = {
-              id: String(item.id || item.concepturi || item.label),
-              name: String(item.label || '').trim(),
-              description: item.description ? String(item.description) : undefined,
-            };
-
-            if (suggestion.name && looksLikeCompany(suggestion)) {
-              suggestionMap.set(suggestion.id, suggestion);
-            }
-          });
-        });
-
-        const suggestions = Array.from(suggestionMap.values()).slice(0, 8);
-
-        setCompanySuggestions(suggestions);
+        setCompanySuggestions(Array.isArray(suggestions) ? suggestions : []);
       } catch {
         if (isActive) {
           setCompanySuggestions([]);
@@ -159,20 +135,12 @@ export default function RecruiterRegisterScreen() {
     };
   }, [companyName, showCompanySuggestions]);
 
-  const handleSelectCompanySuggestion = async (suggestion: CompanySuggestion) => {
+  const handleSelectCompanySuggestion = (suggestion: CompanySuggestion) => {
     setCompanyName(suggestion.name);
     setCompanySuggestions([]);
     setShowCompanySuggestions(false);
-    setIsLoadingCompanyAddress(true);
-    setAddress('Đang lấy địa chỉ công ty...');
-
-    try {
-      const companyAddress = await getCompanyAddress(suggestion.id);
-      setAddress(companyAddress || 'Chưa có địa chỉ công khai trên Wikidata');
-    } catch {
-      setAddress('Chưa có địa chỉ công khai trên Wikidata');
-    } finally {
-      setIsLoadingCompanyAddress(false);
+    if (suggestion.description) {
+      setAddress(suggestion.description);
     }
   };
 

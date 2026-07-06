@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import nodemailer from 'nodemailer';
 import { PayOS } from '@payos/node';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const payos = new PayOS({
   clientId: '535dac20-5fd1-4df2-9f3b-c126ea23a3f0',
@@ -1101,6 +1102,136 @@ app.post('/api/setup-webhook', async (req: Request, res: Response): Promise<any>
     return res.status(200).json({ success: true, message: `Webhook set to ${webhookUrl}` });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API AI Match
+app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promise<any> => {
+  const jobId = req.params.jobId;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  try {
+    const db = admin.firestore();
+    const jobDoc = await db.collection('jobs').doc(jobId).get();
+    if (!jobDoc.exists) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    const jobData = jobDoc.data()!;
+    const employerId = jobData.employerId;
+
+    // Fetch candidates
+    const usersSnap = await db.collection('users').get();
+    const candidates: any[] = [];
+    usersSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.job && data.name) {
+         candidates.push({ uid: doc.id, name: data.name, desiredJob: data.job, skills: data.skills || '' });
+      }
+    });
+
+    if (candidates.length === 0) {
+      return res.status(200).json({ message: 'No candidates found to match' });
+    }
+
+    // Call Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `
+    Nhà tuyển dụng vừa đăng một công việc:
+    Tiêu đề: ${jobData.title}
+    Ngành nghề: ${jobData.industry}
+    Yêu cầu: ${jobData.requirements || jobData.description}
+
+    Đây là danh sách các ứng viên:
+    ${JSON.stringify(candidates)}
+
+    Hãy tìm tối đa 5 ứng viên có ngành nghề (desiredJob) hoặc kỹ năng phù hợp nhất với công việc này.
+    Chỉ trả về ĐÚNG MỘT MẢNG JSON các chuỗi uid của các ứng viên đó, không kèm theo bất kỳ văn bản nào khác.
+    Ví dụ: ["uid1", "uid2"]
+    `;
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text().trim();
+    if (text.startsWith('\`\`\`json')) {
+      text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    } else if (text.startsWith('\`\`\`')) {
+      text = text.replace(/\`\`\`/g, '').trim();
+    }
+
+    let matchedUids: string[] = [];
+    try {
+      matchedUids = JSON.parse(text);
+    } catch (e) {
+      console.error('Lỗi parse JSON từ Gemini:', text);
+    }
+
+    if (Array.isArray(matchedUids) && matchedUids.length > 0) {
+      const matchedNames = candidates.filter(c => matchedUids.includes(c.uid)).map(c => c.name);
+      
+      if (matchedNames.length > 0) {
+        await db.collection('notifications').add({
+          title: 'Gợi ý ứng viên từ AI',
+          body: `Tuyệt vời! AI vừa tìm thấy ${matchedNames.length} ứng viên phù hợp với tin "${jobData.title}" của bạn: ${matchedNames.join(', ')}. Hãy vào xem ngay!`,
+          target: employerId,
+          role: 'employer',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    }
+
+    return res.status(200).json({ success: true, matchedUids });
+
+  } catch (error: any) {
+    console.error('Error in AI Match:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// API Gợi ý tên công ty
+app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<any> => {
+  const q = req.query.q as string;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+  if (!q || q.trim().length === 0) {
+    return res.status(200).json([]);
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `
+    Tìm tối đa 5 công ty/doanh nghiệp có thật tại Việt Nam khớp với từ khóa '${q}'.
+    Chỉ trả về ĐÚNG MỘT MẢNG JSON với định dạng: [{"id": "1", "name": "Tên công ty", "description": "Địa chỉ trụ sở chính"}].
+    Nếu không biết địa chỉ chính xác, hãy ghi tên Thành phố hoặc "Việt Nam".
+    Tuyệt đối không kèm theo bất kỳ đoạn text nào khác ngoài mảng JSON.
+    `;
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text().trim();
+    if (text.startsWith('\`\`\`json')) {
+      text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    } else if (text.startsWith('\`\`\`')) {
+      text = text.replace(/\`\`\`/g, '').trim();
+    }
+
+    let companies: any[] = [];
+    try {
+      companies = JSON.parse(text);
+    } catch (e) {
+      console.error('Lỗi parse JSON từ Gemini API suggest company:', text);
+    }
+
+    return res.status(200).json(companies);
+  } catch (error: any) {
+    console.error('Error in Company Suggest:', error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

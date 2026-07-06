@@ -1184,6 +1184,11 @@ export function useAuth() {
         status: 'Chờ duyệt'
       };
       await setDoc(doc(db, 'jobs', jobId), newJob);
+      
+      // Kích hoạt AI gợi ý ứng viên (chạy ngầm)
+      fetch(`http://160.250.246.119:4000/api/jobs/${jobId}/ai-match`, { method: 'POST' })
+        .catch(err => console.log('Lỗi gọi AI Match:', err));
+
       return true;
     } catch (error) {
       console.error('Lỗi khi thêm việc làm:', error);
