@@ -92,7 +92,13 @@ export default function RecruiterCandidatesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
       {/* Header bar */}
       <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
-        <View style={styles.iconBtn} />
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          style={styles.iconBtn} 
+          onPress={() => router.push('/recruiter/search-candidates')}
+        >
+          <Ionicons name="search-outline" size={22} color="#FFF" />
+        </TouchableOpacity>
         <Text style={styles.headerBarTitle}>Quản lý ứng viên</Text>
         <TouchableOpacity 
           activeOpacity={0.7} 

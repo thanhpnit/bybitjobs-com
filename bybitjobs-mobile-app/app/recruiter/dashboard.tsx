@@ -357,7 +357,43 @@ export default function RecruiterDashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Quick Functions Card */}
+        <View style={[styles.quickFunctionsCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+          <View style={styles.quickGrid}>
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              onPress={() => router.push('/recruiter/search-candidates')} 
+              style={styles.quickItem}
+            >
+              <View style={[styles.circleIcon, { backgroundColor: isDark ? '#1C2A3A' : '#EBF5FF' }]}>
+                <Ionicons name="search" size={22} color="#0084FF" />
+              </View>
+              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Tìm ứng viên</Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              onPress={() => router.push({ pathname: '/recruiter/edit-job', params: { id: 'new' } })} 
+              style={styles.quickItem}
+            >
+              <View style={[styles.circleIcon, { backgroundColor: isDark ? '#1F3A2B' : '#E8F5E9' }]}>
+                <Ionicons name="add" size={24} color="#2E7D32" />
+              </View>
+              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Đăng tin mới</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              onPress={() => router.push('/recruiter/candidates')} 
+              style={styles.quickItem}
+            >
+              <View style={[styles.circleIcon, { backgroundColor: isDark ? '#3D2F1D' : '#FFF3E0' }]}>
+                <Ionicons name="people" size={22} color="#FF9800" />
+              </View>
+              <Text style={[styles.quickLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Duyệt hồ sơ</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={[styles.bannerCard, { backgroundColor: isDark ? '#1C2E3D' : '#EAF4FC' }]}>
           <View style={styles.bannerLeft}>

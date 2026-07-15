@@ -748,39 +748,110 @@ app.delete('/api/jobs/:id', (req: Request, res: Response): any => {
 });
 
 // GET candidates (with search and filters)
-app.get('/api/candidates', (req: Request, res: Response) => {
+app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => {
   const { query, location, skills, yearsOfExp } = req.query;
-  let result = [...candidates];
 
-  if (query) {
-    const q = String(query).toLowerCase();
-    result = result.filter(c => 
-      c.name.toLowerCase().includes(q) || 
-      c.role.toLowerCase().includes(q) ||
-      c.skills.some(s => s.toLowerCase().includes(q))
-    );
-  }
+  try {
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection('users').get();
+    
+    // Fetch employers to exclude them from the candidate search list
+    const employersSnapshot = await db.collection('employers').get();
+    const employerUids = new Set(employersSnapshot.docs.map(doc => doc.id));
 
-  if (location) {
-    const loc = String(location).toLowerCase();
-    result = result.filter(c => c.location.toLowerCase().includes(loc));
-  }
-
-  if (skills) {
-    const skillList = String(skills).split(' ');
-    result = result.filter(c => 
-      c.skills.some(s => skillList.some(q => s.toLowerCase().includes(q.toLowerCase())))
-    );
-  }
-
-  if (yearsOfExp) {
-    const exp = parseInt(String(yearsOfExp), 10);
-    if (!isNaN(exp)) {
-      result = result.filter(c => c.yearsOfExp >= exp);
+    // Fetch Firebase Auth users to obtain display names and emails
+    let authUsers: Record<string, admin.auth.UserRecord> = {};
+    if (admin.apps.length) {
+      try {
+        const listUsersResult = await admin.auth().listUsers(1000);
+        listUsersResult.users.forEach(u => {
+          authUsers[u.uid] = u;
+        });
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách user từ Firebase Auth:", err);
+      }
     }
-  }
 
-  res.status(200).json(result);
+    const realCandidates: CandidateItem[] = [];
+    usersSnapshot.forEach(doc => {
+      const uid = doc.id;
+      // Exclude users registered as employers
+      if (employerUids.has(uid)) {
+        return;
+      }
+
+      const data = doc.data();
+      const authUser = authUsers[uid];
+      
+      const name = authUser?.displayName || data.name || 'Ứng viên';
+      const role = data.job || 'Ứng viên (Mobile App)';
+      const email = authUser?.email || '';
+      const phone = data.phone || 'Chưa cập nhật';
+      
+      realCandidates.push({
+        id: uid,
+        name: name,
+        role: role,
+        avatar: authUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0084FF&color=fff`,
+        email: email,
+        phone: phone,
+        location: data.address || 'Hồ Chí Minh, Việt Nam',
+        jobType: 'Toàn thời gian',
+        skills: data.skills || [role],
+        portfolio: data.portfolio || '',
+        education: data.education || 'Chưa cập nhật',
+        experience: data.experience || [],
+        rating: data.rating || 5.0,
+        reviewsCount: data.reviewsCount || 0,
+        yearsOfExp: data.yearsOfExp || 0
+      });
+    });
+
+    // Merge mock and real candidates
+    let mergedCandidates = [...candidates];
+    
+    // Add real candidates if they are not already in the list
+    realCandidates.forEach(rc => {
+      if (!mergedCandidates.some(c => c.id === rc.id)) {
+        mergedCandidates.push(rc);
+      }
+    });
+
+    let result = mergedCandidates;
+
+    if (query) {
+      const q = String(query).toLowerCase();
+      result = result.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.role.toLowerCase().includes(q) ||
+        c.skills.some(s => s.toLowerCase().includes(q))
+      );
+    }
+
+    if (location) {
+      const loc = String(location).toLowerCase();
+      result = result.filter(c => c.location.toLowerCase().includes(loc));
+    }
+
+    if (skills) {
+      const skillList = String(skills).split(' ');
+      result = result.filter(c => 
+        c.skills.some(s => skillList.some(q => s.toLowerCase().includes(q.toLowerCase())))
+      );
+    }
+
+    if (yearsOfExp) {
+      const exp = parseInt(String(yearsOfExp), 10);
+      if (!isNaN(exp)) {
+        result = result.filter(c => c.yearsOfExp >= exp);
+      }
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Lỗi khi lấy danh sách ứng viên:', error);
+    res.status(500).json({ error: 'Lỗi server', details: error.message });
+  }
 });
 
 // GET list of applications
@@ -822,22 +893,91 @@ app.put('/api/applications/:id/status', (req: Request, res: Response): any => {
 });
 
 // POST headhunt invitation
-app.post('/api/invitations', (req: Request, res: Response): any => {
+app.post('/api/invitations', async (req: Request, res: Response): Promise<any> => {
   const { candidateId, jobId } = req.body;
   if (!candidateId || !jobId) {
     return res.status(400).json({ error: 'Thiếu candidateId hoặc jobId.' });
   }
-  const candidate = candidates.find(c => c.id === candidateId);
-  const job = jobs.find(j => j.id === jobId);
 
-  if (!candidate || !job) {
-    return res.status(404).json({ error: 'Không tìm thấy ứng viên hoặc bài đăng tuyển.' });
+  try {
+    const db = admin.firestore();
+
+    // 1. Find Candidate (mock or real)
+    let candidateName = 'Ứng viên';
+    let candidateEmail = '';
+    const mockCandidate = candidates.find(c => c.id === candidateId);
+    if (mockCandidate) {
+      candidateName = mockCandidate.name;
+      candidateEmail = mockCandidate.email;
+    } else {
+      // Check Firestore users collection
+      const userDoc = await db.collection('users').doc(candidateId).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        candidateName = userData?.name || userData?.displayName || 'Ứng viên';
+        candidateEmail = userData?.email || '';
+      }
+    }
+
+    // 2. Find Job (mock or real in Firestore)
+    let jobTitle = 'Công việc';
+    let employerId = '';
+    let companyName = 'Nhà tuyển dụng';
+    
+    // First check Firestore jobs
+    const jobDoc = await db.collection('jobs').doc(jobId).get();
+    if (jobDoc.exists) {
+      const jobData = jobDoc.data();
+      jobTitle = jobData?.title || 'Công việc';
+      employerId = jobData?.employerId || '';
+      companyName = jobData?.companyName || jobData?.posterName || 'Nhà tuyển dụng';
+    } else {
+      // Fallback to mock jobs
+      const mockJob = jobs.find(j => j.id === jobId);
+      if (mockJob) {
+        jobTitle = mockJob.title;
+        companyName = 'Nhà tuyển dụng';
+      } else {
+        return res.status(404).json({ error: 'Không tìm thấy công việc hoặc bài đăng tuyển.' });
+      }
+    }
+
+    const invitationId = `invite-${Date.now()}`;
+    const newInvitation = {
+      id: invitationId,
+      candidateId,
+      candidateName,
+      jobId,
+      jobTitle,
+      employerId,
+      companyName,
+      status: 'Pending',
+      createdAt: new Date().toISOString()
+    };
+
+    // Save to Firestore
+    await db.collection('invitations').doc(invitationId).set(newInvitation);
+
+    // Send notification to Candidate
+    await db.collection('notifications').add({
+      target: candidateId,
+      role: 'candidate',
+      category: 'job',
+      title: 'Lời mời ứng tuyển công việc',
+      body: `Công ty "${companyName}" đã gửi cho bạn lời mời ứng tuyển công việc "${jobTitle}".`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`🔥 Đã gửi lời mời tuyển dụng từ ${companyName} đến ứng viên ${candidateName}`);
+    return res.status(201).json({
+      success: true,
+      message: `Đã gửi lời mời ứng tuyển công việc "${jobTitle}" đến ứng viên "${candidateName}" thành công!`,
+      invitation: newInvitation
+    });
+  } catch (error: any) {
+    console.error('Lỗi khi gửi lời mời ứng tuyển:', error);
+    return res.status(500).json({ error: 'Lỗi server khi gửi lời mời.', details: error.message });
   }
-
-  res.status(201).json({
-    success: true,
-    message: `Đã gửi lời mời ứng tuyển công việc "${job.title}" đến ứng viên "${candidate.name}" thành công!`
-  });
 });
 
 // ---------------- EMPLOYERS API ---------------- //

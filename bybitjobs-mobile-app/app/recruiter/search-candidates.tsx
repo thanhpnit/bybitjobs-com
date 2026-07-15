@@ -35,7 +35,10 @@ export default function RecruiterSearchCandidatesScreen() {
   // Active jobs to invite candidates to
   const activeJobs = React.useMemo(() => {
     if (!userData?.uid) return [];
-    return jobs.filter((j) => j.isOpen && j.employerId === userData.uid);
+    const myJobs = jobs.filter((j) => j.isOpen && j.employerId === userData.uid);
+    if (myJobs.length > 0) return myJobs;
+    // Fallback to all open jobs (or mock jobs) for testing convenience so they can test invitations
+    return jobs.filter((j) => j.isOpen);
   }, [jobs, userData?.uid]);
 
   // Handle select filter chips

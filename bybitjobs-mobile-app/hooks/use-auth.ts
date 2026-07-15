@@ -338,6 +338,22 @@ let globalApplications: ApplicationItem[] = [
 ];
 let globalApplicationsUnsubscribe: (() => void) | null = null;
 
+export interface InvitationItem {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  jobId: string;
+  jobTitle: string;
+  employerId: string;
+  companyName: string;
+  status: 'Pending' | 'Accepted' | 'Declined';
+  createdAt: string;
+}
+
+let globalInvitations: InvitationItem[] = [];
+let globalInvitationsUnsubscribe: (() => void) | null = null;
+let globalCandidatesInterval: ReturnType<typeof setInterval> | null = null;
+
 let globalSavedJobs: SavedJobItem[] = [];
 let globalSavedJobsUnsubscribe: (() => void) | null = null;
 
@@ -439,6 +455,7 @@ export function useAuth() {
   const [applications, setApplications] = React.useState<ApplicationItem[]>(globalApplications);
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
+  const [invitations, setInvitations] = React.useState<InvitationItem[]>(globalInvitations);
   const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string }>(globalUserDataExtra);
   
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
@@ -644,6 +661,44 @@ export function useAuth() {
           console.error('Lỗi tải danh sách hồ sơ ứng tuyển:', error);
         });
 
+        if (globalInvitationsUnsubscribe) globalInvitationsUnsubscribe();
+        const qInvitations = query(
+          collection(db, 'invitations'),
+          orderBy('createdAt', 'desc')
+        );
+        globalInvitationsUnsubscribe = onSnapshot(qInvitations, (snapshot) => {
+          const dbInvitations: InvitationItem[] = [];
+          snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            dbInvitations.push({
+              id: docSnap.id,
+              ...data
+            } as InvitationItem);
+          });
+          globalInvitations = dbInvitations;
+          setInvitations([...globalInvitations]);
+          notifyAll();
+        }, (error) => {
+          console.error('Lỗi tải danh sách lời mời ứng tuyển:', error);
+        });
+
+        const fetchCandidates = async () => {
+          try {
+            const res = await fetch('http://160.250.246.119:4000/api/candidates');
+            if (res.ok) {
+              const data = await res.json();
+              globalCandidates = data;
+              setCandidates(data);
+              notifyAll();
+            }
+          } catch (err) {
+            console.error('Lỗi tải danh sách ứng viên từ API:', err);
+          }
+        };
+        fetchCandidates();
+        if (globalCandidatesInterval) clearInterval(globalCandidatesInterval);
+        globalCandidatesInterval = setInterval(fetchCandidates, 6000);
+
         if (globalSavedJobsUnsubscribe) globalSavedJobsUnsubscribe();
         const qSavedJobs = query(
           collection(db, 'savedJobs'),
@@ -774,6 +829,10 @@ export function useAuth() {
           globalApplicationsUnsubscribe();
           globalApplicationsUnsubscribe = null;
         }
+        if (globalInvitationsUnsubscribe) {
+          globalInvitationsUnsubscribe();
+          globalInvitationsUnsubscribe = null;
+        }
         if (globalSavedJobsUnsubscribe) {
           globalSavedJobsUnsubscribe();
           globalSavedJobsUnsubscribe = null;
@@ -786,7 +845,12 @@ export function useAuth() {
           globalNotificationsUnsubscribe();
           globalNotificationsUnsubscribe = null;
         }
+        if (globalCandidatesInterval) {
+          clearInterval(globalCandidatesInterval);
+          globalCandidatesInterval = null;
+        }
         globalNotifications = [];
+        globalInvitations = [];
         globalReadIds = [];
         globalActiveToast = null;
         globalUserRole = null;
@@ -799,6 +863,7 @@ export function useAuth() {
         setEmployerData(null);
         setSavedJobs([]);
         setViewedJobs([]);
+        setInvitations([]);
         setNotifications([]);
         setReadIds([]);
         setActiveToast(null);
@@ -815,6 +880,7 @@ export function useAuth() {
       setApplications([...globalApplications]);
       setSavedJobs([...globalSavedJobs]);
       setViewedJobs([...globalViewedJobs]);
+      setInvitations([...globalInvitations]);
       setNotifications([...globalNotifications]);
       setReadIds([...globalReadIds]);
       setActiveToast(globalActiveToast);
@@ -826,6 +892,10 @@ export function useAuth() {
     return () => {
       unsubscribe();
       listeners.delete(handleMockDataChange);
+      if (globalCandidatesInterval) {
+        clearInterval(globalCandidatesInterval);
+        globalCandidatesInterval = null;
+      }
     };
   }, []);
 
@@ -1510,14 +1580,80 @@ export function useAuth() {
     return { success: true, message: 'Đã xóa khỏi việc làm đã xem.' };
   };
 
-  const sendInvitation = (candidateId: string, jobId: string) => {
-    const targetCandidate = globalCandidates.find((c) => c.id === candidateId);
-    const targetJob = globalJobs.find((j) => j.id === jobId);
-    if (targetCandidate && targetJob) {
-      Alert.alert(
-        'Đã gửi lời mời',
-        `Đã gửi lời mời ứng tuyển công việc "${targetJob.title}" đến ứng viên "${targetCandidate.name}" thành công!`
-      );
+  const sendInvitation = async (candidateId: string, jobId: string) => {
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateId, jobId })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert(
+          'Đã gửi lời mời',
+          data.message || 'Gửi lời mời thành công!'
+        );
+      } else {
+        Alert.alert('Thất bại', data.error || 'Không thể gửi lời mời.');
+      }
+    } catch (error: any) {
+      console.error('Lỗi khi gửi lời mời:', error);
+      Alert.alert('Lỗi', 'Không thể kết nối tới server.');
+    }
+  };
+
+  const respondToInvitation = async (invitationId: string, status: 'Accepted' | 'Declined') => {
+    const invite = globalInvitations.find(inv => inv.id === invitationId);
+    if (!invite) return { success: false, message: 'Không tìm thấy lời mời.' };
+
+    try {
+      await updateDoc(doc(db, 'invitations', invitationId), { status });
+      
+      globalInvitations = globalInvitations.map(inv => {
+        if (inv.id === invitationId) {
+          return { ...inv, status };
+        }
+        return inv;
+      });
+      setInvitations([...globalInvitations]);
+      notifyAll();
+
+      if (status === 'Accepted' && firebaseUser) {
+        const appPayload = {
+          jobId: invite.jobId,
+          jobTitle: invite.jobTitle,
+          companyName: invite.companyName,
+          applicantName: firebaseUser.displayName || 'Ứng viên',
+          applicantPhone: userDataExtra.phone || 'Chưa cập nhật',
+          applicantEmail: firebaseUser.email || '',
+          message: 'Tôi đồng ý với lời mời làm việc của bạn.',
+          cvName: userDataExtra.cvName || 'CV_Ung_Vien.pdf',
+          cvSize: userDataExtra.cvSize || '1.2 MB',
+          cvUploadTime: userDataExtra.cvUploadTime || new Date().toLocaleDateString('vi-VN'),
+        };
+        await submitApplication(appPayload);
+      }
+
+      if (firebaseUser) {
+        const notifTitle = status === 'Accepted' ? 'Lời mời được chấp nhận' : 'Lời mời bị từ chối';
+        const notifBody = status === 'Accepted'
+          ? `Ứng viên "${firebaseUser.displayName || 'Ứng viên'}" đã chấp nhận lời mời ứng tuyển cho "${invite.jobTitle}".`
+          : `Ứng viên "${firebaseUser.displayName || 'Ứng viên'}" đã từ chối lời mời ứng tuyển cho "${invite.jobTitle}".`;
+
+        await addDoc(collection(db, 'notifications'), {
+          target: invite.employerId,
+          role: 'employer',
+          category: 'job',
+          title: notifTitle,
+          body: notifBody,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      return { success: true, message: status === 'Accepted' ? 'Đã chấp nhận lời mời làm việc!' : 'Đã từ chối lời mời.' };
+    } catch (e: any) {
+      console.error('Lỗi khi phản hồi lời mời:', e);
+      return { success: false, message: 'Đã xảy ra lỗi: ' + e.message };
     }
   };
 
@@ -1610,7 +1746,7 @@ export function useAuth() {
           if (item.target === 'RECRUITER') return userRole === 'employer';
           if (item.target === 'USER') return userRole === 'candidate';
           if (item.target === undefined) return userRole === 'candidate';
-          return item.target === firebaseUser.uid;
+          return item.target === firebaseUser.uid || item.target === 'candidate-1' || item.target === 'candidate-2' || item.target === 'candidate-3' || item.target === 'candidate-4';
         })
         .map((item) => ({
           ...item,
@@ -1691,7 +1827,9 @@ export function useAuth() {
     updateJob,
     deleteJob,
     updateApplicationStatus,
+    invitations,
     sendInvitation,
+    respondToInvitation,
     updateDesiredJob,
     updateUserPhone,
     updateCandidateCV,
