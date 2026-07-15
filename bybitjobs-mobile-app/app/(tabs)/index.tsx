@@ -9,6 +9,7 @@ import {
   TextInput,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,11 +42,119 @@ interface JobItem {
   isPremium: boolean;
 }
 
+export interface FeaturedCompany {
+  id: string;
+  name: string;
+  logo: string;
+  coverImage: string;
+  industry: string;
+  scale: string;
+  location: string;
+  description: string;
+  benefits: string[];
+  rating: number;
+}
+
+const featuredCompanies: FeaturedCompany[] = [
+  {
+    id: 'bybit-vietnam',
+    name: 'Công ty Công nghệ Bybit Việt Nam',
+    logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
+    industry: 'Công nghệ thông tin / Phần mềm',
+    scale: '100 - 500 nhân viên',
+    location: 'Tòa nhà Landmark 81, Bình Thạnh, TP. HCM',
+    description: 'Bybit Việt Nam tự hào là môi trường công nghệ tiên phong, năng động, khuyến khích sự sáng tạo vượt bậc của từng cá nhân.',
+    benefits: [
+      'Lương thưởng cạnh tranh, review lương 2 lần/năm',
+      'Đóng bảo hiểm full 100% lương thực nhận',
+      'Thưởng tháng 13 & các gói Performance bonus hấp dẫn',
+      'Gói chăm sóc sức khỏe cao cấp Bybit Care hàng năm',
+      'Cung cấp Macbook Pro/Dell XPS đời mới khi làm việc',
+      'Miễn phí cơm trưa, Pantry ngập tràn đồ ăn nhẹ & nước uống'
+    ],
+    rating: 4.9,
+  },
+  {
+    id: 'techvibe-solutions',
+    name: 'TechVibe Solutions',
+    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=500&auto=format&fit=crop&q=60',
+    industry: 'UI/UX & Fintech Products',
+    scale: '50 - 150 nhân viên',
+    location: 'Quận 7, TP. Hồ Chí Minh',
+    description: 'TechVibe Solutions đi đầu trong việc thiết kế sản phẩm tài chính hiện đại và ứng dụng công nghệ khối chuỗi.',
+    benefits: [
+      'Lương tháng 13 + Thưởng KPI năm cực cao',
+      'Chế độ Hybrid work linh hoạt (lên văn phòng 3 ngày/tuần)',
+      'Bảo hiểm PVI hỗ trợ toàn diện gia đình',
+      'Hỗ trợ chi phí học tập & nâng cao kỹ năng lên tới 20M/năm',
+      'Teambuilding và du lịch nước ngoài hàng năm'
+    ],
+    rating: 4.8,
+  },
+  {
+    id: 'innovate-studio',
+    name: 'Innovate Studio',
+    logo: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=100&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=500&auto=format&fit=crop&q=60',
+    industry: 'Thiết kế & Smart Home IoT',
+    scale: '30 - 80 nhân viên',
+    location: 'Quận 3, TP. Hồ Chí Minh',
+    description: 'Nơi hội tụ những nhà thiết kế sản phẩm và kỹ sư IoT tài năng để kiến tạo cuộc sống thông minh tương lai.',
+    benefits: [
+      'Môi trường làm việc mở, tự do sáng tạo, không OT',
+      'Đóng bảo hiểm xã hội đầy đủ theo Luật Lao động',
+      'Review lương định kỳ hàng năm',
+      'Môi trường đa văn hóa, thường xuyên giao tiếp tiếng Anh',
+      'Câu lạc bộ thể thao (Bóng đá, Cầu lông...) công ty tài trợ'
+    ],
+    rating: 5.0,
+  }
+];
+
 function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs } = useAuth();
+  const { jobs, userData, invitations, respondToInvitation, savedJobs, viewedJobs } = useAuth();
+
+  const pendingInvites = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return invitations.filter(
+      (inv) =>
+        inv.status === 'Pending' &&
+        (inv.candidateId === userData.uid ||
+         inv.candidateId === 'candidate-1' ||
+         inv.candidateId === 'candidate-2' ||
+         inv.candidateId === 'candidate-3' ||
+         inv.candidateId === 'candidate-4')
+    );
+  }, [invitations, userData?.uid]);
+
+  const handleRespond = (invitationId: string, status: 'Accepted' | 'Declined', jobTitle: string) => {
+    Alert.alert(
+      status === 'Accepted' ? 'Đồng ý nhận việc?' : 'Từ chối lời mời?',
+      status === 'Accepted'
+        ? `Bạn có chắc chắn muốn chấp nhận lời mời ứng tuyển công việc "${jobTitle}"? Hệ thống sẽ tự động nộp hồ sơ của bạn.`
+        : `Bạn có muốn từ chối lời mời ứng tuyển công việc "${jobTitle}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: status === 'Accepted' ? 'Chấp nhận' : 'Từ chối',
+          style: status === 'Accepted' ? 'default' : 'destructive',
+          onPress: async () => {
+            const res = await respondToInvitation(invitationId, status);
+            if (res.success) {
+              Alert.alert('Thành công', res.message);
+            } else {
+              Alert.alert('Lỗi', res.message);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const [activeChip, setActiveChip] = React.useState('Hot');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
@@ -246,6 +355,8 @@ function CandidateHomeScreen() {
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
   const [isSearchModalVisible, setIsSearchModalVisible] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedCompany, setSelectedCompany] = React.useState<FeaturedCompany | null>(null);
+  const [isCompanyModalVisible, setIsCompanyModalVisible] = React.useState(false);
 
   const getPosterName = (job: (typeof jobs)[number]) => {
     return (
@@ -293,6 +404,102 @@ function CandidateHomeScreen() {
       isPremium: job.employerId ? premiumEmployersById[job.employerId] === true : false,
     };
   });
+
+  const aiRecommendedJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
+
+    // 1. Target desired job keywords
+    const desired = (userData.desiredJob || '').toLowerCase().trim();
+    const desiredKeywords = desired.split(' ').filter(word => word.length > 2);
+
+    // 2. Target CV keywords
+    const cvName = (userData.cvName || '').toLowerCase().trim();
+    const cvKeywords = cvName.replace('.pdf', '').split(/[_\s-]/).filter(word => word.length > 2);
+
+    // 3. Target recently viewed and saved job titles
+    const viewedTitles = (viewedJobs || []).map(v => v.jobTitle.toLowerCase());
+    const savedTitles = (savedJobs || []).map(s => s.jobTitle.toLowerCase());
+
+    const scored = jobListings.map(job => {
+      let score = 0;
+      let reasons: string[] = [];
+      const title = job.title.toLowerCase();
+      const industry = (job.originalIndustry || '').toLowerCase();
+
+      // Check desiredJob keywords
+      if (desired) {
+        let matchCount = 0;
+        desiredKeywords.forEach(kw => {
+          if (title.includes(kw)) {
+            matchCount++;
+          }
+        });
+        if (matchCount > 0) {
+          score += 30 + matchCount * 5;
+          reasons.push('Khớp với công việc mong muốn của bạn');
+        }
+      }
+
+      // Check CV keywords
+      if (cvKeywords.length > 0) {
+        let matchCount = 0;
+        cvKeywords.forEach(kw => {
+          if (title.includes(kw)) {
+            matchCount++;
+          }
+        });
+        if (matchCount > 0) {
+          score += 15 + matchCount * 3;
+          reasons.push('Phù hợp với chuyên môn trong CV của bạn');
+        }
+      }
+
+      // Check viewed history (similarity with recently viewed jobs)
+      let viewMatch = false;
+      viewedTitles.forEach(vt => {
+        if (title.includes(vt) || vt.includes(title)) {
+          viewMatch = true;
+        }
+      });
+      if (viewMatch) {
+        score += 20;
+        reasons.push('Tương tự với các công việc bạn vừa xem');
+      }
+
+      // Check saved history
+      let saveMatch = false;
+      savedTitles.forEach(st => {
+        if (title.includes(st) || st.includes(title)) {
+          saveMatch = true;
+        }
+      });
+      if (saveMatch) {
+        score += 25;
+        reasons.push('Phù hợp với các công việc đã lưu');
+      }
+
+      // If industry matches CV or desiredJob keywords
+      if (industry && (desired.includes(industry) || industry.includes(desired))) {
+        score += 10;
+      }
+
+      // Calculate percentage match (cap at 99%)
+      const matchPercentage = Math.min(Math.max(Math.round((score / 90) * 100), 45), 99);
+
+      return {
+        ...job,
+        score,
+        matchPercentage,
+        reason: reasons[0] || 'Gợi ý dựa trên hồ sơ của bạn',
+      };
+    });
+
+    // Filter jobs with a meaningful match score and sort descending
+    return scored
+      .filter(item => item.score > 25)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3); // Get top 3 recommendations
+  }, [jobListings, userData?.desiredJob, userData?.cvName, viewedJobs, savedJobs, userData?.uid]);
 
   const normalizeText = (value: string) =>
     value
@@ -419,6 +626,74 @@ function CandidateHomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Lời mời tuyển dụng section (nếu có pendingInvites) */}
+          {pendingInvites.length > 0 && (
+            <View style={styles.invitationsSection}>
+              <View style={styles.invitationSectionHeader}>
+                <Ionicons name="mail-unread-outline" size={20} color="#FF9500" />
+                <Text style={[styles.invitationSectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Lời mời tuyển dụng mới ({pendingInvites.length})
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.invitationsList}
+              >
+                {pendingInvites.map((invite) => (
+                  <View
+                    key={invite.id}
+                    style={[
+                      styles.inviteCard,
+                      {
+                        backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                        borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                      },
+                    ]}
+                  >
+                    <View style={styles.inviteCardTop}>
+                      <View style={[styles.inviteAvatarCircle, { backgroundColor: isDark ? '#2D2D30' : '#E6F4FE' }]}>
+                        <Text style={styles.inviteAvatarText}>
+                          {invite.companyName
+                            ?.split(' ')
+                            .filter(Boolean)
+                            .slice(-2)
+                            .map((part) => part[0])
+                            .join('')
+                            .toUpperCase() || '🏢'}
+                        </Text>
+                      </View>
+                      <View style={styles.inviteTextContent}>
+                        <Text style={[styles.inviteJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                          {invite.jobTitle}
+                        </Text>
+                        <Text style={styles.inviteCompanyName} numberOfLines={1}>
+                          {invite.companyName}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.inviteCardBottom}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleRespond(invite.id, 'Declined', invite.jobTitle)}
+                        style={[styles.inviteBtn, styles.inviteDeclineBtn, { borderColor: isDark ? '#444' : '#E5E7EB' }]}
+                      >
+                        <Text style={styles.inviteDeclineBtnText}>✕ Từ chối</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => handleRespond(invite.id, 'Accepted', invite.jobTitle)}
+                        style={[styles.inviteBtn, styles.inviteAcceptBtn]}
+                      >
+                        <Text style={styles.inviteAcceptBtnText}>✓ Đồng ý</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Promotion Campaign Banner */}
           <View style={[styles.bannerCard, { backgroundColor: isDark ? '#1C2E3D' : '#EAF4FC' }]}>
             <View style={styles.bannerLeft}>
@@ -436,6 +711,158 @@ function CandidateHomeScreen() {
                 resizeMode="cover"
               />
             </View>
+          </View>
+
+          {/* TOPPY AI Job Recommendations (Hiển thị nếu có aiRecommendedJobs) */}
+          {aiRecommendedJobs.length > 0 && (
+            <View style={styles.aiRecommendedSection}>
+              <View style={styles.aiSectionHeader}>
+                <Ionicons name="sparkles" size={18} color="#0084FF" />
+                <Text style={[styles.aiSectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Việc làm đề xuất từ TOPPY AI
+                </Text>
+                <View style={styles.aiHeaderBadge}>
+                  <Text style={styles.aiHeaderBadgeText}>Đề xuất cho bạn</Text>
+                </View>
+              </View>
+              <Text style={[styles.aiSectionDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                Hệ thống AI tự động phân tích CV, công việc mong muốn & hành vi của bạn để gợi ý.
+              </Text>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.aiJobsScrollList}
+              >
+                {aiRecommendedJobs.map((job) => (
+                  <TouchableOpacity
+                    key={`ai-${job.id}`}
+                    activeOpacity={0.9}
+                    onPress={() => openJobDetails(job)}
+                    style={[
+                      styles.aiJobCard,
+                      {
+                        backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                        borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                      },
+                    ]}
+                  >
+                    <View style={styles.aiCardTop}>
+                      {/* Avatar */}
+                      <View style={[styles.aiJobAvatar, { backgroundColor: isDark ? '#2D2D30' : '#E6F4FE' }]}>
+                        <Text style={styles.aiJobAvatarText}>{job.author.avatar}</Text>
+                      </View>
+                      
+                      {/* Job details */}
+                      <View style={styles.aiJobTextWrapper}>
+                        <Text style={[styles.aiJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                          {job.title}
+                        </Text>
+                        <Text style={styles.aiCompanyName} numberOfLines={1}>
+                          {job.author.name}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Fit percentage indicator */}
+                    <View style={styles.fitProgressContainer}>
+                      <View style={styles.fitProgressHeader}>
+                        <Text style={styles.fitReasonText} numberOfLines={1}>🎯 {job.reason}</Text>
+                        <Text style={styles.fitPercentageText}>Độ khớp {job.matchPercentage}%</Text>
+                      </View>
+                      <View style={[styles.fitProgressBarBg, { backgroundColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                        <View
+                          style={[
+                            styles.fitProgressBarFill,
+                            {
+                              width: `${job.matchPercentage}%`,
+                              backgroundColor: job.matchPercentage > 80 ? '#2E7D32' : '#0084FF',
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Metadata (Salary, Location) */}
+                    <View style={styles.aiCardMeta}>
+                      <Text style={[styles.aiMetaText, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                        💰 {job.price}
+                      </Text>
+                      <Text style={[styles.aiMetaText, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                        📍 {job.location}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Featured Companies Section (Thương hiệu nổi bật) */}
+          <View style={styles.featuredCompaniesSection}>
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="business" size={18} color="#FF9500" />
+              <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Thương hiệu tuyển dụng nổi bật
+              </Text>
+              <View style={styles.premiumBadge}>
+                <Text style={styles.premiumBadgeText}>Premium</Text>
+              </View>
+            </View>
+            <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Khám phá môi trường làm việc, chế độ đãi ngộ & vị trí đang tuyển dụng hot.
+            </Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.companiesScrollList}
+            >
+              {featuredCompanies.map((company) => {
+                // Count matching jobs dynamically
+                const matchingJobsCount = jobListings.filter(job => {
+                  const author = job.author.name.toLowerCase();
+                  const comp = company.name.toLowerCase();
+                  return author.includes(comp) || comp.includes(author);
+                }).length;
+
+                return (
+                  <TouchableOpacity
+                    key={company.id}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setSelectedCompany(company);
+                      setIsCompanyModalVisible(true);
+                    }}
+                    style={[
+                      styles.companyCard,
+                      {
+                        backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                        borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                      },
+                    ]}
+                  >
+                    <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
+                    <View style={styles.companyCardContent}>
+                      <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
+                      <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                        {company.name}
+                      </Text>
+                      <Text style={styles.companyCardMeta} numberOfLines={1}>
+                        ⭐ {company.rating} • {company.scale}
+                      </Text>
+                      <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                        📍 {company.location.split(',').slice(-2).join(',').trim()}
+                      </Text>
+                      <View style={styles.companyCardBottom}>
+                        <Text style={styles.jobCountText}>{matchingJobsCount} vị trí đang tuyển</Text>
+                        <Ionicons name="arrow-forward" size={14} color="#0084FF" />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
 
           {/* Filter Chips ScrollView */}
@@ -632,6 +1059,219 @@ function CandidateHomeScreen() {
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Company Details Modal */}
+      <Modal
+        visible={isCompanyModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsCompanyModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
+          {selectedCompany && (
+            <View style={{ flex: 1 }}>
+              {/* Cover Image & Back Button */}
+              <View style={{ height: 160, position: 'relative' }}>
+                <Image source={{ uri: selectedCompany.coverImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setIsCompanyModalVisible(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="chevron-back" size={24} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Logo overlap & Company Header */}
+              <View style={{ paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: -35, marginBottom: 12 }}>
+                  <Image
+                    source={{ uri: selectedCompany.logo }}
+                    style={{
+                      width: 70,
+                      height: 70,
+                      borderRadius: 12,
+                      borderWidth: 3,
+                      borderColor: isDark ? '#1C1C1E' : '#FFF',
+                      backgroundColor: '#FFF',
+                    }}
+                  />
+                  <View style={{ marginLeft: 12, flex: 1, paddingBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1 }} numberOfLines={1}>
+                        {selectedCompany.name}
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>{selectedCompany.industry}</Text>
+                  </View>
+                </View>
+
+                {/* Quick Meta */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="people-outline" size={14} color="#8E8E93" />
+                    <Text style={{ fontSize: 11, color: '#8E8E93' }}>{selectedCompany.scale}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="location-outline" size={14} color="#8E8E93" />
+                    <Text style={{ fontSize: 11, color: '#8E8E93', maxWidth: 180 }} numberOfLines={1}>
+                      {selectedCompany.location.split(',').slice(-2).join(',').trim()}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="star" size={14} color="#FFB300" />
+                    <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#11181C', fontWeight: 'bold' }}>
+                      {selectedCompany.rating}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Custom Segmented Tabs */}
+              {(() => {
+                const [activeSubTab, setActiveSubTab] = React.useState<'overview' | 'jobs'>('overview');
+                const matchingJobs = jobListings.filter(job => {
+                  const author = job.author.name.toLowerCase();
+                  const comp = selectedCompany.name.toLowerCase();
+                  return author.includes(comp) || comp.includes(author);
+                });
+
+                return (
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', height: 44, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setActiveSubTab('overview')}
+                        style={{
+                          flex: 1,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderBottomWidth: 2,
+                          borderBottomColor: activeSubTab === 'overview' ? '#0084FF' : 'transparent',
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'overview' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
+                          Môi trường & Phúc lợi
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setActiveSubTab('jobs')}
+                        style={{
+                          flex: 1,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderBottomWidth: 2,
+                          borderBottomColor: activeSubTab === 'jobs' ? '#0084FF' : 'transparent',
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'jobs' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
+                          Vị trí đang tuyển ({matchingJobs.length})
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+                      {activeSubTab === 'overview' ? (
+                        <View>
+                          {/* Description */}
+                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                            <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }}>
+                              Về doanh nghiệp
+                            </Text>
+                            <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', lineHeight: 18 }}>
+                              {selectedCompany.description}
+                            </Text>
+                          </View>
+
+                          {/* Address details */}
+                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 4 }}>
+                              📍 ĐỊA CHỈ TRỤ SỞ
+                            </Text>
+                            <Text style={{ fontSize: 12, color: isDark ? '#9BA1A6' : '#687076' }}>
+                              {selectedCompany.location}
+                            </Text>
+                          </View>
+
+                          {/* Benefits list */}
+                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                            <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }}>
+                              🎁 Quyền lợi & Chế độ đãi ngộ
+                            </Text>
+                            {selectedCompany.benefits.map((benefit, index) => (
+                              <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginVertical: 5, gap: 8 }}>
+                                <Ionicons name="checkmark-circle" size={16} color="#2E7D32" style={{ marginTop: 1 }} />
+                                <Text style={{ flex: 1, fontSize: 12, color: isDark ? '#ECEDEE' : '#333', lineHeight: 16 }}>
+                                  {benefit}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={{ gap: 12 }}>
+                          {matchingJobs.length === 0 ? (
+                            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                              <Ionicons name="briefcase-outline" size={44} color="#8E8E93" />
+                              <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 10, textAlign: 'center' }}>
+                                Hiện tại doanh nghiệp chưa đăng tuyển vị trí mới nào.
+                              </Text>
+                            </View>
+                          ) : (
+                            matchingJobs.map((job) => (
+                              <TouchableOpacity
+                                key={job.id}
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                  setIsCompanyModalVisible(false);
+                                  openJobDetails(job);
+                                }}
+                                style={{
+                                  padding: 14,
+                                  borderRadius: 12,
+                                  backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                                  borderWidth: 1,
+                                  borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                                }}
+                              >
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1, marginRight: 8 }}>
+                                    {job.title}
+                                  </Text>
+                                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0084FF' }}>
+                                    {job.price}
+                                  </Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>📍 {job.location}</Text>
+                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>•</Text>
+                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>{job.timeLeft.split(':')[1]?.trim() || job.timeLeft}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+        </SafeAreaView>
+      </Modal>
 
       <Modal
         visible={isSearchModalVisible}
@@ -1370,6 +2010,318 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 13,
     fontWeight: 'bold',
+  },
+  invitationsSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  invitationSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  invitationSectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  invitationsList: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  inviteCard: {
+    width: 280,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  inviteCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  inviteAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteAvatarText: {
+    color: '#0084FF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  inviteTextContent: {
+    flex: 1,
+  },
+  inviteJobTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  inviteCompanyName: {
+    fontSize: 11,
+    color: '#0084FF',
+    fontWeight: '600',
+  },
+  inviteCardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+    paddingTop: 10,
+  },
+  inviteBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteDeclineBtn: {
+    backgroundColor: 'transparent',
+  },
+  inviteDeclineBtnText: {
+    color: '#FF3B30',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  inviteAcceptBtn: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
+  inviteAcceptBtnText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  aiRecommendedSection: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  aiSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  aiSectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  aiHeaderBadge: {
+    backgroundColor: '#E6F4FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  aiHeaderBadgeText: {
+    color: '#0084FF',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  aiSectionDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 12,
+  },
+  aiJobsScrollList: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  aiJobCard: {
+    width: 290,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  aiCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aiJobAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiJobAvatarText: {
+    color: '#0084FF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  aiJobTextWrapper: {
+    flex: 1,
+  },
+  aiJobTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  aiCompanyName: {
+    fontSize: 11,
+    color: '#0084FF',
+    fontWeight: '600',
+  },
+  fitProgressContainer: {
+    marginTop: 12,
+  },
+  fitProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  fitReasonText: {
+    fontSize: 10,
+    color: '#8E8E93',
+    fontWeight: '500',
+    flex: 1,
+    marginRight: 6,
+  },
+  fitPercentageText: {
+    fontSize: 10,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+  },
+  fitProgressBarBg: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  fitProgressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  aiCardMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+    paddingTop: 10,
+  },
+  aiMetaText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  featuredCompaniesSection: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionTitleText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  premiumBadge: {
+    backgroundColor: '#FFEFE6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  premiumBadgeText: {
+    color: '#FF8A00',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  sectionDescText: {
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 12,
+  },
+  companiesScrollList: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  companyCard: {
+    width: 200,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  companyCardCover: {
+    height: 70,
+    width: '100%',
+  },
+  companyCardContent: {
+    padding: 10,
+    alignItems: 'center',
+    position: 'relative',
+    paddingTop: 24,
+  },
+  companyCardLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#FFF',
+    backgroundColor: '#FFF',
+    position: 'absolute',
+    top: -22,
+  },
+  companyCardName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
+  },
+  companyCardMeta: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  companyCardLocation: {
+    fontSize: 9,
+    marginTop: 2,
+    textAlign: 'center',
+    width: '100%',
+  },
+  companyCardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+    paddingTop: 8,
+  },
+  jobCountText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#0084FF',
   },
 });
 

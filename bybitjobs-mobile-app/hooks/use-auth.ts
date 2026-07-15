@@ -1795,6 +1795,7 @@ export function useAuth() {
   };
 
   return {
+    firebaseUser,
     isLoggedIn: !!firebaseUser,
     isInitializing,
     userRole,

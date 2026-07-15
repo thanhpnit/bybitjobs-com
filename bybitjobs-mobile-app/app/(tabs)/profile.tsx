@@ -48,7 +48,9 @@ function CandidateProfileScreen() {
     updateUserPhone,
     updateCandidateCV,
     sendOtp,
-    switchRole
+    switchRole,
+    invitations,
+    respondToInvitation
   } = useAuth();
 
   // Job seeking switch states
@@ -295,6 +297,42 @@ function CandidateProfileScreen() {
       [
         { text: 'Hủy', style: 'cancel' },
         { text: 'Đăng xuất', style: 'destructive', onPress: logout }
+      ]
+    );
+  };
+
+  const candidateInvites = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return (invitations || []).filter(
+      (inv) =>
+        inv.candidateId === userData.uid ||
+        inv.candidateId === 'candidate-1' ||
+        inv.candidateId === 'candidate-2' ||
+        inv.candidateId === 'candidate-3' ||
+        inv.candidateId === 'candidate-4'
+    );
+  }, [invitations, userData?.uid]);
+
+  const handleRespond = (invitationId: string, status: 'Accepted' | 'Declined', jobTitle: string) => {
+    Alert.alert(
+      status === 'Accepted' ? 'Đồng ý nhận việc?' : 'Từ chối lời mời?',
+      status === 'Accepted'
+        ? `Bạn có chắc chắn muốn chấp nhận lời mời ứng tuyển công việc "${jobTitle}"? Hệ thống sẽ tự động nộp hồ sơ của bạn.`
+        : `Bạn có muốn từ chối lời mời ứng tuyển công việc "${jobTitle}"?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: status === 'Accepted' ? 'Chấp nhận' : 'Từ chối',
+          style: status === 'Accepted' ? 'default' : 'destructive',
+          onPress: async () => {
+            const res = await respondToInvitation(invitationId, status);
+            if (res.success) {
+              Alert.alert('Thành công', res.message);
+            } else {
+              Alert.alert('Lỗi', res.message);
+            }
+          },
+        },
       ]
     );
   };
@@ -1484,6 +1522,97 @@ function CandidateProfileScreen() {
                 </TouchableOpacity>
               </View>
             )
+          )}
+
+          {/* Lời mời tuyển dụng section (profile) */}
+          {isLoggedIn && candidateInvites.length > 0 && (
+            <View style={[styles.whiteCard, isDark && styles.darkCard, { borderLeftWidth: 4, borderLeftColor: '#FF9500' }]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="mail-unread-outline" size={20} color="#FF9500" style={styles.cardHeaderIcon} />
+                <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Lời mời làm việc ({candidateInvites.length})
+                </Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+              
+              <ScrollView style={{ maxHeight: 250 }} showsVerticalScrollIndicator={true}>
+                {candidateInvites.map((invite) => {
+                  const statusStyle = invite.status === 'Accepted'
+                    ? { text: '#2E7D32', bg: '#E8F5E9' }
+                    : invite.status === 'Declined'
+                    ? { text: '#C62828', bg: '#FFEBEE' }
+                    : { text: '#FF8F00', bg: '#FFF8E1' };
+                  
+                  const statusText = invite.status === 'Accepted'
+                    ? 'Đã chấp nhận'
+                    : invite.status === 'Declined'
+                    ? 'Đã từ chối'
+                    : 'Chờ phản hồi';
+
+                  return (
+                    <View
+                      key={invite.id}
+                      style={{
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C' }}>
+                            {invite.jobTitle}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#0084FF', marginTop: 2, fontWeight: '600' }}>
+                            🏢 {invite.companyName}
+                          </Text>
+                        </View>
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: statusStyle.bg }}>
+                          <Text style={{ fontSize: 10, fontWeight: 'bold', color: statusStyle.text }}>
+                            {statusText}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {invite.status === 'Pending' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => handleRespond(invite.id, 'Declined', invite.jobTitle)}
+                            style={{
+                              paddingVertical: 5,
+                              paddingHorizontal: 12,
+                              borderRadius: 6,
+                              borderWidth: 1,
+                              borderColor: isDark ? '#444' : '#E5E7EB',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Text style={{ color: '#FF3B30', fontSize: 11, fontWeight: 'bold' }}>✕ Từ chối</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => handleRespond(invite.id, 'Accepted', invite.jobTitle)}
+                            style={{
+                              paddingVertical: 5,
+                              paddingHorizontal: 12,
+                              borderRadius: 6,
+                              backgroundColor: '#2E7D32',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>✓ Đồng ý</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
           )}
 
           {/* 4. CV của tôi (CV đã tải lên & Cover Letter) Card */}
