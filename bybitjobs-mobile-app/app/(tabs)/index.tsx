@@ -156,7 +156,7 @@ function CandidateHomeScreen() {
     );
   };
 
-  const [activeChip, setActiveChip] = React.useState('Hot');
+  const [activeChip, setActiveChip] = React.useState('Nổi bật');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
   const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
@@ -501,6 +501,10 @@ function CandidateHomeScreen() {
       .slice(0, 3); // Get top 3 recommendations
   }, [jobListings, userData?.desiredJob, userData?.cvName, viewedJobs, savedJobs, userData?.uid]);
 
+  const [searchLocationFilter, setSearchLocationFilter] = React.useState('Tất cả');
+  const [searchSalaryFilter, setSearchSalaryFilter] = React.useState('Tất cả');
+  const [searchTypeFilter, setSearchTypeFilter] = React.useState('Tất cả');
+
   const normalizeText = (value: string) =>
     value
       .toLowerCase()
@@ -509,25 +513,86 @@ function CandidateHomeScreen() {
 
   const searchSuggestions = React.useMemo(() => {
     const keyword = normalizeText(searchQuery.trim());
-    if (!keyword) return [];
+    
+    const isFilterActive = searchLocationFilter !== 'Tất cả' || 
+                           searchSalaryFilter !== 'Tất cả' || 
+                           searchTypeFilter !== 'Tất cả';
+    
+    if (!keyword && !isFilterActive) return [];
 
     return jobListings
       .filter((job) => {
-        const searchableText = normalizeText([
-          job.title,
-          job.author.name,
-          job.location,
-          job.price,
-          job.originalIndustry || '',
-        ].join(' '));
-        return searchableText.includes(keyword);
+        // 1. Text keyword search
+        let matchKeyword = true;
+        if (keyword) {
+          const searchableText = normalizeText([
+            job.title,
+            job.author.name,
+            job.location,
+            job.price,
+            job.originalIndustry || '',
+          ].join(' '));
+          matchKeyword = searchableText.includes(keyword);
+        }
+
+        // 2. Location filter
+        let matchLoc = true;
+        if (searchLocationFilter !== 'Tất cả') {
+          matchLoc = job.location.includes(searchLocationFilter);
+        }
+
+        // 3. Salary filter
+        let matchSal = true;
+        if (searchSalaryFilter !== 'Tất cả') {
+          const salaryStr = job.price.toLowerCase();
+          let parsedMax = 0;
+          let parsedMin = 0;
+          
+          const matchNum = salaryStr.match(/\d+/g);
+          if (matchNum) {
+            const numbers = matchNum.map(Number);
+            if (numbers.length === 1) {
+              parsedMax = numbers[0];
+              parsedMin = numbers[0];
+            } else if (numbers.length >= 2) {
+              parsedMin = numbers[0];
+              parsedMax = numbers[1];
+            }
+          }
+
+          if (searchSalaryFilter === 'Dưới 10 triệu') {
+            matchSal = parsedMax < 10 && parsedMax > 0;
+          } else if (searchSalaryFilter === '10 - 20 triệu') {
+            matchSal = (parsedMin >= 10 && parsedMin <= 20) || (parsedMax >= 10 && parsedMax <= 20);
+          } else if (searchSalaryFilter === 'Trên 20 triệu') {
+            matchSal = parsedMax > 20 || parsedMin > 20 || salaryStr.includes('thỏa thuận') || salaryStr.includes('cạnh tranh');
+          }
+        }
+
+        // 4. Job Type filter
+        let matchType = true;
+        if (searchTypeFilter !== 'Tất cả') {
+          const title = job.title.toLowerCase();
+          if (searchTypeFilter === 'Thực tập') {
+            matchType = title.includes('thực tập') || title.includes('intern') || title.includes('trainee') || title.includes('tts');
+          } else if (searchTypeFilter === 'Bán thời gian') {
+            matchType = title.includes('part-time') || title.includes('part time') || title.includes('bán thời gian') || title.includes('ca ');
+          } else if (searchTypeFilter === 'Toàn thời gian') {
+            matchType = !title.includes('thực tập') && !title.includes('intern') && !title.includes('part-time') && !title.includes('part time');
+          }
+        }
+
+        return matchKeyword && matchLoc && matchSal && matchType;
       })
       .slice(0, 8);
-  }, [jobListings, searchQuery]);
+  }, [jobListings, searchQuery, searchLocationFilter, searchSalaryFilter, searchTypeFilter]);
 
   const openJobDetails = (job: JobItem) => {
     setIsSearchModalVisible(false);
     setSearchQuery('');
+    setSearchLocationFilter('Tất cả');
+    setSearchSalaryFilter('Tất cả');
+    setSearchTypeFilter('Tất cả');
     router.push({
       pathname: '/job-details',
       params: {
@@ -550,7 +615,7 @@ function CandidateHomeScreen() {
     let matchLocation = true;
     if (selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm') {
       if (selectedLocation === 'TP. Hồ Chí Minh') {
-        matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh');
+        matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh') || job.location.includes('Bình Thạnh') || job.location.includes('Quận 7') || job.location.includes('Quận 3');
       } else if (selectedLocation === 'Hà Nội') {
         matchLocation = job.location.includes('Hà Nội') || job.location.includes('Hoàn Kiếm');
       } else {
@@ -564,9 +629,27 @@ function CandidateHomeScreen() {
       matchIndustry = job.originalIndustry === selectedIndustry;
     }
 
-    return matchLocation && matchIndustry;
+    // Filter by active category chip
+    let matchCategory = true;
+    if (activeChip === 'Tuyển gấp') {
+      const isUrgent = job.isPremium || 
+                       job.title.toLowerCase().includes('gấp') || 
+                       job.title.toLowerCase().includes('tuyển gấp') || 
+                       job.title.toLowerCase().includes('urgent');
+      matchCategory = isUrgent;
+    } else if (activeChip === 'Thực tập sinh') {
+      const title = job.title.toLowerCase();
+      const isIntern = title.includes('thực tập') || 
+                       title.includes('intern') || 
+                       title.includes('trainee') || 
+                       title.includes('fresher') || 
+                       title.includes('tts');
+      matchCategory = isIntern;
+    }
+
+    return matchLocation && matchIndustry && matchCategory;
   }).sort((a, b) => {
-    if (activeChip === 'Hot' && a.isPremium !== b.isPremium) {
+    if (activeChip === 'Nổi bật' && a.isPremium !== b.isPremium) {
       return a.isPremium ? -1 : 1;
     }
     return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
@@ -871,7 +954,7 @@ function CandidateHomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsContainer}
           >
-            {['Hot', 'Mới nhất'].map((chip) => {
+            {['Nổi bật', 'Tuyển gấp', 'Thực tập sinh', 'Mới nhất'].map((chip) => {
               const isActive = activeChip === chip;
               return (
                 <TouchableOpacity
@@ -1304,16 +1387,148 @@ function CandidateHomeScreen() {
               )}
             </View>
 
+            {/* Advanced Filters Row */}
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }}>
+              {/* Location Filter */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  Alert.alert(
+                    'Chọn địa điểm',
+                    'Lọc tin tuyển dụng theo địa chỉ thành phố',
+                    [
+                      { text: 'Tất cả địa điểm', onPress: () => setSearchLocationFilter('Tất cả') },
+                      { text: 'TP. Hồ Chí Minh', onPress: () => setSearchLocationFilter('Hồ Chí Minh') },
+                      { text: 'Hà Nội', onPress: () => setSearchLocationFilter('Hà Nội') },
+                      { text: 'Đà Nẵng', onPress: () => setSearchLocationFilter('Đà Nẵng') },
+                      { text: 'Hủy', style: 'cancel' }
+                    ]
+                  );
+                }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: searchLocationFilter !== 'Tất cả' ? '#E6F4FE' : (isDark ? '#2C2C2E' : '#F2F2F7'),
+                  borderWidth: 1,
+                  borderColor: searchLocationFilter !== 'Tất cả' ? '#0084FF' : 'transparent',
+                  gap: 4,
+                }}
+              >
+                <Ionicons name="location-outline" size={14} color={searchLocationFilter !== 'Tất cả' ? '#0084FF' : '#8E8E93'} />
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: searchLocationFilter !== 'Tất cả' ? '#0084FF' : (isDark ? '#FFF' : '#11181C') }} numberOfLines={1}>
+                  {searchLocationFilter === 'Tất cả' ? 'Địa điểm' : searchLocationFilter}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Salary Filter */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  Alert.alert(
+                    'Chọn khoảng lương',
+                    'Lọc tin tuyển dụng theo ngân sách mong muốn',
+                    [
+                      { text: 'Tất cả mức lương', onPress: () => setSearchSalaryFilter('Tất cả') },
+                      { text: 'Dưới 10 triệu', onPress: () => setSearchSalaryFilter('Dưới 10 triệu') },
+                      { text: '10 - 20 triệu', onPress: () => setSearchSalaryFilter('10 - 20 triệu') },
+                      { text: 'Trên 20 triệu', onPress: () => setSearchSalaryFilter('Trên 20 triệu') },
+                      { text: 'Hủy', style: 'cancel' }
+                    ]
+                  );
+                }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: searchSalaryFilter !== 'Tất cả' ? '#E6F4FE' : (isDark ? '#2C2C2E' : '#F2F2F7'),
+                  borderWidth: 1,
+                  borderColor: searchSalaryFilter !== 'Tất cả' ? '#0084FF' : 'transparent',
+                  gap: 4,
+                }}
+              >
+                <Ionicons name="cash-outline" size={14} color={searchSalaryFilter !== 'Tất cả' ? '#0084FF' : '#8E8E93'} />
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: searchSalaryFilter !== 'Tất cả' ? '#0084FF' : (isDark ? '#FFF' : '#11181C') }} numberOfLines={1}>
+                  {searchSalaryFilter === 'Tất cả' ? 'Mức lương' : searchSalaryFilter}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Job Type Filter */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  Alert.alert(
+                    'Chọn hình thức',
+                    'Lọc tin tuyển dụng theo thời gian làm việc',
+                    [
+                      { text: 'Tất cả hình thức', onPress: () => setSearchTypeFilter('Tất cả') },
+                      { text: 'Toàn thời gian', onPress: () => setSearchTypeFilter('Toàn thời gian') },
+                      { text: 'Bán thời gian', onPress: () => setSearchTypeFilter('Bán thời gian') },
+                      { text: 'Thực tập', onPress: () => setSearchTypeFilter('Thực tập') },
+                      { text: 'Hủy', style: 'cancel' }
+                    ]
+                  );
+                }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: searchTypeFilter !== 'Tất cả' ? '#E6F4FE' : (isDark ? '#2C2C2E' : '#F2F2F7'),
+                  borderWidth: 1,
+                  borderColor: searchTypeFilter !== 'Tất cả' ? '#0084FF' : 'transparent',
+                  gap: 4,
+                }}
+              >
+                <Ionicons name="time-outline" size={14} color={searchTypeFilter !== 'Tất cả' ? '#0084FF' : '#8E8E93'} />
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: searchTypeFilter !== 'Tất cả' ? '#0084FF' : (isDark ? '#FFF' : '#11181C') }} numberOfLines={1}>
+                  {searchTypeFilter === 'Tất cả' ? 'Hình thức' : searchTypeFilter}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <ScrollView showsVerticalScrollIndicator={false} style={styles.searchResultsList}>
               {searchQuery.trim().length === 0 ? (
-                <View style={styles.searchEmptyBox}>
-                  <Ionicons name="sparkles-outline" size={30} color="#0084FF" />
-                  <Text style={[styles.searchEmptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    Tìm nhanh công việc
+                <View style={{ padding: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 12 }}>
+                    🔥 Từ khóa phổ biến
                   </Text>
-                  <Text style={styles.searchEmptyText}>
-                    Gõ tên việc, khu vực, lĩnh vực hoặc mức lương để xem đề xuất.
-                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                    {['React Native', 'Figma', 'Marketing', 'Thực tập sinh', 'Designer', 'Android', 'Kinh doanh', 'Phần mềm'].map((tag) => (
+                      <TouchableOpacity
+                        key={tag}
+                        activeOpacity={0.8}
+                        onPress={() => setSearchQuery(tag)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 20,
+                          backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, color: isDark ? '#FFF' : '#11181C', fontWeight: '500' }}>
+                          #{tag}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <View style={{ marginTop: 24, padding: 14, borderRadius: 12, backgroundColor: isDark ? '#2C2C2E' : '#EBF5FF' }}>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0084FF', marginBottom: 4 }}>
+                      💡 Tìm kiếm thông minh
+                    </Text>
+                    <Text style={{ fontSize: 11, color: isDark ? '#AAA' : '#687076', lineHeight: 16 }}>
+                      Sử dụng các bộ lọc địa điểm, khoảng lương và hình thức làm việc bên trên thanh tìm kiếm để lọc chính xác kết quả.
+                    </Text>
+                  </View>
                 </View>
               ) : searchSuggestions.length === 0 ? (
                 <View style={styles.searchEmptyBox}>
