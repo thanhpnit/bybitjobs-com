@@ -387,6 +387,7 @@ export function getRelativeTime(dateString: string, isOpen: boolean): string {
 let globalNotifications: any[] = [];
 let globalNotificationsUnsubscribe: (() => void) | null = null;
 let globalReadIds: string[] = [];
+let globalDeletedNotificationIds: string[] = [];
 let globalActiveToast: { id: string; title: string; description: string } | null = null;
 let globalSeqId = '000000';
 let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string } = {};
@@ -460,6 +461,7 @@ export function useAuth() {
   
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
   const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
+  const [deletedNotificationIds, setDeletedNotificationIds] = React.useState<string[]>(globalDeletedNotificationIds);
   const [activeToast, setActiveToast] = React.useState<{ id: string; title: string; description: string } | null>(globalActiveToast);
 
   React.useEffect(() => {
@@ -530,7 +532,7 @@ export function useAuth() {
         fetchUserData();
 
         // Fetch read notifications from Firestore
-        const fetchReadNotificationIds = async () => {
+        const fetchNotificationPrefs = async () => {
           try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
@@ -538,14 +540,18 @@ export function useAuth() {
               if (Array.isArray(uData?.readNotificationIds)) {
                 globalReadIds = uData.readNotificationIds;
                 setReadIds(globalReadIds);
-                notifyAll();
               }
+              if (Array.isArray(uData?.deletedNotificationIds)) {
+                globalDeletedNotificationIds = uData.deletedNotificationIds;
+                setDeletedNotificationIds(globalDeletedNotificationIds);
+              }
+              notifyAll();
             }
           } catch (err) {
-            console.error('Lỗi khi tải readIds từ Firestore:', err);
+            console.error('Lỗi khi tải trạng thái thông báo từ Firestore:', err);
           }
         };
-        fetchReadNotificationIds();
+        fetchNotificationPrefs();
 
         // Fetch notifications from Firestore realtime
         if (globalNotificationsUnsubscribe) globalNotificationsUnsubscribe();
@@ -852,6 +858,7 @@ export function useAuth() {
         globalNotifications = [];
         globalInvitations = [];
         globalReadIds = [];
+        globalDeletedNotificationIds = [];
         globalActiveToast = null;
         globalUserRole = null;
         globalEmployerData = null;
@@ -866,6 +873,7 @@ export function useAuth() {
         setInvitations([]);
         setNotifications([]);
         setReadIds([]);
+        setDeletedNotificationIds([]);
         setActiveToast(null);
       }
       setIsInitializing(false);
@@ -883,6 +891,7 @@ export function useAuth() {
       setInvitations([...globalInvitations]);
       setNotifications([...globalNotifications]);
       setReadIds([...globalReadIds]);
+      setDeletedNotificationIds([...globalDeletedNotificationIds]);
       setActiveToast(globalActiveToast);
       setSeqId(globalSeqId);
       setUserDataExtra(globalUserDataExtra);
@@ -1014,7 +1023,7 @@ export function useAuth() {
           setSeqId(data.seqId);
           notifyAll();
         }
-      } catch (err) {}
+      } catch {}
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
     } catch (error: any) {
       let msg = `Đăng ký thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
@@ -1748,6 +1757,7 @@ export function useAuth() {
           if (item.target === undefined) return userRole === 'candidate';
           return item.target === firebaseUser.uid || item.target === 'candidate-1' || item.target === 'candidate-2' || item.target === 'candidate-3' || item.target === 'candidate-4';
         })
+        .filter((item) => !deletedNotificationIds.includes(item.id))
         .map((item) => ({
           ...item,
           isRead: readIds.includes(item.id) || !!item.isRead,
@@ -1788,6 +1798,29 @@ export function useAuth() {
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    if (!globalDeletedNotificationIds.includes(id)) {
+      globalDeletedNotificationIds = [...globalDeletedNotificationIds, id];
+      setDeletedNotificationIds(globalDeletedNotificationIds);
+      if (!globalReadIds.includes(id)) {
+        globalReadIds = [...globalReadIds, id];
+        setReadIds(globalReadIds);
+      }
+      notifyAll();
+
+      if (firebaseUser) {
+        try {
+          await setDoc(doc(db, 'users', firebaseUser.uid), {
+            deletedNotificationIds: globalDeletedNotificationIds,
+            readNotificationIds: globalReadIds,
+          }, { merge: true });
+        } catch (e) {
+          console.error('Lỗi khi lưu thông báo đã xóa vào Firestore:', e);
+        }
+      }
+    }
+  };
+
   const switchRole = (role: UserRole) => {
     globalUserRole = role;
     setUserRole(role);
@@ -1811,6 +1844,7 @@ export function useAuth() {
       cvSize: userDataExtra.cvSize,
       cvUploadTime: userDataExtra.cvUploadTime
     } : null,
+    userDataExtra,
     employerData,
     jobs,
     orders,
@@ -1838,6 +1872,7 @@ export function useAuth() {
     unreadNotificationsCount,
     markAllNotificationsAsRead,
     markNotificationAsRead,
+    deleteNotification,
     activeToast,
     dismissToast: () => {
       globalActiveToast = null;

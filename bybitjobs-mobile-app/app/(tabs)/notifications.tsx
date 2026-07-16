@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -11,34 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '../../src/config/firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-
-interface NotificationItem {
-  id: string;
-  category: 'job' | 'system' | 'community' | 'security';
-  title: string;
-  description: string;
-  time: string;
-  isRead: boolean;
-}
-
-const getRelativeTimeLabel = (date: Date) => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (60 * 1000));
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-  if (diffMins < 1) return 'Vừa xong';
-  if (diffMins < 60) return `${diffMins} phút trước`;
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-  if (diffDays === 1) return 'Hôm qua';
-  return `${diffDays} ngày trước`;
-};
 
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
@@ -49,7 +25,8 @@ export default function NotificationsScreen() {
     userData, 
     notifications, 
     markAllNotificationsAsRead, 
-    markNotificationAsRead 
+    markNotificationAsRead,
+    deleteNotification,
   } = useAuth();
 
   const [activeSegment, setActiveSegment] = React.useState<'all' | 'unread'>('all');
@@ -80,6 +57,24 @@ export default function NotificationsScreen() {
         return { name: 'notifications', color: '#FF9500', bg: '#FFF3E0' };
     }
   };
+
+  const handleDeleteNotification = (id: string) => {
+    if (selectedNotification?.id === id) {
+      setSelectedNotification(null);
+    }
+    deleteNotification(id);
+  };
+
+  const renderDeleteAction = (id: string) => (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => handleDeleteNotification(id)}
+      style={styles.deleteAction}
+    >
+      <Ionicons name="trash-outline" size={22} color="#FFF" />
+      <Text style={styles.deleteActionText}>Xóa</Text>
+    </TouchableOpacity>
+  );
 
   const filteredNotifications = notifications.filter((n) => {
     if (activeSegment === 'unread') return !n.isRead;
@@ -161,43 +156,48 @@ export default function NotificationsScreen() {
             filteredNotifications.map((item) => {
               const iconData = getCategoryIcon(item.category);
               return (
-                <TouchableOpacity
+                <Swipeable
                   key={item.id}
-                  activeOpacity={0.85}
-                  onPress={() => handleNotificationPress(item.id)}
-                  style={[
-                    styles.notificationCard,
-                    isDark ? styles.darkCard : styles.lightCard,
-                    !item.isRead && styles.unreadCardBorder
-                  ]}
+                  renderRightActions={() => renderDeleteAction(item.id)}
+                  overshootRight={false}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => handleNotificationPress(item.id)}
+                    style={[
+                      styles.notificationCard,
+                      isDark ? styles.darkCard : styles.lightCard,
+                      !item.isRead && styles.unreadCardBorder
+                    ]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
-                    {/* Category Icon Circle */}
-                    <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C1C1E' : iconData.bg }]}>
-                      <Ionicons name={iconData.name as any} size={20} color={iconData.color} />
-                    </View>
-
-                    {/* Content */}
-                    <View style={styles.contentCol}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C', fontWeight: !item.isRead ? 'bold' : '600' }]} numberOfLines={1}>
-                          {item.title}
-                        </Text>
-                        {!item.isRead && (
-                          <View style={styles.unreadDot} />
-                        )}
+                      {/* Category Icon Circle */}
+                      <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C1C1E' : iconData.bg }]}>
+                        <Ionicons name={iconData.name as any} size={20} color={iconData.color} />
                       </View>
-                      <Text style={[styles.cardDesc, { color: isDark ? '#AAA' : '#5E6E7A' }]} numberOfLines={2}>
-                        {item.description}
-                      </Text>
-                      <Text style={styles.cardTime}>
-                        {item.time}
-                      </Text>
-                    </View>
 
-                  </View>
-                </TouchableOpacity>
+                      {/* Content */}
+                      <View style={styles.contentCol}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C', fontWeight: !item.isRead ? 'bold' : '600' }]} numberOfLines={1}>
+                            {item.title}
+                          </Text>
+                          {!item.isRead && (
+                            <View style={styles.unreadDot} />
+                          )}
+                        </View>
+                        <Text style={[styles.cardDesc, { color: isDark ? '#AAA' : '#5E6E7A' }]} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                        <Text style={styles.cardTime}>
+                          {item.time}
+                        </Text>
+                      </View>
+
+                    </View>
+                  </TouchableOpacity>
+                </Swipeable>
               );
             })
           ) : (
@@ -375,6 +375,21 @@ const styles = StyleSheet.create({
   unreadCardBorder: {
     borderLeftWidth: 4,
     borderLeftColor: '#0084FF',
+  },
+  deleteAction: {
+    width: 82,
+    minHeight: 76,
+    marginBottom: 12,
+    borderRadius: 16,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteActionText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
   },
   iconCircle: {
     width: 44,
