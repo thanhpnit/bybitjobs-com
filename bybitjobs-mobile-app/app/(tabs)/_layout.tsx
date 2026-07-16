@@ -1,5 +1,5 @@
 import { Tabs, router } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -119,6 +119,7 @@ export default function TabLayout() {
         name="community"
         options={{
           title: userRole === 'employer' ? 'Tin tuyển dụng' : 'Cộng đồng',
+          href: null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={

@@ -690,9 +690,7 @@ export default function RecruiterProfileScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]} edges={['top']}>
         {/* Header Bar */}
         <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
-            <Ionicons name="menu-outline" size={26} color="#FFF" />
-          </TouchableOpacity>
+          <View style={styles.iconBtn} />
           <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>BybitJobs</Text>
           <TouchableOpacity
             activeOpacity={0.7}

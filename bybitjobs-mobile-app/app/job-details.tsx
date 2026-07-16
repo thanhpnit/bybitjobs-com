@@ -196,18 +196,31 @@ export default function JobDetailsScreen() {
         pathname: '/login',
         params: { redirectTitle: displayTitle }
       });
-    } else {
-      router.push({
-        pathname: '/apply-job',
-        params: {
-          title: displayTitle,
-          jobId: displayJobId,
-          companyName: employerName,
-          salary: displaySalary,
-          location: displayLocation,
-        }
-      });
+      return;
     }
+
+    if (!userData?.isVerified) {
+      Alert.alert(
+        'Cần xác minh tài khoản',
+        'Bạn cần xác minh tài khoản trước khi ứng tuyển công việc.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Xác minh ngay', onPress: () => router.push('/(tabs)/profile') },
+        ]
+      );
+      return;
+    }
+
+    router.push({
+      pathname: '/apply-job',
+      params: {
+        title: displayTitle,
+        jobId: displayJobId,
+        companyName: employerName,
+        salary: displaySalary,
+        location: displayLocation,
+      }
+    });
   };
 
   const handleReport = () => {

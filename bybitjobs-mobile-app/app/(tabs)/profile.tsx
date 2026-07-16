@@ -882,9 +882,7 @@ function CandidateProfileScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           {/* Header Bar */}
           <View style={[styles.headerBar, { borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
-            <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
-              <Ionicons name="menu-outline" size={26} color={isDark ? '#FFF' : '#11181C'} />
-            </TouchableOpacity>
+            <View style={styles.iconButton} />
             <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>BybitJobs</Text>
             <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
               <Ionicons name="notifications-outline" size={24} color={isDark ? '#FFF' : '#11181C'} />
@@ -1231,9 +1229,7 @@ function CandidateProfileScreen() {
 
         {/* Header Bar with Logout */}
         <View style={styles.headerBar}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
-            <Ionicons name="menu-outline" size={26} color="#FFF" />
-          </TouchableOpacity>
+          <View style={styles.iconButton} />
           <Text style={styles.headerTitle}>BybitJobs</Text>
           <View style={styles.headerBarPlaceholder} />
         </View>

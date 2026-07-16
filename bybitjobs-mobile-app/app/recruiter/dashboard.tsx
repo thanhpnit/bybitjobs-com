@@ -42,13 +42,12 @@ export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { employerData, jobs, logout, unreadNotificationsCount } = useAuth();
+  const { jobs, logout, unreadNotificationsCount } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
 
   const [isMenuVisible, setIsMenuVisible] = React.useState(false);
-  const handleOpenMenu = () => setIsMenuVisible(true);
   const handleCloseMenu = () => setIsMenuVisible(false);
 
   const [selectedLocation, setSelectedLocation] = React.useState('Chọn địa điểm');
@@ -307,9 +306,7 @@ export default function RecruiterDashboardScreen() {
       <View style={styles.gradientHeaderBg} />
       <View style={styles.headerBar}>
         <View style={styles.headerLeftGroup}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={handleOpenMenu}>
-            <Ionicons name="menu-outline" size={26} color="#FFF" />
-          </TouchableOpacity>
+          <View style={styles.iconBtn} />
           <Text style={styles.headerBarTitle}>BybitJobs</Text>
         </View>
         <View style={styles.headerRightGroup}>

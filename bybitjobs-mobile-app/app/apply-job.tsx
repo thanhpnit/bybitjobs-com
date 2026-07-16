@@ -20,7 +20,8 @@ export default function ApplyJobScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { submitApplication, userData } = useAuth();
+  const { submitApplication, userData, isLoggedIn, isInitializing } = useAuth();
+  const hasShownVerificationAlert = React.useRef(false);
 
   // Get dynamic title from parameters
   const { title, jobId, companyName, salary, location } = useLocalSearchParams<{
@@ -42,6 +43,13 @@ export default function ApplyJobScreen() {
   const [message, setMessage] = React.useState('');
   const [cvUploaded, setCvUploaded] = React.useState(false);
   const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string } | null>(null);
+  const isAccountVerified = !!userData?.isVerified;
+  const userFullName = userData?.fullName;
+  const userEmailOrPhone = userData?.emailOrPhone;
+  const userPhone = userData?.phone;
+  const userCvName = userData?.cvName;
+  const userCvSize = userData?.cvSize;
+  const userCvUploadTime = userData?.cvUploadTime;
 
   const handleUploadCV = async () => {
     try {
@@ -71,27 +79,62 @@ export default function ApplyJobScreen() {
   };
 
   React.useEffect(() => {
-    if (userData) {
-      if (userData.fullName) {
-        setFullName(userData.fullName);
+    if (userFullName || userEmailOrPhone || userPhone || userCvName) {
+      if (userFullName) {
+        setFullName(userFullName);
       }
-      if (userData.emailOrPhone?.includes('@')) {
-        setEmail(userData.emailOrPhone);
-      } else if (userData.emailOrPhone) {
-        setPhoneNumber(userData.emailOrPhone);
+      if (userPhone) {
+        setPhoneNumber(userPhone);
       }
-      if (userData.cvName) {
+      if (userEmailOrPhone?.includes('@')) {
+        setEmail(userEmailOrPhone);
+      } else if (userEmailOrPhone && !userPhone) {
+        setPhoneNumber(userEmailOrPhone);
+      }
+      if (userCvName) {
         setCvFile({
-          name: userData.cvName,
-          size: userData.cvSize || 'Đang cập nhật',
-          uploadTime: userData.cvUploadTime || 'Vừa xong',
+          name: userCvName,
+          size: userCvSize || 'Đang cập nhật',
+          uploadTime: userCvUploadTime || 'Vừa xong',
         });
         setCvUploaded(true);
       }
     }
-  }, [userData?.uid, userData?.cvName, userData?.cvSize, userData?.cvUploadTime, userData?.fullName, userData?.emailOrPhone]);
+  }, [userCvName, userCvSize, userCvUploadTime, userEmailOrPhone, userFullName, userPhone]);
+
+  React.useEffect(() => {
+    if (isInitializing || hasShownVerificationAlert.current) {
+      return;
+    }
+
+    if (!isLoggedIn) {
+      hasShownVerificationAlert.current = true;
+      Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để ứng tuyển công việc.', [
+        { text: 'Đăng nhập', onPress: () => router.replace('/login') },
+      ]);
+      return;
+    }
+
+    if (!isAccountVerified) {
+      hasShownVerificationAlert.current = true;
+      Alert.alert(
+        'Cần xác minh tài khoản',
+        'Bạn cần xác minh tài khoản trước khi gửi hồ sơ ứng tuyển.',
+        [
+          { text: 'Xác minh ngay', onPress: () => router.replace('/(tabs)/profile') },
+        ]
+      );
+    }
+  }, [isAccountVerified, isInitializing, isLoggedIn, router]);
 
   const handleSubmit = async () => {
+    if (!isAccountVerified) {
+      Alert.alert('Cần xác minh tài khoản', 'Vui lòng xác minh tài khoản trước khi ứng tuyển.', [
+        { text: 'Xác minh ngay', onPress: () => router.replace('/(tabs)/profile') },
+      ]);
+      return;
+    }
+
     if (!fullName.trim()) {
       Alert.alert('Thông báo', 'Vui lòng nhập họ và tên của bạn.');
       return;

@@ -1354,6 +1354,16 @@ export function useAuth() {
       return { success: false, message: 'Vui lòng đăng nhập để ứng tuyển.' };
     }
 
+    try {
+      await reload(user);
+    } catch (error) {
+      console.error('Lỗi làm mới trạng thái xác minh tài khoản:', error);
+    }
+
+    if (!auth.currentUser?.emailVerified) {
+      return { success: false, message: 'Bạn cần xác minh tài khoản trước khi ứng tuyển.' };
+    }
+
     const jobId = payload.jobId || `job-${payload.jobTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
     const hasApplied = globalApplications.some(
       (app) => app.candidateId === user.uid && app.jobId === jobId

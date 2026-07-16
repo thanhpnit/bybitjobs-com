@@ -668,9 +668,7 @@ function CandidateHomeScreen() {
           {/* Top Bar Header */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftGroup}>
-              <TouchableOpacity activeOpacity={0.7} style={styles.iconButton}>
-                <Ionicons name="menu-outline" size={26} color="#FFF" />
-              </TouchableOpacity>
+              <View style={styles.iconButton} />
               <Text style={styles.brandTitle}>BybitJobs</Text>
             </View>
 
