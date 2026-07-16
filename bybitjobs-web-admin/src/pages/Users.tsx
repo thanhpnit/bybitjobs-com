@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, Edit2, Ban, ChevronLeft, ChevronRight, RotateCcw, Trash2 } from 'lucide-react-native';
+import { Plus, Edit2, Ban, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react-native';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { useState } from 'react';
@@ -87,11 +87,13 @@ export const Users: React.FC = () => {
 
   const requestToggleStatus = (id: string, currentStatus: string) => {
     const isMockUser = id.startsWith('#US-');
-    const isBanning = currentStatus !== 'Bị khóa';
+    const isBlockedOrDisabled = currentStatus === 'Bị khóa' || currentStatus === 'Tự vô hiệu hóa';
+    const isBanning = !isBlockedOrDisabled;
+
     setConfirmProps({
       visible: true,
-      title: isBanning ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
-      message: `Bạn có chắc chắn muốn ${isBanning ? 'khóa' : 'mở khóa'} tài khoản này không?`,
+      title: isBanning ? 'Khóa tài khoản' : 'Khôi phục tài khoản',
+      message: `Bạn có chắc chắn muốn ${isBanning ? 'khóa' : 'khôi phục'} tài khoản này không?`,
       onConfirm: async () => {
         if (isMockUser) {
           setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
@@ -213,7 +215,7 @@ export const Users: React.FC = () => {
                   <Typography variant="body2" color="secondary">{item.phone}</Typography>
                 </View>
                 <View style={styles.colStatus}>
-                  <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : 'default'}>
+                  <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : item.status === 'Tự vô hiệu hóa' ? 'warning' : 'default'}>
                     {item.status}
                   </Badge>
                 </View>
@@ -223,7 +225,7 @@ export const Users: React.FC = () => {
                     <Edit2 size={18} color={colors.textSecondary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
-                    {item.status === 'Bị khóa' ? (
+                    {item.status === 'Bị khóa' || item.status === 'Tự vô hiệu hóa' ? (
                       <RotateCcw size={18} color={colors.successText || '#10B981'} />
                     ) : (
                       <Ban size={18} color={colors.warningText || '#F59E0B'} />

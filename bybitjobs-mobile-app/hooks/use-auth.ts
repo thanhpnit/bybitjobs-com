@@ -919,9 +919,9 @@ export function useAuth() {
           console.log("Trạng thái tài khoản thay đổi (có thể bị khóa hoặc xóa):", err.message);
           if (err.code === 'auth/user-disabled' || err.code === 'auth/user-not-found') {
             if (intervalId) clearInterval(intervalId);
-            const title = err.code === 'auth/user-disabled' ? 'Tài khoản bị khóa' : 'Tài khoản không tồn tại';
+            const title = err.code === 'auth/user-disabled' ? 'Tài khoản bị vô hiệu hóa hoặc khóa' : 'Tài khoản không tồn tại';
             const msg = err.code === 'auth/user-disabled' 
-              ? 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.'
+              ? 'Tài khoản của bạn đã bị vô hiệu hóa hoặc bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.'
               : 'Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
             Alert.alert(
               title,
@@ -952,7 +952,7 @@ export function useAuth() {
     } catch (error: any) {
       let msg = `Đăng nhập thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
       if (error.code === 'auth/user-disabled') {
-        msg = 'Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
+        msg = 'Tài khoản của bạn đã bị vô hiệu hóa hoặc bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
       } else if (error.code === 'auth/user-not-found') {
         msg = 'Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
@@ -1733,6 +1733,28 @@ export function useAuth() {
     }
   };
 
+  const disableAccount = async (): Promise<{ success: boolean; message: string }> => {
+    if (!firebaseUser) {
+      return { success: false, message: 'Bạn chưa đăng nhập.' };
+    }
+    try {
+      const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disabled: true, disabledByUser: true })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        return { success: true, message: 'Vô hiệu hóa tài khoản thành công.' };
+      } else {
+        return { success: false, message: data.error || 'Lỗi khi vô hiệu hóa tài khoản.' };
+      }
+    } catch (error: any) {
+      console.error('Lỗi khi gọi API vô hiệu hóa tài khoản:', error);
+      return { success: false, message: 'Không thể kết nối đến máy chủ. Chi tiết: ' + error.message };
+    }
+  };
+
   const mergedNotifications = firebaseUser
     ? [...notifications, ...mockNotifications]
         .filter((item) => {
@@ -1890,5 +1912,6 @@ export function useAuth() {
     createOrder,
     logout,
     switchRole,
+    disableAccount,
   };
 }

@@ -50,7 +50,8 @@ function CandidateProfileScreen() {
     sendOtp,
     switchRole,
     invitations,
-    respondToInvitation
+    respondToInvitation,
+    disableAccount
   } = useAuth();
 
   // Job seeking switch states
@@ -683,6 +684,42 @@ function CandidateProfileScreen() {
     } else {
       action();
     }
+  };
+
+  const handleDisableAccount = () => {
+    Alert.alert(
+      'Vô hiệu hóa tài khoản',
+      'Bạn có chắc chắn muốn vô hiệu hóa tài khoản này? Bạn sẽ bị đăng xuất lập tức và không thể truy cập lại cho đến khi được Admin khôi phục.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Vô hiệu hóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsSubmittingFeedback(true);
+              const result = await disableAccount();
+              if (result.success) {
+                Alert.alert('Thành công', 'Tài khoản của bạn đã được vô hiệu hóa thành công. Bạn sẽ được đăng xuất.', [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      logout();
+                    }
+                  }
+                ]);
+              } else {
+                Alert.alert('Lỗi', result.message || 'Không thể vô hiệu hóa tài khoản lúc này.');
+              }
+            } catch (err: any) {
+              Alert.alert('Lỗi', err.message || 'Đã xảy ra lỗi.');
+            } finally {
+              setIsSubmittingFeedback(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const triggerFeatureMock = (featureName: string) => {
@@ -1908,7 +1945,7 @@ function CandidateProfileScreen() {
               </View>
             )}
 
-            {renderSettingRow('trash-outline', 'Vô hiệu hóa tài khoản', () => handleFeaturePress('Vô hiệu hóa tài khoản', () => triggerFeatureMock('Vô hiệu hóa tài khoản')))}
+            {renderSettingRow('trash-outline', 'Vô hiệu hóa tài khoản', () => handleFeaturePress('Vô hiệu hóa tài khoản', handleDisableAccount))}
           </View>
 
           {/* 7. Chính sách và hỗ trợ Section */}

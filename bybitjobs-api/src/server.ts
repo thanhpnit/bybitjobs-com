@@ -85,7 +85,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       phone: userRecord.phoneNumber || firestoreUsers[userRecord.uid]?.phone || 'Chưa cập nhật',
       job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
       status: userRecord.disabled 
-        ? 'Bị khóa' 
+        ? (firestoreUsers[userRecord.uid]?.disabledByUser ? 'Tự vô hiệu hóa' : 'Bị khóa')
         : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
       date: new Date(userRecord.metadata.creationTime).toLocaleDateString('vi-VN')
     }));
@@ -221,7 +221,7 @@ app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<a
   }
 
   const { uid } = req.params;
-  const { disabled } = req.body;
+  const { disabled, disabledByUser } = req.body;
 
   if (!uid) {
     return res.status(400).json({ error: 'Thiếu UID người dùng.' });
@@ -233,7 +233,22 @@ app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<a
   try {
     // Cập nhật trạng thái disabled trong Firebase Auth
     await admin.auth().updateUser(uid as string, { disabled });
-    console.log(`🔥 Đã cập nhật trạng thái khóa cho người dùng ${uid} thành: ${disabled}`);
+
+    // Đồng bộ trạng thái vô hiệu hóa lên Firestore
+    const db = admin.firestore();
+    if (disabled) {
+      await db.collection('users').doc(uid as string).set({
+        disabled: true,
+        disabledByUser: !!disabledByUser
+      }, { merge: true });
+    } else {
+      await db.collection('users').doc(uid as string).set({
+        disabled: false,
+        disabledByUser: false
+      }, { merge: true });
+    }
+
+    console.log(`🔥 Đã cập nhật trạng thái khóa cho người dùng ${uid} thành: ${disabled} (bởi user: ${!!disabledByUser})`);
     return res.status(200).json({ success: true, message: `Cập nhật trạng thái người dùng thành công.` });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật trạng thái người dùng:', error);
@@ -1247,7 +1262,7 @@ app.post('/api/setup-webhook', async (req: Request, res: Response): Promise<any>
 
 // API AI Match
 app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promise<any> => {
-  const jobId = req.params.jobId;
+  const jobId = req.params.jobId as string;
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
