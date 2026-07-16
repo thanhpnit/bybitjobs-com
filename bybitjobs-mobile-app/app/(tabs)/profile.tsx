@@ -153,23 +153,18 @@ function CandidateProfileScreen() {
     );
   };
 
-  // CV / Cover Letter states
+  // CV states
   interface CVInfo {
     fileName: string;
     fileSize: string;
     uploadTime: string;
   }
   const [cvFile, setCvFile] = React.useState<CVInfo | null>(null);
-  const [coverLetterFile, setCoverLetterFile] = React.useState<CVInfo | null>(null);
-
-  // Active selected tab inside My CV section ('cv' | 'coverLetter')
-  const [activeCvTab, setActiveCvTab] = React.useState<'cv' | 'coverLetter'>('cv');
 
   // File explorer states
   const [isFileExplorerVisible, setIsFileExplorerVisible] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = React.useState<number | null>(null);
-  const [activeUploadType, setActiveUploadType] = React.useState<'cv' | 'coverLetter'>('cv');
 
   // Verification code states
   const [isVerificationVisible, setIsVerificationVisible] = React.useState(false);
@@ -205,7 +200,7 @@ function CandidateProfileScreen() {
     { name: 'CV_Product_Manager_2026.pdf', size: '2.1 MB', path: 'Documents/' },
   ];
 
-  const pickDocument = async (type: 'cv' | 'coverLetter') => {
+  const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
@@ -228,20 +223,16 @@ function CandidateProfileScreen() {
 
       // Simulate a small upload delay for UX
       setTimeout(async () => {
-        if (type === 'cv') {
-          if (updateCandidateCV) {
-            try {
-              await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime);
-            } catch (e) {
-              Alert.alert('Lỗi', 'Không thể lưu CV lên máy chủ.');
-            }
+        if (updateCandidateCV) {
+          try {
+            await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime);
+          } catch {
+            Alert.alert('Lỗi', 'Không thể lưu CV lên máy chủ.');
           }
-          setCvFile(newFile);
-        } else {
-          setCoverLetterFile(newFile);
         }
+        setCvFile(newFile);
         setIsUploading(false);
-        Alert.alert('Thành công', `Tải lên tài liệu ${type === 'cv' ? 'CV' : 'Cover Letter'} thành công!`);
+        Alert.alert('Thành công', 'Tải lên tài liệu CV thành công!');
       }, 1000);
 
     } catch (err) {
@@ -252,7 +243,7 @@ function CandidateProfileScreen() {
 
   const handleUploadCV = () => {
     setIsFileExplorerVisible(false);
-    pickDocument(activeUploadType);
+    pickDocument();
   };
 
   const handleSendVerificationEmail = async () => {
@@ -1648,7 +1639,7 @@ function CandidateProfileScreen() {
             </View>
           )}
 
-          {/* 4. CV của tôi (CV đã tải lên & Cover Letter) Card */}
+          {/* 4. CV của tôi Card */}
           <View style={[styles.whiteCard, styles.tabbedCard, isDark && styles.darkCard]}>
             <View style={[styles.cardHeader, { paddingHorizontal: 16, paddingTop: 4 }]}>
               <Ionicons name="document-text-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
@@ -1658,31 +1649,7 @@ function CandidateProfileScreen() {
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', marginHorizontal: 16 }]} />
 
-            {/* My CV nested tab buttons */}
-            <View style={styles.nestedCvTabBar}>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setActiveCvTab('cv')}
-                style={[styles.nestedCvTabBtn, activeCvTab === 'cv' && styles.nestedCvTabBtnActive]}
-              >
-                <Text style={[styles.nestedCvTabBtnText, activeCvTab === 'cv' ? styles.nestedCvTabBtnTextActive : (isDark ? styles.nestedCvTabBtnTextDark : styles.nestedCvTabBtnTextInactive)]}>
-                  CV đã tải lên
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setActiveCvTab('coverLetter')}
-                style={[styles.nestedCvTabBtn, activeCvTab === 'coverLetter' && styles.nestedCvTabBtnActive]}
-              >
-                <Text style={[styles.nestedCvTabBtnText, activeCvTab === 'coverLetter' ? styles.nestedCvTabBtnTextActive : (isDark ? styles.nestedCvTabBtnTextDark : styles.nestedCvTabBtnTextInactive)]}>
-                  Cover Letter
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Nested Content Rendering */}
-            <View style={{ marginTop: 10 }}>
+            <View style={{ marginTop: 10, paddingHorizontal: 16 }}>
               {isUploading ? (
                 <View style={[styles.dashedBox, { borderColor: '#0084FF', paddingVertical: 32 }]}>
                   <ActivityIndicator size="large" color="#0084FF" />
@@ -1690,171 +1657,93 @@ function CandidateProfileScreen() {
                     Đang tải tài liệu lên hệ thống...
                   </Text>
                 </View>
-              ) : activeCvTab === 'cv' ? (
-                cvFile ? (
-                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
-                    <View style={[styles.documentCircle, { backgroundColor: '#FFEBEE' }]}>
-                      <Ionicons name="document-text" size={32} color="#D32F2F" />
-                    </View>
+              ) : cvFile ? (
+                <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
+                  <View style={[styles.documentCircle, { backgroundColor: '#FFEBEE' }]}>
+                    <Ionicons name="document-text" size={32} color="#D32F2F" />
+                  </View>
 
-                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                      {cvFile.fileName}
-                    </Text>
-                    <Text style={styles.documentMeta}>
-                      Đã tải lên: {cvFile.uploadTime} • {cvFile.fileSize}
-                    </Text>
+                  <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                    {cvFile.fileName}
+                  </Text>
+                  <Text style={styles.documentMeta}>
+                    Đã tải lên: {cvFile.uploadTime} • {cvFile.fileSize}
+                  </Text>
 
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={handlePreviewCV}
-                        style={styles.previewButton}
-                      >
-                        <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
-                        <Text style={styles.previewText}>Xem trước</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => pickDocument('cv')}
-                        style={styles.downloadButton}
-                      >
-                        <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
-                        <Text style={styles.downloadText}>Thay đổi tệp</Text>
-                      </TouchableOpacity>
-                    </View>
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handlePreviewCV}
+                      style={styles.previewButton}
+                    >
+                      <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
+                      <Text style={styles.previewText}>Xem trước</Text>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={() => {
-                        Alert.alert(
-                          'Xóa CV',
-                          'Bạn có chắc muốn xóa tệp CV này khỏi tài khoản?',
-                          [
-                            { text: 'Hủy', style: 'cancel' },
-                            { 
-                              text: 'Xóa ngay', 
-                              style: 'destructive', 
-                              onPress: async () => {
-                                if (updateCandidateCV) {
-                                  try {
-                                    await updateCandidateCV(null);
-                                  } catch (e) {
-                                    console.error(e);
-                                  }
+                      activeOpacity={0.8}
+                      onPress={pickDocument}
+                      style={styles.downloadButton}
+                    >
+                      <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
+                      <Text style={styles.downloadText}>Thay đổi tệp</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      Alert.alert(
+                        'Xóa CV',
+                        'Bạn có chắc muốn xóa tệp CV này khỏi tài khoản?',
+                        [
+                          { text: 'Hủy', style: 'cancel' },
+                          { 
+                            text: 'Xóa ngay', 
+                            style: 'destructive', 
+                            onPress: async () => {
+                              if (updateCandidateCV) {
+                                try {
+                                  await updateCandidateCV(null);
+                                } catch (e) {
+                                  console.error(e);
                                 }
-                                setCvFile(null);
-                              } 
-                            }
-                          ]
-                        );
-                      }}
-                      style={{ marginTop: 14 }}
-                    >
-                      <Text style={{ fontSize: 12, color: '#FF3B30', fontWeight: 'bold' }}>Xóa tệp CV hiện tại</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5', paddingVertical: 24 }]}>
-                    <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
-                      <Ionicons name="cloud-upload" size={32} color="#0084FF" />
-                    </View>
-
-                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
-                      Bạn chưa tải lên CV nào
-                    </Text>
-                    <Text style={[styles.documentMeta, { marginBottom: 16 }]}>
-                      Tải lên tệp PDF, DOCX tối đa 5MB để ứng tuyển
-                    </Text>
-
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={() => handleFeaturePress('Tải lên CV', () => {
-                        pickDocument('cv');
-                      })}
-                      style={styles.uploadCVButton}
-                    >
-                      <Ionicons name="folder-open" size={18} color="#FFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.uploadCVButtonText}>Chọn tệp từ thư mục</Text>
-                    </TouchableOpacity>
-                  </View>
-                )
+                              }
+                              setCvFile(null);
+                            } 
+                          }
+                        ]
+                      );
+                    }}
+                    style={{ marginTop: 14 }}
+                  >
+                    <Text style={{ fontSize: 12, color: '#FF3B30', fontWeight: 'bold' }}>Xóa tệp CV hiện tại</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                coverLetterFile ? (
-                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5' }]}>
-                    <View style={[styles.documentCircle, { backgroundColor: '#E3F2FD' }]}>
-                      <Ionicons name="reader" size={32} color="#0084FF" />
-                    </View>
-
-                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                      {coverLetterFile.fileName}
-                    </Text>
-                    <Text style={styles.documentMeta}>
-                      Đã tải lên: {coverLetterFile.uploadTime} • {coverLetterFile.fileSize}
-                    </Text>
-
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => Alert.alert('Xem trước', 'Hiển thị xem trước tài liệu Cover Letter...')}
-                        style={styles.previewButton}
-                      >
-                        <Ionicons name="eye-outline" size={16} color="#0084FF" style={styles.buttonIcon} />
-                        <Text style={styles.previewText}>Xem trước</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => pickDocument('coverLetter')}
-                        style={styles.downloadButton}
-                      >
-                        <Ionicons name="cloud-upload-outline" size={16} color="#FFF" style={styles.buttonIcon} />
-                        <Text style={styles.downloadText}>Thay đổi tệp</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity
-                      activeOpacity={0.7}
-                      onPress={() => {
-                        Alert.alert(
-                          'Xóa Cover Letter',
-                          'Bạn có chắc muốn xóa tệp Cover Letter này khỏi tài khoản?',
-                          [
-                            { text: 'Hủy', style: 'cancel' },
-                            { text: 'Xóa ngay', style: 'destructive', onPress: () => setCoverLetterFile(null) }
-                          ]
-                        );
-                      }}
-                      style={{ marginTop: 14 }}
-                    >
-                      <Text style={{ fontSize: 12, color: '#FF3B30', fontWeight: 'bold' }}>Xóa tệp hiện tại</Text>
-                    </TouchableOpacity>
+                <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5', paddingVertical: 24 }]}>
+                  <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
+                    <Ionicons name="cloud-upload" size={32} color="#0084FF" />
                   </View>
-                ) : (
-                  <View style={[styles.dashedBox, { borderColor: isDark ? '#2C2C2E' : '#B0BEC5', paddingVertical: 24 }]}>
-                    <View style={[styles.documentCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', marginBottom: 12 }]}>
-                      <Ionicons name="cloud-upload" size={32} color="#0084FF" />
-                    </View>
 
-                    <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
-                      Bạn chưa có Cover Letter nào
-                    </Text>
-                    <Text style={[styles.documentMeta, { marginBottom: 16 }]}>
-                      Tải lên Cover Letter để gây ấn tượng mạnh với NTD
-                    </Text>
+                  <Text style={[styles.documentTitle, { color: isDark ? '#FFF' : '#11181C', fontSize: 14 }]} numberOfLines={1}>
+                    Bạn chưa tải lên CV nào
+                  </Text>
+                  <Text style={[styles.documentMeta, { marginBottom: 16 }]}>
+                    Tải lên tệp PDF, DOCX tối đa 5MB để ứng tuyển
+                  </Text>
 
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={() => handleFeaturePress('Tải lên Cover Letter', () => {
-                        pickDocument('coverLetter');
-                      })}
-                      style={styles.uploadCVButton}
-                    >
-                      <Ionicons name="folder-open" size={18} color="#FFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.uploadCVButtonText}>Tải lên Cover Letter</Text>
-                    </TouchableOpacity>
-                  </View>
-                )
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => handleFeaturePress('Tải lên CV', () => {
+                      pickDocument();
+                    })}
+                    style={styles.uploadCVButton}
+                  >
+                    <Ionicons name="folder-open" size={18} color="#FFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.uploadCVButtonText}>Chọn tệp từ thư mục</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </View>
@@ -2995,7 +2884,7 @@ function CandidateProfileScreen() {
             <View style={[styles.pathBar, { backgroundColor: isDark ? '#2C2C2E' : '#F0F4F8' }]}>
               <Ionicons name="phone-portrait-outline" size={14} color="#0084FF" />
               <Text style={[styles.pathText, { color: isDark ? '#AAA' : '#5E6E7A' }]}>
-                {` Bộ nhớ máy > Tài liệu > ${activeUploadType === 'cv' ? 'CVs' : 'CoverLetters'}`}
+                Bộ nhớ máy &gt; Tài liệu &gt; CVs
               </Text>
             </View>
 

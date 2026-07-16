@@ -119,7 +119,7 @@ export default function TabLayout() {
         name="community"
         options={{
           title: userRole === 'employer' ? 'Tin tuyển dụng' : 'Cộng đồng',
-          href: null,
+          href: userRole === 'employer' ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={
