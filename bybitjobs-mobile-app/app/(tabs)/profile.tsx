@@ -21,6 +21,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
+import CvPdfViewerModal from '@/components/cv-pdf-viewer-modal';
 
 function CandidateProfileScreen() {
   const colorScheme = useColorScheme();
@@ -158,8 +159,10 @@ function CandidateProfileScreen() {
     fileName: string;
     fileSize: string;
     uploadTime: string;
+    cvUrl?: string;
   }
   const [cvFile, setCvFile] = React.useState<CVInfo | null>(null);
+  const [isCVPreviewVisible, setIsCVPreviewVisible] = React.useState(false);
 
   // File explorer states
   const [isFileExplorerVisible, setIsFileExplorerVisible] = React.useState(false);
@@ -178,6 +181,7 @@ function CandidateProfileScreen() {
           fileName: userData.cvName,
           fileSize: userData.cvSize || 'Đang cập nhật',
           uploadTime: userData.cvUploadTime || 'Vừa xong',
+          cvUrl: userData.cvUrl,
         });
       } else if (userData.emailOrPhone === 'quan.nguyen@example.com') {
         setCvFile({
@@ -219,13 +223,14 @@ function CandidateProfileScreen() {
         fileName: asset.name,
         fileSize: fileSizeInMB,
         uploadTime: 'Vừa xong',
+        cvUrl: asset.uri,
       };
 
       // Simulate a small upload delay for UX
       setTimeout(async () => {
         if (updateCandidateCV) {
           try {
-            await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime);
+            await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime, newFile.cvUrl);
           } catch {
             Alert.alert('Lỗi', 'Không thể lưu CV lên máy chủ.');
           }
@@ -718,7 +723,7 @@ function CandidateProfileScreen() {
   };
 
   const handlePreviewCV = () => {
-    Alert.alert('Xem trước tài liệu', 'Đang mở trình duyệt xem trước tệp tài liệu của bạn...');
+    setIsCVPreviewVisible(true);
   };
 
   // Switch renderer helper
@@ -2234,6 +2239,19 @@ function CandidateProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {cvFile && (
+        <CvPdfViewerModal
+          visible={isCVPreviewVisible}
+          onClose={() => setIsCVPreviewVisible(false)}
+          cvUrl={cvFile.cvUrl || ''}
+          cvName={cvFile.fileName}
+          fullName={userData?.fullName || 'Người dùng'}
+          desiredJob={userData?.desiredJob || 'Ứng viên'}
+          phone={userData?.phone || 'Chưa cập nhật'}
+          email={userData?.emailOrPhone || 'Chưa cập nhật'}
+        />
+      )}
 
       <Modal
         animationType="slide"

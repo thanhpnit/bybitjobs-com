@@ -113,6 +113,223 @@ const featuredCompanies: FeaturedCompany[] = [
   }
 ];
 
+interface CompanyDetailsContentProps {
+  selectedCompany: FeaturedCompany;
+  isDark: boolean;
+  jobListings: JobItem[];
+  setIsCompanyModalVisible: (visible: boolean) => void;
+  openJobDetails: (job: JobItem) => void;
+}
+
+function CompanyDetailsContent({
+  selectedCompany,
+  isDark,
+  jobListings,
+  setIsCompanyModalVisible,
+  openJobDetails,
+}: CompanyDetailsContentProps) {
+  const [activeSubTab, setActiveSubTab] = React.useState<'overview' | 'jobs'>('overview');
+  const matchingJobs = React.useMemo(() => {
+    return jobListings.filter(job => {
+      const author = job.author.name.toLowerCase();
+      const comp = selectedCompany.name.toLowerCase();
+      return author.includes(comp) || comp.includes(author);
+    });
+  }, [jobListings, selectedCompany.name]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Cover Image & Back Button */}
+      <View style={{ height: 160, position: 'relative' }}>
+        <Image source={{ uri: selectedCompany.coverImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setIsCompanyModalVisible(false)}
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Logo overlap & Company Header */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: -35, marginBottom: 12 }}>
+          <Image
+            source={{ uri: selectedCompany.logo }}
+            style={{
+              width: 70,
+              height: 70,
+              borderRadius: 12,
+              borderWidth: 3,
+              borderColor: isDark ? '#1C1C1E' : '#FFF',
+              backgroundColor: '#FFF',
+            }}
+          />
+          <View style={{ marginLeft: 12, flex: 1, paddingBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1 }} numberOfLines={1}>
+                {selectedCompany.name}
+              </Text>
+              <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
+            </View>
+            <Text style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>{selectedCompany.industry}</Text>
+          </View>
+        </View>
+
+        {/* Quick Meta */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="people-outline" size={14} color="#8E8E93" />
+            <Text style={{ fontSize: 11, color: '#8E8E93' }}>{selectedCompany.scale}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="location-outline" size={14} color="#8E8E93" />
+            <Text style={{ fontSize: 11, color: '#8E8E93', maxWidth: 180 }} numberOfLines={1}>
+              {selectedCompany.location.split(',').slice(-2).join(',').trim()}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="star" size={14} color="#FFB300" />
+            <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#11181C', fontWeight: 'bold' }}>
+              {selectedCompany.rating}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Segmented Tabs & Content */}
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', height: 44, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveSubTab('overview')}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: activeSubTab === 'overview' ? '#0084FF' : 'transparent',
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'overview' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
+              Môi trường & Phúc lợi
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveSubTab('jobs')}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: activeSubTab === 'jobs' ? '#0084FF' : 'transparent',
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'jobs' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
+              Vị trí đang tuyển ({matchingJobs.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+          {activeSubTab === 'overview' ? (
+            <View>
+              {/* Description */}
+              <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }}>
+                  Về doanh nghiệp
+                </Text>
+                <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', lineHeight: 18 }}>
+                  {selectedCompany.description}
+                </Text>
+              </View>
+
+              {/* Address details */}
+              <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 4 }}>
+                  📍 ĐỊA CHỈ TRỤ SỞ
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#9BA1A6' : '#687076' }}>
+                  {selectedCompany.location}
+                </Text>
+              </View>
+
+              {/* Benefits list */}
+              <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }}>
+                  🎁 Quyền lợi & Chế độ đãi ngộ
+                </Text>
+                {selectedCompany.benefits.map((benefit, index) => (
+                  <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginVertical: 5, gap: 8 }}>
+                    <Ionicons name="checkmark-circle" size={16} color="#2E7D32" style={{ marginTop: 1 }} />
+                    <Text style={{ flex: 1, fontSize: 12, color: isDark ? '#ECEDEE' : '#333', lineHeight: 16 }}>
+                      {benefit}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {matchingJobs.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Ionicons name="briefcase-outline" size={44} color="#8E8E93" />
+                  <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 10, textAlign: 'center' }}>
+                    Hiện tại doanh nghiệp chưa đăng tuyển vị trí mới nào.
+                  </Text>
+                </View>
+              ) : (
+                matchingJobs.map((job) => (
+                  <TouchableOpacity
+                    key={job.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setIsCompanyModalVisible(false);
+                      openJobDetails(job);
+                    }}
+                    style={{
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1, marginRight: 8 }}>
+                        {job.title}
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0084FF' }}>
+                        {job.price}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 11, color: '#8E8E93' }}>📍 {job.location}</Text>
+                      <Text style={{ fontSize: 11, color: '#8E8E93' }}>•</Text>
+                      <Text style={{ fontSize: 11, color: '#8E8E93' }}>{job.timeLeft.split(':')[1]?.trim() || job.timeLeft}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
 function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -1150,206 +1367,13 @@ function CandidateHomeScreen() {
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
           {selectedCompany && (
-            <View style={{ flex: 1 }}>
-              {/* Cover Image & Back Button */}
-              <View style={{ height: 160, position: 'relative' }}>
-                <Image source={{ uri: selectedCompany.coverImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setIsCompanyModalVisible(false)}
-                  style={{
-                    position: 'absolute',
-                    top: 16,
-                    left: 16,
-                    width: 38,
-                    height: 38,
-                    borderRadius: 19,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Ionicons name="chevron-back" size={24} color="#FFF" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Logo overlap & Company Header */}
-              <View style={{ paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: -35, marginBottom: 12 }}>
-                  <Image
-                    source={{ uri: selectedCompany.logo }}
-                    style={{
-                      width: 70,
-                      height: 70,
-                      borderRadius: 12,
-                      borderWidth: 3,
-                      borderColor: isDark ? '#1C1C1E' : '#FFF',
-                      backgroundColor: '#FFF',
-                    }}
-                  />
-                  <View style={{ marginLeft: 12, flex: 1, paddingBottom: 4 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1 }} numberOfLines={1}>
-                        {selectedCompany.name}
-                      </Text>
-                      <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
-                    </View>
-                    <Text style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>{selectedCompany.industry}</Text>
-                  </View>
-                </View>
-
-                {/* Quick Meta */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="people-outline" size={14} color="#8E8E93" />
-                    <Text style={{ fontSize: 11, color: '#8E8E93' }}>{selectedCompany.scale}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="location-outline" size={14} color="#8E8E93" />
-                    <Text style={{ fontSize: 11, color: '#8E8E93', maxWidth: 180 }} numberOfLines={1}>
-                      {selectedCompany.location.split(',').slice(-2).join(',').trim()}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="star" size={14} color="#FFB300" />
-                    <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#11181C', fontWeight: 'bold' }}>
-                      {selectedCompany.rating}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Custom Segmented Tabs */}
-              {(() => {
-                const [activeSubTab, setActiveSubTab] = React.useState<'overview' | 'jobs'>('overview');
-                const matchingJobs = jobListings.filter(job => {
-                  const author = job.author.name.toLowerCase();
-                  const comp = selectedCompany.name.toLowerCase();
-                  return author.includes(comp) || comp.includes(author);
-                });
-
-                return (
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', height: 44, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1', backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setActiveSubTab('overview')}
-                        style={{
-                          flex: 1,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderBottomWidth: 2,
-                          borderBottomColor: activeSubTab === 'overview' ? '#0084FF' : 'transparent',
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'overview' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
-                          Môi trường & Phúc lợi
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setActiveSubTab('jobs')}
-                        style={{
-                          flex: 1,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderBottomWidth: 2,
-                          borderBottomColor: activeSubTab === 'jobs' ? '#0084FF' : 'transparent',
-                        }}
-                      >
-                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'jobs' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }}>
-                          Vị trí đang tuyển ({matchingJobs.length})
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-                      {activeSubTab === 'overview' ? (
-                        <View>
-                          {/* Description */}
-                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
-                            <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }}>
-                              Về doanh nghiệp
-                            </Text>
-                            <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', lineHeight: 18 }}>
-                              {selectedCompany.description}
-                            </Text>
-                          </View>
-
-                          {/* Address details */}
-                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 4 }}>
-                              📍 ĐỊA CHỈ TRỤ SỞ
-                            </Text>
-                            <Text style={{ fontSize: 12, color: isDark ? '#9BA1A6' : '#687076' }}>
-                              {selectedCompany.location}
-                            </Text>
-                          </View>
-
-                          {/* Benefits list */}
-                          <View style={{ padding: 14, borderRadius: 12, backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }}>
-                            <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }}>
-                              🎁 Quyền lợi & Chế độ đãi ngộ
-                            </Text>
-                            {selectedCompany.benefits.map((benefit, index) => (
-                              <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginVertical: 5, gap: 8 }}>
-                                <Ionicons name="checkmark-circle" size={16} color="#2E7D32" style={{ marginTop: 1 }} />
-                                <Text style={{ flex: 1, fontSize: 12, color: isDark ? '#ECEDEE' : '#333', lineHeight: 16 }}>
-                                  {benefit}
-                                </Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      ) : (
-                        <View style={{ gap: 12 }}>
-                          {matchingJobs.length === 0 ? (
-                            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                              <Ionicons name="briefcase-outline" size={44} color="#8E8E93" />
-                              <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 10, textAlign: 'center' }}>
-                                Hiện tại doanh nghiệp chưa đăng tuyển vị trí mới nào.
-                              </Text>
-                            </View>
-                          ) : (
-                            matchingJobs.map((job) => (
-                              <TouchableOpacity
-                                key={job.id}
-                                activeOpacity={0.8}
-                                onPress={() => {
-                                  setIsCompanyModalVisible(false);
-                                  openJobDetails(job);
-                                }}
-                                style={{
-                                  padding: 14,
-                                  borderRadius: 12,
-                                  backgroundColor: isDark ? '#1C1C1E' : '#FFF',
-                                  borderWidth: 1,
-                                  borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
-                                }}
-                              >
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1, marginRight: 8 }}>
-                                    {job.title}
-                                  </Text>
-                                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#0084FF' }}>
-                                    {job.price}
-                                  </Text>
-                                </View>
-                                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
-                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>📍 {job.location}</Text>
-                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>•</Text>
-                                  <Text style={{ fontSize: 11, color: '#8E8E93' }}>{job.timeLeft.split(':')[1]?.trim() || job.timeLeft}</Text>
-                                </View>
-                              </TouchableOpacity>
-                            ))
-                          )}
-                        </View>
-                      )}
-                    </ScrollView>
-                  </View>
-                );
-              })()}
-            </View>
+            <CompanyDetailsContent
+              selectedCompany={selectedCompany}
+              isDark={isDark}
+              jobListings={jobListings}
+              setIsCompanyModalVisible={setIsCompanyModalVisible}
+              openJobDetails={openJobDetails}
+            />
           )}
         </SafeAreaView>
       </Modal>

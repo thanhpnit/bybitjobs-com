@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import CvPdfViewerModal from '../../components/cv-pdf-viewer-modal';
 
 export default function RecruiterCvDetailsScreen() {
   const colorScheme = useColorScheme();
@@ -20,6 +21,7 @@ export default function RecruiterCvDetailsScreen() {
   const router = useRouter();
   const { appId } = useLocalSearchParams<{ appId: string }>();
   const { applications, candidates, updateApplicationStatus } = useAuth();
+  const [isCVPreviewVisible, setIsCVPreviewVisible] = React.useState(false);
 
   const application = applications.find((a) => a.id === appId);
   const candidate = candidates.find((c) => c.id === application?.candidateId);
@@ -254,18 +256,32 @@ export default function RecruiterCvDetailsScreen() {
         <View style={[styles.sectionCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
           <View style={styles.attachedCvHeader}>
             <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>TỆP CV ĐÍNH KÈM</Text>
-            <TouchableOpacity 
-              activeOpacity={0.7} 
-              style={styles.downloadBtn}
-              onPress={() => Alert.alert('Tải xuống', `Đang tải xuống tệp: ${application.cvName || 'CV_Web_Developer_VN.pdf'}`)}
-            >
-              <Ionicons name="download-outline" size={14} color="#0084FF" />
-              <Text style={styles.downloadBtnText}>Tải xuống PDF</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                style={styles.downloadBtn}
+                onPress={() => setIsCVPreviewVisible(true)}
+              >
+                <Ionicons name="eye-outline" size={14} color="#0084FF" />
+                <Text style={styles.downloadBtnText}>Xem trước</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                style={styles.downloadBtn}
+                onPress={() => Alert.alert('Tải xuống', `Đang tải xuống tệp: ${application.cvName || 'CV_Web_Developer_VN.pdf'}`)}
+              >
+                <Ionicons name="download-outline" size={14} color="#0084FF" />
+                <Text style={styles.downloadBtnText}>Tải xuống PDF</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Styled Document container */}
-          <View style={[styles.cvMockPreviewContainer, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', minHeight: 70 }]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsCVPreviewVisible(true)}
+            style={[styles.cvMockPreviewContainer, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1', minHeight: 70 }]}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', padding: 12 }}>
               <View style={{ backgroundColor: '#FFEBEE', width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="document-text" size={24} color="#D32F2F" />
@@ -278,12 +294,24 @@ export default function RecruiterCvDetailsScreen() {
                   Dung lượng: {application.cvSize || '1.1 MB'} • Ngày nộp: {application.cvUploadTime || 'Vừa xong'}
                 </Text>
               </View>
+              <Ionicons name="chevron-forward" size={16} color="#8E8E93" />
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.scrollPadding} />
       </ScrollView>
+
+      <CvPdfViewerModal
+        visible={isCVPreviewVisible}
+        onClose={() => setIsCVPreviewVisible(false)}
+        cvUrl={application.cvUrl || ''}
+        cvName={application.cvName}
+        fullName={candidateName}
+        desiredJob={candidate?.desiredJob || application.jobTitle || 'Ứng viên'}
+        phone={candidatePhone}
+        email={candidateEmail}
+      />
 
       {/* Sticky Bottom Actions Container */}
       <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderTopColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>

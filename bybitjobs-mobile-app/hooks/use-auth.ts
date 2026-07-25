@@ -53,6 +53,7 @@ export interface UserData {
   cvName?: string;
   cvSize?: string;
   cvUploadTime?: string;
+  cvUrl?: string;
 }
 
 export interface JobItem {
@@ -123,6 +124,7 @@ export interface ApplicationItem {
   cvName?: string;
   cvSize?: string;
   cvUploadTime?: string;
+  cvUrl?: string;
 }
 
 export interface SubmitApplicationPayload {
@@ -138,6 +140,7 @@ export interface SubmitApplicationPayload {
   cvName?: string;
   cvSize?: string;
   cvUploadTime?: string;
+  cvUrl?: string;
 }
 
 export interface SavedJobItem {
@@ -390,7 +393,7 @@ let globalReadIds: string[] = [];
 let globalDeletedNotificationIds: string[] = [];
 let globalActiveToast: { id: string; title: string; description: string } | null = null;
 let globalSeqId = '000000';
-let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string } = {};
+let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string } = {};
 let lastSubscribedUserId: string | null = null;
 const appStartTime = new Date();
 
@@ -457,7 +460,7 @@ export function useAuth() {
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
   const [invitations, setInvitations] = React.useState<InvitationItem[]>(globalInvitations);
-  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string }>(globalUserDataExtra);
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string }>(globalUserDataExtra);
   
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
   const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
@@ -520,7 +523,8 @@ export function useAuth() {
                 phone: data.phone,
                 cvName: data.cvName,
                 cvSize: data.cvSize,
-                cvUploadTime: data.cvUploadTime
+                cvUploadTime: data.cvUploadTime,
+                cvUrl: data.cvUrl
               };
               setUserDataExtra(globalUserDataExtra);
               notifyAll();
@@ -1423,6 +1427,7 @@ export function useAuth() {
       cvName: payload.cvName,
       cvSize: payload.cvSize,
       cvUploadTime: payload.cvUploadTime,
+      cvUrl: payload.cvUrl,
     };
 
     globalApplications = [newApplication, ...globalApplications];
@@ -1718,13 +1723,13 @@ export function useAuth() {
     }
   };
 
-  const updateCandidateCV = async (cvName: string | null, cvSize?: string, cvUploadTime?: string) => {
+  const updateCandidateCV = async (cvName: string | null, cvSize?: string, cvUploadTime?: string, cvUrl?: string) => {
     if (firebaseUser) {
       try {
         const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/cv`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvName, cvSize, cvUploadTime })
+          body: JSON.stringify({ cvName, cvSize, cvUploadTime, cvUrl })
         });
         if (!response.ok) {
           throw new Error('Cập nhật thất bại từ Server');
@@ -1736,7 +1741,8 @@ export function useAuth() {
         ...globalUserDataExtra, 
         cvName: cvName || undefined, 
         cvSize: cvName ? cvSize : undefined, 
-        cvUploadTime: cvName ? cvUploadTime : undefined 
+        cvUploadTime: cvName ? cvUploadTime : undefined,
+        cvUrl: cvName ? cvUrl : undefined
       };
       setUserDataExtra(globalUserDataExtra);
       notifyAll();
@@ -1874,7 +1880,8 @@ export function useAuth() {
       phone: userDataExtra.phone,
       cvName: userDataExtra.cvName,
       cvSize: userDataExtra.cvSize,
-      cvUploadTime: userDataExtra.cvUploadTime
+      cvUploadTime: userDataExtra.cvUploadTime,
+      cvUrl: userDataExtra.cvUrl
     } : null,
     userDataExtra,
     employerData,

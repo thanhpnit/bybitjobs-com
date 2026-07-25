@@ -136,14 +136,14 @@ app.put('/api/users/:uid/phone', async (req: Request, res: Response): Promise<an
 // API cập nhật CV người dùng
 app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
-  const { cvName, cvSize, cvUploadTime } = req.body;
+  const { cvName, cvSize, cvUploadTime, cvUrl } = req.body;
   if (!uid) {
     return res.status(400).json({ error: 'Thiếu thông tin uid' });
   }
 
   try {
     const db = admin.firestore();
-    await db.collection('users').doc(uid).set({ cvName, cvSize, cvUploadTime }, { merge: true });
+    await db.collection('users').doc(uid).set({ cvName, cvSize, cvUploadTime, cvUrl }, { merge: true });
     return res.status(200).json({ success: true, message: 'Cập nhật CV thành công' });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật CV:', error);
@@ -163,6 +163,7 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const cvName = doc.exists ? doc.data()?.cvName : undefined;
     const cvSize = doc.exists ? doc.data()?.cvSize : undefined;
     const cvUploadTime = doc.exists ? doc.data()?.cvUploadTime : undefined;
+    const cvUrl = doc.exists ? doc.data()?.cvUrl : undefined;
     
     return res.status(200).json({
       uid: userRecord.uid,
@@ -172,7 +173,8 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
       phone: phone,
       cvName: cvName,
       cvSize: cvSize,
-      cvUploadTime: cvUploadTime
+      cvUploadTime: cvUploadTime,
+      cvUrl: cvUrl
     });
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi server', details: error.message });

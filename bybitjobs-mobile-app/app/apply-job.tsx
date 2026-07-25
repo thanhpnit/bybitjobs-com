@@ -42,7 +42,7 @@ export default function ApplyJobScreen() {
   const [email, setEmail] = React.useState('');
   const [message, setMessage] = React.useState('');
   const [cvUploaded, setCvUploaded] = React.useState(false);
-  const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string } | null>(null);
+  const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string; url?: string } | null>(null);
   const isAccountVerified = !!userData?.isVerified;
   const userFullName = userData?.fullName;
   const userEmailOrPhone = userData?.emailOrPhone;
@@ -68,6 +68,7 @@ export default function ApplyJobScreen() {
         name: asset.name,
         size: fileSizeInMB,
         uploadTime: 'Vừa xong',
+        url: asset.uri,
       };
       setCvFile(newFile);
       setCvUploaded(true);
@@ -96,11 +97,12 @@ export default function ApplyJobScreen() {
           name: userCvName,
           size: userCvSize || 'Đang cập nhật',
           uploadTime: userCvUploadTime || 'Vừa xong',
+          url: userData?.cvUrl,
         });
         setCvUploaded(true);
       }
     }
-  }, [userCvName, userCvSize, userCvUploadTime, userEmailOrPhone, userFullName, userPhone]);
+  }, [userCvName, userCvSize, userCvUploadTime, userEmailOrPhone, userFullName, userPhone, userData?.cvUrl]);
 
   React.useEffect(() => {
     if (isInitializing || hasShownVerificationAlert.current) {
@@ -161,6 +163,7 @@ export default function ApplyJobScreen() {
       cvName: cvFile.name,
       cvSize: cvFile.size,
       cvUploadTime: cvFile.uploadTime,
+      cvUrl: cvFile.url,
     });
 
     if (!result.success) {
