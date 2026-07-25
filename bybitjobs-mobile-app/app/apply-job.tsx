@@ -70,6 +70,39 @@ export default function ApplyJobScreen() {
         uploadTime: 'Vừa xong',
         url: asset.uri,
       };
+
+      // Tải tệp CV lên máy chủ
+      try {
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              const base64 = reader.result.split(',')[1];
+              resolve(base64);
+            } else {
+              reject(new Error('Chuyển đổi base64 thất bại'));
+            }
+          };
+          reader.readAsDataURL(blob);
+        });
+
+        const uploadResponse = await fetch('http://160.250.246.119:4000/api/upload-cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: asset.name, base64Data })
+        });
+
+        if (uploadResponse.ok) {
+          const data = await uploadResponse.json();
+          newFile.url = data.url;
+        }
+      } catch (error) {
+        console.warn('Lỗi khi tải file CV lên máy chủ:', error);
+      }
+
       setCvFile(newFile);
       setCvUploaded(true);
       Alert.alert('Thành công', `Đã chọn tệp CV "${asset.name}" thành công!`);

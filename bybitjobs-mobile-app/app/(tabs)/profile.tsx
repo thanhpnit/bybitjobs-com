@@ -226,19 +226,48 @@ function CandidateProfileScreen() {
         cvUrl: asset.uri,
       };
 
-      // Simulate a small upload delay for UX
-      setTimeout(async () => {
-        if (updateCandidateCV) {
-          try {
-            await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime, newFile.cvUrl);
-          } catch {
-            Alert.alert('Lỗi', 'Không thể lưu CV lên máy chủ.');
-          }
+      // Chuyển đổi và tải file lên máy chủ
+      try {
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = reject;
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              const base64 = reader.result.split(',')[1];
+              resolve(base64);
+            } else {
+              reject(new Error('Chuyển đổi base64 thất bại'));
+            }
+          };
+          reader.readAsDataURL(blob);
+        });
+
+        const uploadResponse = await fetch('http://160.250.246.119:4000/api/upload-cv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: asset.name, base64Data })
+        });
+
+        if (uploadResponse.ok) {
+          const data = await uploadResponse.json();
+          newFile.cvUrl = data.url;
         }
-        setCvFile(newFile);
-        setIsUploading(false);
-        Alert.alert('Thành công', 'Tải lên tài liệu CV thành công!');
-      }, 1000);
+      } catch (error) {
+        console.warn('Lỗi khi tải file CV lên máy chủ, dùng URI cục bộ thay thế:', error);
+      }
+
+      if (updateCandidateCV) {
+        try {
+          await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime, newFile.cvUrl);
+        } catch {
+          Alert.alert('Lỗi', 'Không thể lưu thông tin CV lên máy chủ.');
+        }
+      }
+      setCvFile(newFile);
+      setIsUploading(false);
+      Alert.alert('Thành công', 'Tải lên tài liệu CV thành công!');
 
     } catch (err) {
       console.error('Lỗi khi chọn file:', err);

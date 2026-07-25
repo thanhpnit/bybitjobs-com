@@ -30,7 +30,8 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Khởi tạo Firebase Admin SDK
 const serviceAccountPath = path.resolve(__dirname, '../serviceAccountKey.json');
@@ -130,6 +131,34 @@ app.put('/api/users/:uid/phone', async (req: Request, res: Response): Promise<an
   } catch (error: any) {
     console.error('Lỗi khi cập nhật số điện thoại:', error);
     return res.status(500).json({ error: 'Lỗi server khi lưu dữ liệu', details: error.message });
+  }
+});
+
+// API tải lên tài liệu CV (lưu file trực tiếp trên server)
+app.post('/api/upload-cv', async (req: Request, res: Response): Promise<any> => {
+  const { fileName, base64Data } = req.body;
+  if (!fileName || !base64Data) {
+    return res.status(400).json({ error: 'Thiếu thông tin fileName hoặc dữ liệu base64Data' });
+  }
+
+  try {
+    const uploadsDir = path.join(__dirname, '../uploads/cvs');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const fileBuffer = Buffer.from(base64Data, 'base64');
+    const safeFileName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const filePath = path.join(uploadsDir, safeFileName);
+
+    fs.writeFileSync(filePath, fileBuffer);
+
+    // Trả về đường dẫn công khai của tài liệu trên máy chủ
+    const fileUrl = `http://160.250.246.119:4000/uploads/cvs/${safeFileName}`;
+    return res.status(200).json({ success: true, url: fileUrl });
+  } catch (error: any) {
+    console.error('Lỗi khi lưu file CV lên máy chủ:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu file', details: error.message });
   }
 });
 
