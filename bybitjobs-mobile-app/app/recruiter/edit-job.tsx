@@ -18,6 +18,21 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 
+const INDUSTRY_OPTIONS = [
+  'Công nghệ thông tin',
+  'Kinh doanh / Bán hàng',
+  'Marketing / Truyền thông',
+  'Thiết kế đồ họa',
+  'Kế toán / Tài chính',
+  'Nhân sự',
+  'Chăm sóc khách hàng',
+  'Vận chuyển',
+  'Dịch vụ gia đình',
+  'Nhà hàng / Khách sạn',
+  'Giáo dục / Đào tạo',
+  'Khác',
+];
+
 export default function RecruiterEditJobScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -37,6 +52,14 @@ export default function RecruiterEditJobScreen() {
   const [requirements, setRequirements] = React.useState(existingJob?.requirements || '');
   const [deadline, setDeadline] = React.useState(existingJob?.deadline || '11/30/2026');
   const [isOpen, setIsOpen] = React.useState(existingJob ? existingJob.isOpen : true);
+  const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+  const [selectedIndustries, setSelectedIndustries] = React.useState<string[]>(() => {
+    const values = (existingJob?.industry || 'Công nghệ thông tin')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return values.length ? values : ['Công nghệ thông tin'];
+  });
 
   // Date Picker Modal States
   const [isDatePickerVisible, setIsDatePickerVisible] = React.useState(false);
@@ -118,18 +141,19 @@ export default function RecruiterEditJobScreen() {
     return days;
   };
 
-  const handleSelectIndustry = () => {
-    Alert.alert(
-      'Chọn Ngành nghề',
-      'Chọn ngành nghề cho tin tuyển dụng:',
-      [
-        { text: 'Công nghệ thông tin', onPress: () => setIndustry('Công nghệ thông tin') },
-        { text: 'Thiết kế đồ họa', onPress: () => setIndustry('Thiết kế đồ họa') },
-        { text: 'Vận chuyển', onPress: () => setIndustry('Vận chuyển') },
-        { text: 'Dịch vụ gia đình', onPress: () => setIndustry('Dịch vụ gia đình') },
-        { text: 'Khác', onPress: () => setIndustry('Khác') },
-      ]
-    );
+  const toggleIndustry = (value: string) => {
+    setSelectedIndustries((current) => {
+      if (current.includes(value)) {
+        return current.length === 1 ? current : current.filter((item) => item !== value);
+      }
+      return [...current, value];
+    });
+  };
+
+  const applyIndustries = () => {
+    const nextIndustry = selectedIndustries.join(', ');
+    setIndustry(nextIndustry || 'Công nghệ thông tin');
+    setIsIndustryModalVisible(false);
   };
 
   const handleSave = async () => {
@@ -183,9 +207,11 @@ export default function RecruiterEditJobScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]} edges={['top']}>
+      <View style={styles.headerBg} />
+
       {/* Header bar */}
-      <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
+      <View style={styles.headerBar}>
         <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
@@ -224,14 +250,28 @@ export default function RecruiterEditJobScreen() {
               <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>NGÀNH NGHỀ</Text>
               <TouchableOpacity
                 activeOpacity={0.7}
-                onPress={handleSelectIndustry}
+                onPress={() => setIsIndustryModalVisible(true)}
                 style={[styles.dropdownBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}
               >
-                <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]}>
+                <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
                   {industry}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#8E8E93" />
               </TouchableOpacity>
+              <View style={styles.industryChipRow}>
+                {selectedIndustries.slice(0, 3).map((item) => (
+                  <View key={item} style={[styles.industryChip, { backgroundColor: isDark ? '#102A43' : '#E6F4FE' }]}>
+                    <Text style={styles.industryChipText} numberOfLines={1}>{item}</Text>
+                  </View>
+                ))}
+                {selectedIndustries.length > 3 && (
+                  <View style={[styles.industryChip, { backgroundColor: isDark ? '#2C2C2E' : '#EEF2F7' }]}>
+                    <Text style={[styles.industryChipText, { color: isDark ? '#D1D5DB' : '#687076' }]}>
+                      +{selectedIndustries.length - 3}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             {/* Input: Salary */}
@@ -388,6 +428,69 @@ export default function RecruiterEditJobScreen() {
       </KeyboardAvoidingView>
 
       <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isIndustryModalVisible}
+        onRequestClose={() => setIsIndustryModalVisible(false)}
+      >
+        <View style={styles.bottomSheetOverlay}>
+          <View style={[styles.industrySheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.industrySheetHeader}>
+              <View style={styles.industrySheetTitleWrap}>
+                <Text style={[styles.industrySheetTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Chọn ngành nghề
+                </Text>
+                <Text style={styles.industrySheetSubtitle}>
+                  Có thể chọn nhiều ngành phù hợp với tin tuyển dụng.
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setIsIndustryModalVisible(false)}
+                style={[styles.sheetCloseBtn, { backgroundColor: isDark ? '#2C2C2E' : '#F2F4F7' }]}
+              >
+                <Ionicons name="close" size={20} color={isDark ? '#FFF' : '#11181C'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.industryOptionsContent}>
+              {INDUSTRY_OPTIONS.map((item) => {
+                const checked = selectedIndustries.includes(item);
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.75}
+                    onPress={() => toggleIndustry(item)}
+                    style={[
+                      styles.industryOption,
+                      {
+                        backgroundColor: checked
+                          ? (isDark ? '#0B2C4D' : '#E6F4FE')
+                          : (isDark ? '#151718' : '#F8FAFC'),
+                        borderColor: checked ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E7EB'),
+                      },
+                    ]}
+                  >
+                    <View style={[styles.industryCheckBox, checked && styles.industryCheckBoxActive]}>
+                      {checked && <Ionicons name="checkmark" size={15} color="#FFF" />}
+                    </View>
+                    <Text style={[styles.industryOptionText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <TouchableOpacity activeOpacity={0.85} onPress={applyIndustries} style={styles.applyIndustryBtn}>
+              <Text style={styles.applyIndustryBtnText}>Áp dụng ngành nghề</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         animationType="fade"
         transparent={true}
         visible={isDatePickerVisible}
@@ -486,28 +589,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 210 : 190,
+    backgroundColor: '#0084FF',
+  },
   headerBar: {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4,
+    position: 'relative',
+    zIndex: 10,
   },
   iconBtn: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
   },
   headerBarTitle: {
+    position: 'absolute',
+    left: 70,
+    right: 70,
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   textBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    zIndex: 2,
   },
   textBtnText: {
     color: '#FFF',
@@ -517,16 +635,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
+    paddingTop: 10,
   },
   formCard: {
-    borderRadius: 12,
+    borderRadius: 22,
     borderWidth: 1,
-    padding: 16,
-    elevation: 3,
+    padding: 18,
+    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   inputGroup: {
     marginBottom: 16,
@@ -539,18 +658,18 @@ const styles = StyleSheet.create({
   },
   inputBox: {
     borderWidth: 1,
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 14,
     justifyContent: 'center',
   },
   inputBoxWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 14,
   },
   fieldIcon: {
     marginRight: 8,
@@ -565,19 +684,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    minHeight: 48,
+    paddingHorizontal: 14,
   },
   dropdownValue: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '700',
+    paddingRight: 10,
+  },
+  industryChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  industryChip: {
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  industryChipText: {
+    color: '#0084FF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   textareaBox: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     minHeight: 100,
   },
   textarea: {
@@ -617,8 +755,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    height: 46,
-    borderRadius: 10,
+    height: 50,
+    borderRadius: 14,
     elevation: 3,
     marginBottom: 10,
   },
@@ -630,8 +768,8 @@ const styles = StyleSheet.create({
   cancelButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 46,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 14,
   },
   cancelButtonText: {
     fontSize: 14,
@@ -645,6 +783,112 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  industrySheet: {
+    maxHeight: '82%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  industrySheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  industrySheetTitleWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  industrySheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  industrySheetSubtitle: {
+    color: '#8E8E93',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  sheetCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  industryOptionsContent: {
+    paddingBottom: 12,
+    gap: 10,
+  },
+  industryOption: {
+    minHeight: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  industryCheckBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#C7CDD5',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  industryCheckBoxActive: {
+    borderColor: '#0084FF',
+    backgroundColor: '#0084FF',
+  },
+  industryOptionText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  applyIndustryBtn: {
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#0084FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  applyIndustryBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '900',
   },
   datePickerContainer: {
     borderRadius: 20,

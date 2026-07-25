@@ -266,7 +266,16 @@ export default function ApplyJobScreen() {
 
           {/* Personal Information Form Card */}
           <View style={[styles.whiteCard, styles.formCard, isDark && styles.darkCard]}>
-            <Text style={[styles.formTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Thông tin cá nhân</Text>
+            <View style={styles.formHeader}>
+              <View style={styles.formHeaderText}>
+                <Text style={[styles.formTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Thông tin ứng tuyển</Text>
+                <Text style={styles.formSubtitle}>Thông tin được lấy từ tài khoản đã xác minh của bạn</Text>
+              </View>
+              <View style={[styles.verifiedPill, { backgroundColor: isDark ? '#153322' : '#E8F5E9' }]}>
+                <Ionicons name="checkmark-circle" size={14} color="#2E7D32" />
+                <Text style={styles.verifiedPillText}>Đã xác minh</Text>
+              </View>
+            </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
             {/* Full Name */}
@@ -274,20 +283,27 @@ export default function ApplyJobScreen() {
               <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333' }]}>
                 Họ và tên <Text style={styles.star}>*</Text>
               </Text>
-              <TextInput
+              <View style={[
+                styles.inputShell,
+                {
+                  borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                  backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                },
+              ]}>
+                <Ionicons name="person-outline" size={18} color="#0084FF" style={styles.inputIcon} />
+                <TextInput
                 style={[
                   styles.textInput,
                   {
                     color: isDark ? '#FFF' : '#11181C',
-                    borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
                   },
                 ]}
                 placeholder="Nhập họ và tên của bạn"
                 placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                 value={fullName}
                 onChangeText={setFullName}
-              />
+                />
+              </View>
             </View>
 
             {/* Phone Number */}
@@ -295,13 +311,19 @@ export default function ApplyJobScreen() {
               <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333' }]}>
                 Số điện thoại <Text style={styles.star}>*</Text>
               </Text>
-              <TextInput
+              <View style={[
+                styles.inputShell,
+                {
+                  borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                  backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                },
+              ]}>
+                <Ionicons name="call-outline" size={18} color="#0084FF" style={styles.inputIcon} />
+                <TextInput
                 style={[
                   styles.textInput,
                   {
                     color: isDark ? '#FFF' : '#11181C',
-                    borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
                   },
                 ]}
                 placeholder="Ví dụ: 0912345678"
@@ -309,7 +331,8 @@ export default function ApplyJobScreen() {
                 keyboardType="phone-pad"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
-              />
+                />
+              </View>
             </View>
 
             {/* Email */}
@@ -317,13 +340,19 @@ export default function ApplyJobScreen() {
               <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333' }]}>
                 Email (Không bắt buộc)
               </Text>
-              <TextInput
+              <View style={[
+                styles.inputShell,
+                {
+                  borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                  backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                },
+              ]}>
+                <Ionicons name="mail-outline" size={18} color="#0084FF" style={styles.inputIcon} />
+                <TextInput
                 style={[
                   styles.textInput,
                   {
                     color: isDark ? '#FFF' : '#11181C',
-                    borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
                   },
                 ]}
                 placeholder="Nhập địa chỉ email"
@@ -332,21 +361,28 @@ export default function ApplyJobScreen() {
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
-              />
+                />
+              </View>
             </View>
 
             {/* Cover Message */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                Lời nhắn cho nhà tuyển dụng
+                Thư giới thiệu
               </Text>
-              <TextInput
+              <View style={[
+                styles.textAreaShell,
+                {
+                  borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                  backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                },
+              ]}>
+                <Ionicons name="create-outline" size={18} color="#0084FF" style={styles.textAreaIcon} />
+                <TextInput
                 style={[
                   styles.textAreaInput,
                   {
                     color: isDark ? '#FFF' : '#11181C',
-                    borderColor: isDark ? '#2C2C2E' : '#E5E5EA',
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFF',
                   },
                 ]}
                 placeholder="Giới thiệu ngắn gọn về kinh nghiệm hoặc lý do bạn phù hợp với công việc này..."
@@ -355,7 +391,9 @@ export default function ApplyJobScreen() {
                 numberOfLines={4}
                 value={message}
                 onChangeText={setMessage}
-              />
+                textAlignVertical="top"
+                />
+              </View>
             </View>
 
             {/* CV Upload Section */}
@@ -533,11 +571,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   formCard: {
-    padding: 16,
+    padding: 18,
+  },
+  formHeader: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  formHeaderText: {
+    width: '100%',
   },
   formTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  formSubtitle: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  verifiedPillText: {
+    color: '#2E7D32',
+    fontSize: 11,
+    fontWeight: '800',
+    marginLeft: 4,
   },
   divider: {
     height: 1,
@@ -554,23 +622,44 @@ const styles = StyleSheet.create({
   star: {
     color: '#FF3D00',
   },
-  textInput: {
+  inputShell: {
     borderWidth: 1,
-    borderRadius: 10,
-    height: 46,
-    paddingHorizontal: 16,
+    borderRadius: 14,
+    minHeight: 50,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    height: 48,
     fontSize: 14,
     fontWeight: '500',
+    paddingVertical: 0,
+  },
+  textAreaShell: {
+    borderWidth: 1,
+    borderRadius: 14,
+    minHeight: 118,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  textAreaIcon: {
+    marginRight: 10,
+    marginTop: 2,
   },
   textAreaInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    height: 100,
-    paddingHorizontal: 16,
+    flex: 1,
+    minHeight: 92,
     paddingVertical: 12,
     fontSize: 14,
     fontWeight: '500',
-    textAlignVertical: 'top',
+    paddingTop: 0,
   },
   uploadHeader: {
     flexDirection: 'row',
@@ -586,7 +675,7 @@ const styles = StyleSheet.create({
   uploadBox: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -614,8 +703,8 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: '#0084FF',
-    borderRadius: 12,
-    height: 48,
+    borderRadius: 14,
+    height: 52,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

@@ -294,7 +294,7 @@ export default function RecruiterSearchCandidatesScreen() {
           <Text style={styles.navItemText}>Trang chủ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
           <Ionicons name="people-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Quản lý ứng viên</Text>
         </TouchableOpacity>

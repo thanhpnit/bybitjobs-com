@@ -90,7 +90,7 @@ export default function RecruiterCvDetailsScreen() {
         {
           text: 'Về quản lý ứng viên',
           onPress: () => {
-            router.replace('/recruiter/candidates');
+            router.replace('/(tabs)/my-jobs');
           },
         },
       ]

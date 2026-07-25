@@ -200,7 +200,7 @@ export default function RecruiterDashboardScreen() {
     } else if (item === 'Quản lý tin tuyển dụng') {
       router.push('/recruiter/jobs');
     } else if (item === 'Quản lý ứng viên') {
-      router.push('/recruiter/candidates');
+      router.push('/(tabs)/my-jobs');
     } else if (item === 'Đăng tin') {
       handlePostJob();
     }
@@ -381,7 +381,7 @@ export default function RecruiterDashboardScreen() {
 
             <TouchableOpacity 
               activeOpacity={0.8} 
-              onPress={() => router.push('/recruiter/candidates')} 
+              onPress={() => router.push('/(tabs)/my-jobs')} 
               style={styles.quickItem}
             >
               <View style={[styles.circleIcon, { backgroundColor: isDark ? '#3D2F1D' : '#FFF3E0' }]}>

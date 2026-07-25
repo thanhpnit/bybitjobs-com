@@ -44,6 +44,7 @@ interface JobItem {
 
 export interface FeaturedCompany {
   id: string;
+  employerId?: string;
   name: string;
   logo: string;
   coverImage: string;
@@ -55,63 +56,65 @@ export interface FeaturedCompany {
   rating: number;
 }
 
-const featuredCompanies: FeaturedCompany[] = [
-  {
-    id: 'bybit-vietnam',
-    name: 'Công ty Công nghệ Bybit Việt Nam',
-    logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
-    industry: 'Công nghệ thông tin / Phần mềm',
-    scale: '100 - 500 nhân viên',
-    location: 'Tòa nhà Landmark 81, Bình Thạnh, TP. HCM',
-    description: 'Bybit Việt Nam tự hào là môi trường công nghệ tiên phong, năng động, khuyến khích sự sáng tạo vượt bậc của từng cá nhân.',
-    benefits: [
-      'Lương thưởng cạnh tranh, review lương 2 lần/năm',
-      'Đóng bảo hiểm full 100% lương thực nhận',
-      'Thưởng tháng 13 & các gói Performance bonus hấp dẫn',
-      'Gói chăm sóc sức khỏe cao cấp Bybit Care hàng năm',
-      'Cung cấp Macbook Pro/Dell XPS đời mới khi làm việc',
-      'Miễn phí cơm trưa, Pantry ngập tràn đồ ăn nhẹ & nước uống'
-    ],
-    rating: 4.9,
-  },
-  {
-    id: 'techvibe-solutions',
-    name: 'TechVibe Solutions',
-    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=500&auto=format&fit=crop&q=60',
-    industry: 'UI/UX & Fintech Products',
-    scale: '50 - 150 nhân viên',
-    location: 'Quận 7, TP. Hồ Chí Minh',
-    description: 'TechVibe Solutions đi đầu trong việc thiết kế sản phẩm tài chính hiện đại và ứng dụng công nghệ khối chuỗi.',
-    benefits: [
-      'Lương tháng 13 + Thưởng KPI năm cực cao',
-      'Chế độ Hybrid work linh hoạt (lên văn phòng 3 ngày/tuần)',
-      'Bảo hiểm PVI hỗ trợ toàn diện gia đình',
-      'Hỗ trợ chi phí học tập & nâng cao kỹ năng lên tới 20M/năm',
-      'Teambuilding và du lịch nước ngoài hàng năm'
-    ],
-    rating: 4.8,
-  },
-  {
-    id: 'innovate-studio',
-    name: 'Innovate Studio',
-    logo: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=100&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=500&auto=format&fit=crop&q=60',
-    industry: 'Thiết kế & Smart Home IoT',
-    scale: '30 - 80 nhân viên',
-    location: 'Quận 3, TP. Hồ Chí Minh',
-    description: 'Nơi hội tụ những nhà thiết kế sản phẩm và kỹ sư IoT tài năng để kiến tạo cuộc sống thông minh tương lai.',
-    benefits: [
-      'Môi trường làm việc mở, tự do sáng tạo, không OT',
-      'Đóng bảo hiểm xã hội đầy đủ theo Luật Lao động',
-      'Review lương định kỳ hàng năm',
-      'Môi trường đa văn hóa, thường xuyên giao tiếp tiếng Anh',
-      'Câu lạc bộ thể thao (Bóng đá, Cầu lông...) công ty tài trợ'
-    ],
-    rating: 5.0,
-  }
-];
+const DEFAULT_COMPANY_LOGO = 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60';
+const DEFAULT_COMPANY_COVER = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60';
+
+const isPremiumEmployer = (employerData: any) => {
+  const packageText = [
+    employerData?.current_package,
+    employerData?.currentPackage,
+    employerData?.packageName,
+    employerData?.servicePackage,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    employerData?.isPremium === true ||
+    packageText.includes('premium') ||
+    packageText.includes('diamond') ||
+    packageText.includes('vip')
+  );
+};
+
+const buildFeaturedCompany = (employerData: any, employerId: string, fallbackName?: string): FeaturedCompany => {
+  const companyName =
+    employerData?.companyName ||
+    employerData?.company_name ||
+    employerData?.company ||
+    employerData?.name ||
+    fallbackName ||
+    'Nhà tuyển dụng';
+  const safeCompanyName = String(companyName).trim();
+
+  return {
+    id: employerId,
+    employerId,
+    name: safeCompanyName,
+    logo: typeof employerData?.logo === 'string' && employerData.logo.startsWith('http')
+      ? employerData.logo
+      : DEFAULT_COMPANY_LOGO,
+    coverImage: typeof employerData?.coverImage === 'string' && employerData.coverImage.startsWith('http')
+      ? employerData.coverImage
+      : DEFAULT_COMPANY_COVER,
+    industry: employerData?.industry || employerData?.businessField || 'Đang cập nhật lĩnh vực',
+    scale: employerData?.scale || employerData?.companySize || 'Đang cập nhật quy mô',
+    location: employerData?.address || employerData?.location || 'Đang cập nhật địa chỉ',
+    description:
+      employerData?.description ||
+      employerData?.about ||
+      `${safeCompanyName} là nhà tuyển dụng Premium trên BybitJobs.`,
+    benefits: Array.isArray(employerData?.benefits) && employerData.benefits.length > 0
+      ? employerData.benefits
+      : [
+          'Môi trường làm việc chuyên nghiệp',
+          'Tin tuyển dụng được xác thực và ưu tiên hiển thị',
+          'Thông tin doanh nghiệp được cập nhật từ hồ sơ nhà tuyển dụng'
+        ],
+    rating: Number(employerData?.rating || employerData?.averageRating || 5),
+  };
+};
 
 interface CompanyDetailsContentProps {
   selectedCompany: FeaturedCompany;
@@ -377,6 +380,7 @@ function CandidateHomeScreen() {
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
   const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
+  const [premiumCompaniesByEmployerId, setPremiumCompaniesByEmployerId] = React.useState<Record<string, FeaturedCompany>>({});
 
   const toggleBookmark = (id: string) => {
     if (bookmarkedJobs.includes(id)) {
@@ -405,6 +409,7 @@ function CandidateHomeScreen() {
       const entries = await Promise.all(employerIds.map(async (employerId) => {
         let name: string | undefined;
         let isPremium = false;
+        let premiumCompany: FeaturedCompany | undefined;
 
         try {
           const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
@@ -428,27 +433,17 @@ function CandidateHomeScreen() {
           const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`);
           if (response.ok) {
             const employerData = await response.json();
-            const packageText = [
-              employerData.current_package,
-              employerData.currentPackage,
-              employerData.packageName,
-              employerData.servicePackage,
-            ]
-              .filter(Boolean)
-              .join(' ')
-              .toLowerCase();
+            isPremium = isPremiumEmployer(employerData);
 
-            isPremium =
-              employerData.isPremium === true ||
-              packageText.includes('premium') ||
-              packageText.includes('diamond') ||
-              packageText.includes('vip');
+            if (isPremium) {
+              premiumCompany = buildFeaturedCompany(employerData, employerId, name);
+            }
           }
         } catch (error) {
           console.error('Lỗi lấy gói nhà tuyển dụng:', error);
         }
 
-        return { employerId, name, isPremium };
+        return { employerId, name, isPremium, premiumCompany };
       }));
 
       if (!isActive) return;
@@ -460,6 +455,11 @@ function CandidateHomeScreen() {
       );
       const nextPremiumStatuses = Object.fromEntries(
         entries.map((entry) => [entry.employerId, entry.isPremium])
+      );
+      const nextPremiumCompanies = Object.fromEntries(
+        entries
+          .filter((entry) => !!entry.premiumCompany)
+          .map((entry) => [entry.employerId, entry.premiumCompany as FeaturedCompany])
       );
 
       if (Object.keys(nextNames).length > 0) {
@@ -478,6 +478,9 @@ function CandidateHomeScreen() {
           return hasChanged ? next : prev;
         });
       }
+      if (Object.keys(nextPremiumCompanies).length > 0) {
+        setPremiumCompaniesByEmployerId((prev) => ({ ...prev, ...nextPremiumCompanies }));
+      }
     };
 
     loadPosterNames();
@@ -486,6 +489,48 @@ function CandidateHomeScreen() {
       isActive = false;
     };
   }, [jobs, posterNamesByEmployerId, premiumEmployersById]);
+
+  React.useEffect(() => {
+    let isActive = true;
+
+    const loadPremiumCompanies = async () => {
+      try {
+        const response = await fetch('http://160.250.246.119:4000/api/employers');
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const employers = Array.isArray(data) ? data : data?.employers;
+        if (!Array.isArray(employers) || !isActive) return;
+
+        const premiumEntries = employers
+          .map((employer: any) => {
+            const employerId = employer.id || employer.uid || employer.user_id;
+            if (!employerId || !isPremiumEmployer(employer)) return null;
+            return [String(employerId), buildFeaturedCompany(employer, String(employerId))] as const;
+          })
+          .filter(Boolean) as [string, FeaturedCompany][];
+
+        if (premiumEntries.length === 0) return;
+
+        setPremiumCompaniesByEmployerId((prev) => ({ ...prev, ...Object.fromEntries(premiumEntries) }));
+        setPremiumEmployersById((prev) => {
+          const next = { ...prev };
+          premiumEntries.forEach(([employerId]) => {
+            next[employerId] = true;
+          });
+          return next;
+        });
+      } catch (error) {
+        console.error('Lỗi lấy danh sách công ty Premium:', error);
+      }
+    };
+
+    loadPremiumCompanies();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const provinces = [
     'Tất cả địa điểm',
@@ -574,6 +619,7 @@ function CandidateHomeScreen() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCompany, setSelectedCompany] = React.useState<FeaturedCompany | null>(null);
   const [isCompanyModalVisible, setIsCompanyModalVisible] = React.useState(false);
+  const [companyModalTab, setCompanyModalTab] = React.useState<'overview' | 'jobs'>('overview');
 
   const getPosterName = (job: (typeof jobs)[number]) => {
     return (
@@ -621,6 +667,15 @@ function CandidateHomeScreen() {
       isPremium: job.employerId ? premiumEmployersById[job.employerId] === true : false,
     };
   });
+
+  const featuredPremiumCompanies = React.useMemo(() => {
+    return Object.values(premiumCompaniesByEmployerId)
+      .sort((a, b) => {
+        const aJobs = openJobs.filter((job) => job.employerId === a.employerId).length;
+        const bJobs = openJobs.filter((job) => job.employerId === b.employerId).length;
+        return bJobs - aJobs;
+      });
+  }, [openJobs, premiumCompaniesByEmployerId]);
 
   const aiRecommendedJobs = React.useMemo(() => {
     if (!userData?.uid) return [];
@@ -1097,71 +1152,72 @@ function CandidateHomeScreen() {
           )}
 
           {/* Featured Companies Section (Thương hiệu nổi bật) */}
-          <View style={styles.featuredCompaniesSection}>
-            <View style={styles.sectionHeaderRow}>
-              <Ionicons name="business" size={18} color="#FF9500" />
-              <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                Thương hiệu tuyển dụng nổi bật
-              </Text>
-              <View style={styles.premiumBadge}>
-                <Text style={styles.premiumBadgeText}>Premium</Text>
+          {featuredPremiumCompanies.length > 0 && (
+            <View style={styles.featuredCompaniesSection}>
+              <View style={styles.sectionHeaderRow}>
+                <Ionicons name="business" size={18} color="#FF9500" />
+                <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Thương hiệu tuyển dụng nổi bật
+                </Text>
+                <View style={styles.premiumBadge}>
+                  <Text style={styles.premiumBadgeText}>Premium</Text>
+                </View>
               </View>
-            </View>
-            <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-              Khám phá môi trường làm việc, chế độ đãi ngộ & vị trí đang tuyển dụng hot.
-            </Text>
+              <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                Các công ty đã mua gói Premium và đang có tin tuyển dụng trên BybitJobs.
+              </Text>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.companiesScrollList}
-            >
-              {featuredCompanies.map((company) => {
-                // Count matching jobs dynamically
-                const matchingJobsCount = jobListings.filter(job => {
-                  const author = job.author.name.toLowerCase();
-                  const comp = company.name.toLowerCase();
-                  return author.includes(comp) || comp.includes(author);
-                }).length;
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.companiesScrollList}
+              >
+                {featuredPremiumCompanies.map((company) => {
+                  const matchingJobsCount = jobListings.filter((job) => {
+                    const originalJob = openJobs.find((item) => item.id === job.id);
+                    return originalJob?.employerId === company.employerId;
+                  }).length;
 
-                return (
-                  <TouchableOpacity
-                    key={company.id}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setSelectedCompany(company);
-                      setIsCompanyModalVisible(true);
-                    }}
-                    style={[
-                      styles.companyCard,
-                      {
-                        backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                        borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
-                      },
-                    ]}
-                  >
-                    <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
-                    <View style={styles.companyCardContent}>
-                      <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
-                      <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                        {company.name}
-                      </Text>
-                      <Text style={styles.companyCardMeta} numberOfLines={1}>
-                        ⭐ {company.rating} • {company.scale}
-                      </Text>
-                      <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
-                        📍 {company.location.split(',').slice(-2).join(',').trim()}
-                      </Text>
-                      <View style={styles.companyCardBottom}>
-                        <Text style={styles.jobCountText}>{matchingJobsCount} vị trí đang tuyển</Text>
-                        <Ionicons name="arrow-forward" size={14} color="#0084FF" />
+                  return (
+                    <TouchableOpacity
+                      key={company.id}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        setSelectedCompany(company);
+                        setCompanyModalTab('overview');
+                        setIsCompanyModalVisible(true);
+                      }}
+                      style={[
+                        styles.companyCard,
+                        {
+                          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                          borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                        },
+                      ]}
+                    >
+                      <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
+                      <View style={styles.companyCardContent}>
+                        <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
+                        <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                          {company.name}
+                        </Text>
+                        <Text style={styles.companyCardMeta} numberOfLines={1}>
+                          ⭐ {company.rating} • {company.scale}
+                        </Text>
+                        <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                          📍 {company.location.split(',').slice(-2).join(',').trim()}
+                        </Text>
+                        <View style={styles.companyCardBottom}>
+                          <Text style={styles.jobCountText}>{matchingJobsCount} vị trí đang tuyển</Text>
+                          <Ionicons name="arrow-forward" size={14} color="#0084FF" />
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Filter Chips ScrollView */}
           <ScrollView
@@ -1365,17 +1421,202 @@ function CandidateHomeScreen() {
         transparent={false}
         onRequestClose={() => setIsCompanyModalVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
           {selectedCompany && (
-            <CompanyDetailsContent
-              selectedCompany={selectedCompany}
-              isDark={isDark}
-              jobListings={jobListings}
-              setIsCompanyModalVisible={setIsCompanyModalVisible}
-              openJobDetails={openJobDetails}
-            />
+            <View style={styles.companyModalRoot}>
+              {/* Cover Image & Back Button */}
+              <View style={[styles.companyModalHero, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
+                <Image source={{ uri: selectedCompany.coverImage }} style={styles.companyModalCover} resizeMode="cover" />
+                <View style={styles.companyModalCoverOverlay} />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setIsCompanyModalVisible(false)}
+                  style={styles.companyModalBackBtn}
+                >
+                  <Ionicons name="chevron-back" size={24} color="#FFF" />
+                </TouchableOpacity>
+                <View style={styles.companyModalPremiumPill}>
+                  <Ionicons name="sparkles" size={13} color="#FFF" />
+                  <Text style={styles.companyModalPremiumText}>Premium</Text>
+                </View>
+              </View>
+
+              {/* Logo overlap & Company Header */}
+              <View style={[styles.companyModalHeaderCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                <View style={styles.companyModalIdentityRow}>
+                  <Image
+                    source={{ uri: selectedCompany.logo }}
+                    style={[styles.companyModalLogo, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}
+                  />
+                  <View style={styles.companyModalTitleWrap}>
+                    <View style={styles.companyModalNameRow}>
+                      <Text style={[styles.companyModalName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                        {selectedCompany.name}
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
+                    </View>
+                    <Text style={styles.companyModalIndustry} numberOfLines={2}>{selectedCompany.industry}</Text>
+                  </View>
+                </View>
+
+                {/* Quick Meta */}
+                <View style={styles.companyModalMetaGrid}>
+                  <View style={[styles.companyModalMetaCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                    <Ionicons name="people-outline" size={17} color="#0084FF" />
+                    <Text style={styles.companyModalMetaLabel}>Quy mô</Text>
+                    <Text style={[styles.companyModalMetaValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>{selectedCompany.scale}</Text>
+                  </View>
+                  <View style={[styles.companyModalMetaCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                    <Ionicons name="location-outline" size={17} color="#0084FF" />
+                    <Text style={styles.companyModalMetaLabel}>Địa điểm</Text>
+                    <Text style={[styles.companyModalMetaValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                      {selectedCompany.location.split(',').slice(-2).join(',').trim()}
+                    </Text>
+                  </View>
+                  <View style={[styles.companyModalMetaCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                    <Ionicons name="star" size={17} color="#FFB300" />
+                    <Text style={styles.companyModalMetaLabel}>Đánh giá</Text>
+                    <Text style={[styles.companyModalMetaValue, { color: isDark ? '#FFF' : '#11181C' }]}>{selectedCompany.rating}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Custom Segmented Tabs */}
+              {(() => {
+                const matchingJobs = jobListings.filter(job => {
+                  const originalJob = openJobs.find((item) => item.id === job.id);
+                  if (selectedCompany.employerId && originalJob?.employerId) {
+                    return originalJob.employerId === selectedCompany.employerId;
+                  }
+                  const author = job.author.name.toLowerCase();
+                  const comp = selectedCompany.name.toLowerCase();
+                  return author.includes(comp) || comp.includes(author);
+                });
+
+                return (
+                  <View style={styles.companyModalBody}>
+                    <View style={[styles.companyModalTabs, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setCompanyModalTab('overview')}
+                        style={[styles.companyModalTab, companyModalTab === 'overview' && styles.companyModalTabActive]}
+                      >
+                        <Text style={[styles.companyModalTabText, { color: companyModalTab === 'overview' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }]}>
+                          Tổng quan
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setCompanyModalTab('jobs')}
+                        style={[styles.companyModalTab, companyModalTab === 'jobs' && styles.companyModalTabActive]}
+                      >
+                        <Text style={[styles.companyModalTabText, { color: companyModalTab === 'jobs' ? '#0084FF' : (isDark ? '#9BA1A6' : '#687076') }]} numberOfLines={1}>
+                          Việc đang tuyển ({matchingJobs.length})
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView contentContainerStyle={styles.companyModalScrollContent} showsVerticalScrollIndicator={false}>
+                      {companyModalTab === 'overview' ? (
+                        <View style={styles.companyModalSectionList}>
+                          {/* Description */}
+                          <View style={[styles.companyInfoPanel, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                            <View style={styles.companyPanelTitleRow}>
+                              <View style={[styles.companyPanelIcon, { backgroundColor: isDark ? '#0B2C4D' : '#E6F4FE' }]}>
+                                <Ionicons name="business-outline" size={18} color="#0084FF" />
+                              </View>
+                              <Text style={[styles.companyPanelTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                              Về doanh nghiệp
+                              </Text>
+                            </View>
+                            <Text style={[styles.companyPanelBodyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                              {selectedCompany.description}
+                            </Text>
+                          </View>
+
+                          {/* Address details */}
+                          <View style={[styles.companyInfoPanel, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                            <View style={styles.companyPanelTitleRow}>
+                              <View style={[styles.companyPanelIcon, { backgroundColor: isDark ? '#0B2C4D' : '#E6F4FE' }]}>
+                                <Ionicons name="location-outline" size={18} color="#0084FF" />
+                              </View>
+                              <Text style={[styles.companyPanelTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                                Địa chỉ trụ sở
+                              </Text>
+                            </View>
+                            <Text style={[styles.companyPanelBodyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                              {selectedCompany.location}
+                            </Text>
+                          </View>
+
+                          {/* Benefits list */}
+                          <View style={[styles.companyInfoPanel, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                            <View style={styles.companyPanelTitleRow}>
+                              <View style={[styles.companyPanelIcon, { backgroundColor: isDark ? '#0B2C4D' : '#E6F4FE' }]}>
+                                <Ionicons name="gift-outline" size={18} color="#0084FF" />
+                              </View>
+                              <Text style={[styles.companyPanelTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                                Quyền lợi & đãi ngộ
+                              </Text>
+                            </View>
+                            {selectedCompany.benefits.map((benefit, index) => (
+                              <View key={index} style={styles.companyBenefitRow}>
+                                <Ionicons name="checkmark-circle" size={17} color="#0084FF" style={{ marginTop: 1 }} />
+                                <Text style={[styles.companyBenefitText, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                                  {benefit}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={{ gap: 12 }}>
+                          {matchingJobs.length === 0 ? (
+                            <View style={styles.companyEmptyJobs}>
+                              <Ionicons name="briefcase-outline" size={44} color="#8E8E93" />
+                              <Text style={styles.companyEmptyJobsText}>
+                                Hiện tại doanh nghiệp chưa đăng tuyển vị trí mới nào.
+                              </Text>
+                            </View>
+                          ) : (
+                            matchingJobs.map((job) => (
+                              <TouchableOpacity
+                                key={job.id}
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                  setIsCompanyModalVisible(false);
+                                  openJobDetails(job);
+                                }}
+                                style={[styles.companyJobCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}
+                              >
+                                <View style={styles.companyJobCardTop}>
+                                  <Text style={[styles.companyJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                                    {job.title}
+                                  </Text>
+                                  <Text style={styles.companyJobPrice} numberOfLines={1}>
+                                    {job.price}
+                                  </Text>
+                                </View>
+                                <View style={styles.companyJobMetaRow}>
+                                  <Ionicons name="location-outline" size={13} color="#8E8E93" />
+                                  <Text style={styles.companyJobMetaText} numberOfLines={1}>{job.location}</Text>
+                                </View>
+                                <View style={styles.companyJobMetaRow}>
+                                  <Ionicons name="time-outline" size={13} color="#8E8E93" />
+                                  <Text style={styles.companyJobMetaText} numberOfLines={1}>{job.timeLeft.split(':')[1]?.trim() || job.timeLeft}</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
+                );
+              })()}
+            </View>
           )}
-        </SafeAreaView>
+        </View>
       </Modal>
 
       <Modal
@@ -2559,6 +2800,241 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: 'bold',
     color: '#0084FF',
+  },
+  companyModalRoot: {
+    flex: 1,
+  },
+  companyModalHero: {
+    height: 238,
+    position: 'relative',
+  },
+  companyModalCover: {
+    width: '100%',
+    height: '100%',
+  },
+  companyModalCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 132, 255, 0.28)',
+  },
+  companyModalBackBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 64 : 36,
+    left: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  companyModalPremiumPill: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 66 : 38,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0, 132, 255, 0.92)',
+    paddingHorizontal: 12,
+    height: 34,
+    borderRadius: 17,
+  },
+  companyModalPremiumText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  companyModalHeaderCard: {
+    marginHorizontal: 16,
+    marginTop: -42,
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  companyModalIdentityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  companyModalLogo: {
+    width: 74,
+    height: 74,
+    borderRadius: 18,
+    borderWidth: 3,
+    backgroundColor: '#FFF',
+  },
+  companyModalTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 12,
+  },
+  companyModalNameRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  companyModalName: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 24,
+  },
+  companyModalIndustry: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  companyModalMetaGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  companyModalMetaCard: {
+    flex: 1,
+    minWidth: 0,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  companyModalMetaLabel: {
+    color: '#8E8E93',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 5,
+  },
+  companyModalMetaValue: {
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  companyModalBody: {
+    flex: 1,
+    paddingTop: 12,
+  },
+  companyModalTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 4,
+  },
+  companyModalTab: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  companyModalTabActive: {
+    backgroundColor: '#E6F4FE',
+  },
+  companyModalTabText: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  companyModalScrollContent: {
+    padding: 16,
+    paddingBottom: 28,
+  },
+  companyModalSectionList: {
+    gap: 12,
+  },
+  companyInfoPanel: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+  },
+  companyPanelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  companyPanelIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  companyPanelTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  companyPanelBodyText: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  companyBenefitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+    paddingVertical: 6,
+  },
+  companyBenefitText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+  },
+  companyEmptyJobs: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 20,
+  },
+  companyEmptyJobsText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 10,
+    textAlign: 'center',
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  companyJobCard: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  companyJobCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  companyJobTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
+  companyJobPrice: {
+    maxWidth: 112,
+    color: '#0084FF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  companyJobMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  companyJobMetaText: {
+    flex: 1,
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

@@ -688,10 +688,12 @@ export default function RecruiterProfileScreen() {
   const renderCombinedProfile = () => {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]} edges={['top']}>
+        <View style={styles.profileHeaderBg} />
+
         {/* Header Bar */}
-        <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
+        <View style={styles.headerBar}>
           <View style={styles.iconBtn} />
-          <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>BybitJobs</Text>
+          <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>Cá nhân</Text>
           <TouchableOpacity
             activeOpacity={0.7}
             style={styles.iconBtn}
@@ -709,61 +711,63 @@ export default function RecruiterProfileScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }}>
-          {/* 1. Cover & Logo Hero */}
-          <View style={styles.empHeroSection}>
-            <Image
-              source={require('../../assets/images/small_jobs_banner.png')}
-              style={styles.empBannerImage}
-              resizeMode="cover"
-            />
-            <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}>
-              <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                {logoUploaded ? (
-                  <Ionicons name="stats-chart" size={32} color={logoColor} />
-                ) : (
-                  <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
-                    {getInitial(companyName)}
-                  </Text>
-                )}
+          <View style={[styles.empProfileCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+            {/* 1. Cover & Logo Hero */}
+            <View style={styles.empHeroSection}>
+              <Image
+                source={require('../../assets/images/small_jobs_banner.png')}
+                style={styles.empBannerImage}
+                resizeMode="cover"
+              />
+              <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+                  {logoUploaded ? (
+                    <Ionicons name="stats-chart" size={32} color={logoColor} />
+                  ) : (
+                    <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
+                      {getInitial(companyName)}
+                    </Text>
+                  )}
+                </View>
+                {/* Edit overlay icon on logo to open editing form */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setIsEditing(true)}
+                  style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0084FF', padding: 5, borderRadius: 12, borderWidth: 1.5, borderColor: '#FFF' }}
+                >
+                  <Ionicons name="pencil" size={10} color="#FFF" />
+                </TouchableOpacity>
               </View>
-              {/* Edit overlay icon on logo to open editing form */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setIsEditing(true)}
-                style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0084FF', padding: 5, borderRadius: 12, borderWidth: 1.5, borderColor: '#FFF' }}
-              >
-                <Ionicons name="pencil" size={10} color="#FFF" />
-              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* 2. Company Info Details */}
-          <View style={styles.empProfileDetails}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
-              <Text style={[styles.empCompanyName, { color: isDark ? '#FFF' : '#11181C' }]}>
-                {companyName}
-              </Text>
-              <Ionicons name="checkmark-circle" size={18} color="#0084FF" style={{ marginLeft: 6 }} />
+            {/* 2. Company Info Details */}
+            <View style={styles.empProfileDetails}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
+                <Text style={[styles.empCompanyName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                  {companyName}
+                </Text>
+                <Ionicons name="checkmark-circle" size={18} color="#0084FF" style={{ marginLeft: 6 }} />
+              </View>
+              <View style={styles.empLocationRow}>
+                <Ionicons name="location-outline" size={14} color="#8E8E93" />
+                <Text style={styles.empLocationText} numberOfLines={2}>{address}</Text>
+              </View>
             </View>
-            <View style={styles.empLocationRow}>
-              <Ionicons name="location-outline" size={14} color="#8E8E93" />
-              <Text style={styles.empLocationText}>{address}</Text>
-            </View>
-          </View>
 
-          {/* 3. Stats Row */}
-          <View style={styles.empStatsRow}>
-            <View style={[styles.empStatCard, { backgroundColor: isDark ? '#1C1C1E' : '#F0F4F8' }]}>
-              <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{totalJobsCount}</Text>
-              <Text style={styles.empStatLabel}>Tin đã đăng</Text>
-            </View>
-            <View style={[styles.empStatCard, { backgroundColor: isDark ? '#1C1C1E' : '#F0F4F8' }]}>
-              <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{activeJobsCount}</Text>
-              <Text style={styles.empStatLabel}>Đang tuyển</Text>
-            </View>
-            <View style={[styles.empStatCard, { backgroundColor: isDark ? '#1C1C1E' : '#F0F4F8' }]}>
-              <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{totalApplicants}</Text>
-              <Text style={styles.empStatLabel}>Ứng viên</Text>
+            {/* 3. Stats Row */}
+            <View style={styles.empStatsRow}>
+              <View style={[styles.empStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{totalJobsCount}</Text>
+                <Text style={styles.empStatLabel}>Tin đã đăng</Text>
+              </View>
+              <View style={[styles.empStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{activeJobsCount}</Text>
+                <Text style={styles.empStatLabel}>Đang tuyển</Text>
+              </View>
+              <View style={[styles.empStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                <Text style={[styles.empStatValue, { color: '#0084FF' }]}>{totalApplicants}</Text>
+                <Text style={styles.empStatLabel}>Ứng viên</Text>
+              </View>
             </View>
           </View>
 
@@ -1084,7 +1088,7 @@ export default function RecruiterProfileScreen() {
                     <Text style={styles.navItemText}>Trang chủ</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
                     <Ionicons name="people-outline" size={24} color="#8E8E93" />
                     <Text style={styles.navItemText}>Quản lý ứng viên</Text>
                   </TouchableOpacity>
@@ -1124,13 +1128,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  profileHeaderBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 210 : 190,
+    backgroundColor: '#0084FF',
+  },
   headerBar: {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4,
+    position: 'relative',
+    zIndex: 10,
   },
   iconBtn: {
     width: 40,
@@ -1138,6 +1151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    zIndex: 2,
   },
   badgeContainer: {
     position: 'absolute',
@@ -1158,9 +1172,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerBarTitle: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -1364,8 +1382,21 @@ const styles = StyleSheet.create({
   },
 
   // Combined Layout Styles
+  empProfileCard: {
+    borderWidth: 1,
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+  },
   empHeroSection: {
-    height: 140,
+    height: 118,
     width: '100%',
     position: 'relative',
   },
@@ -1375,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   empLogoWrapper: {
     position: 'absolute',
-    bottom: -35,
+    bottom: -38,
     alignSelf: 'center',
     width: 76,
     height: 76,
@@ -1400,45 +1431,56 @@ const styles = StyleSheet.create({
   },
   empProfileDetails: {
     alignItems: 'center',
-    marginTop: 45,
-    marginBottom: 16,
+    marginTop: 48,
+    marginBottom: 14,
+    paddingHorizontal: 16,
   },
   empCompanyName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '800',
     textAlign: 'center',
+    lineHeight: 25,
+    flexShrink: 1,
   },
   empLocationRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
     marginTop: 6,
     gap: 4,
+    paddingHorizontal: 12,
   },
   empLocationText: {
     fontSize: 13,
     color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 18,
+    flexShrink: 1,
   },
   empStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 16,
     marginBottom: 16,
+    gap: 8,
   },
   empStatCard: {
     flex: 1,
-    padding: 12,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
     alignItems: 'center',
-    marginHorizontal: 4,
+    minWidth: 0,
   },
   empStatValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '900',
   },
   empStatLabel: {
     fontSize: 11,
     color: '#8E8E93',
     marginTop: 4,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   empPostJobBtn: {
     flexDirection: 'row',

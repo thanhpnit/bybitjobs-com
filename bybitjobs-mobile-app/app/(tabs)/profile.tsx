@@ -1255,14 +1255,14 @@ function CandidateProfileScreen() {
         {/* Header Bar with Logout */}
         <View style={styles.headerBar}>
           <View style={styles.iconButton} />
-          <Text style={styles.headerTitle}>BybitJobs</Text>
+          <Text style={styles.headerTitle}>Cá nhân</Text>
           <View style={styles.headerBarPlaceholder} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
           {/* 1. Header Profile & Avatar Card */}
-          <View style={[styles.whiteCard, styles.avatarCard, isDark && styles.darkCard]}>
+          <View style={[styles.whiteCard, styles.avatarCard, isDark && styles.darkCard, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
             <View style={styles.avatarMainSection}>
               {isLoggedIn ? (
                 <>
@@ -1284,10 +1284,10 @@ function CandidateProfileScreen() {
                   </View>
 
                   <View style={styles.avatarInfoCol}>
-                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
                       {displayName}
                     </Text>
-                    <Text style={styles.userId}>
+                    <Text style={styles.userId} numberOfLines={1}>
                       USER ID: {isLoggedIn ? seqId : '000000'}
                     </Text>
                   </View>
@@ -1312,10 +1312,10 @@ function CandidateProfileScreen() {
                   </TouchableOpacity>
 
                   <View style={styles.avatarInfoCol}>
-                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    <Text style={[styles.userName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
                       Chào bạn!
                     </Text>
-                    <Text style={styles.userId}>Đăng nhập để lưu hồ sơ & ứng tuyển</Text>
+                    <Text style={styles.userId} numberOfLines={2}>Đăng nhập để lưu hồ sơ & ứng tuyển</Text>
 
                     <TouchableOpacity
                       activeOpacity={0.85}
@@ -3276,7 +3276,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 120 : 100,
+    height: Platform.OS === 'ios' ? 210 : 190,
     backgroundColor: '#0084FF',
   },
   safeArea: {
@@ -3288,11 +3288,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     height: 56,
+    position: 'relative',
+    zIndex: 10,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FFF',
+    textAlign: 'center',
   },
   headerBarPlaceholder: {
     width: 36,
@@ -3306,10 +3312,11 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
   },
   lockedContainer: {
     flex: 1,
@@ -3365,8 +3372,14 @@ const styles = StyleSheet.create({
 
   // Header Avatar styles
   avatarCard: {
-    paddingVertical: 20,
+    paddingVertical: 18,
     paddingHorizontal: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   avatarMainSection: {
     flexDirection: 'row',
@@ -3377,9 +3390,9 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   avatarImage: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
@@ -3405,11 +3418,13 @@ const styles = StyleSheet.create({
   avatarInfoCol: {
     flex: 1,
     justifyContent: 'center',
+    minWidth: 0,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 19,
+    fontWeight: '800',
     marginBottom: 3,
+    lineHeight: 25,
   },
   userId: {
     fontSize: 12,

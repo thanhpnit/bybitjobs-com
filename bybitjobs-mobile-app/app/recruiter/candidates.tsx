@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,8 +91,10 @@ export default function RecruiterCandidatesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+      <View style={styles.headerBg} />
+
       {/* Header bar */}
-      <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
+      <View style={styles.headerBar}>
         <TouchableOpacity 
           activeOpacity={0.7} 
           style={styles.iconBtn} 
@@ -117,62 +120,78 @@ export default function RecruiterCandidatesScreen() {
       </View>
 
       {/* Title block */}
-      <View style={[styles.subHeader, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+      <View style={[styles.subHeader, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
         <Text style={[styles.subHeaderTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
           Danh sách hồ sơ nộp
         </Text>
         <Text style={styles.subHeaderDesc}>
           Hiện có {pendingCount} hồ sơ đang chờ xử lý.
         </Text>
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{pendingCount}</Text>
+            <Text style={styles.summaryLabel}>Chờ duyệt</Text>
+          </View>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{approvedCount}</Text>
+            <Text style={styles.summaryLabel}>Đã duyệt</Text>
+          </View>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{rejectedCount}</Text>
+            <Text style={styles.summaryLabel}>Từ chối</Text>
+          </View>
+        </View>
       </View>
 
       {/* 4 Navigation filter tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={[styles.tabsScroll, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}
-        contentContainerStyle={styles.tabsScrollContent}
-      >
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('All')}
-          style={[styles.tabButton, activeTab === 'All' && styles.tabButtonActive]}
+      <View style={[styles.tabsShell, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabsScrollContent}
         >
-          <Text style={[styles.tabText, activeTab === 'All' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Tất cả ({employerApplications.length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('All')}
+            style={[styles.tabButton, activeTab === 'All' && styles.tabButtonActive]}
+          >
+            <Text style={[styles.tabText, activeTab === 'All' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Tất cả ({employerApplications.length})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('Pending')}
-          style={[styles.tabButton, activeTab === 'Pending' && styles.tabButtonActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'Pending' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Chờ duyệt ({pendingCount})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('Pending')}
+            style={[styles.tabButton, activeTab === 'Pending' && styles.tabButtonActive]}
+          >
+            <Text style={[styles.tabText, activeTab === 'Pending' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Chờ duyệt ({pendingCount})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('Approved')}
-          style={[styles.tabButton, activeTab === 'Approved' && styles.tabButtonActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'Approved' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Đã duyệt ({approvedCount})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('Approved')}
+            style={[styles.tabButton, activeTab === 'Approved' && styles.tabButtonActive]}
+          >
+            <Text style={[styles.tabText, activeTab === 'Approved' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Đã duyệt ({approvedCount})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('Rejected')}
-          style={[styles.tabButton, activeTab === 'Rejected' && styles.tabButtonActive]}
-        >
-          <Text style={[styles.tabText, activeTab === 'Rejected' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Từ chối ({rejectedCount})
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActiveTab('Rejected')}
+            style={[styles.tabButton, activeTab === 'Rejected' && styles.tabButtonActive]}
+          >
+            <Text style={[styles.tabText, activeTab === 'Rejected' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              Từ chối ({rejectedCount})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Main scrolling content */}
       <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
@@ -300,7 +319,7 @@ export default function RecruiterCandidatesScreen() {
           <Text style={styles.navItemText}>Trang chủ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
           <Ionicons name="people" size={24} color="#0084FF" />
           <Text style={[styles.navItemText, { color: '#0084FF' }]}>Quản lý ứng viên</Text>
         </TouchableOpacity>
@@ -332,13 +351,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 190 : 170,
+    backgroundColor: '#0084FF',
+  },
   headerBar: {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4,
+    position: 'relative',
+    zIndex: 10,
   },
   iconBtn: {
     width: 40,
@@ -346,6 +374,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    zIndex: 2,
   },
   badgeContainer: {
     position: 'absolute',
@@ -366,47 +395,99 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerBarTitle: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   subHeader: {
     padding: 16,
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   subHeaderTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
     marginBottom: 4,
+    textAlign: 'center',
   },
   subHeaderDesc: {
     fontSize: 12,
     color: '#8E8E93',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  summaryItem: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  summaryNumber: {
+    color: '#0084FF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  summaryLabel: {
+    color: '#8E8E93',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 3,
+    textAlign: 'center',
+  },
+  tabsShell: {
+    borderWidth: 1,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    height: 52,
+    overflow: 'hidden',
   },
   tabsScroll: {
-    maxHeight: 46,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    height: 50,
+    flexGrow: 0,
   },
   tabsScrollContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     alignItems: 'center',
-    height: '100%',
+    gap: 6,
+    height: 50,
   },
   tabButton: {
-    paddingHorizontal: 16,
+    minWidth: 96,
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    paddingHorizontal: 16,
   },
   tabButtonActive: {
-    borderBottomColor: '#0084FF',
+    backgroundColor: '#E6F4FE',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   tabTextActive: {
     color: '#0084FF',

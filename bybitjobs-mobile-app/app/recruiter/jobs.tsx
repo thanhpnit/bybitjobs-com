@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -92,11 +93,14 @@ export default function RecruiterJobsScreen() {
   };
 
   const activeJobsCount = recruiterJobs.filter((j) => j.isOpen).length;
+  const closedJobsCount = recruiterJobs.length - activeJobsCount;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+      <View style={styles.headerBg} />
+
       {/* Top Header Bar */}
-      <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
+      <View style={styles.headerBar}>
         <View style={styles.iconBtn} />
         <Text style={styles.headerBarTitle}>Quản lý tuyển dụng</Text>
         <TouchableOpacity 
@@ -116,17 +120,31 @@ export default function RecruiterJobsScreen() {
       </View>
 
       {/* Subheader info text */}
-      <View style={[styles.subHeader, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+      <View style={[styles.subHeader, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
         <Text style={[styles.subHeaderTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
           Quản lý bài đăng tuyển
         </Text>
         <Text style={styles.subHeaderDesc}>
           Bạn đang có {activeJobsCount} tin đăng hoạt động.
         </Text>
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{recruiterJobs.length}</Text>
+            <Text style={styles.summaryLabel}>Tất cả</Text>
+          </View>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{activeJobsCount}</Text>
+            <Text style={styles.summaryLabel}>Đang mở</Text>
+          </View>
+          <View style={[styles.summaryItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+            <Text style={styles.summaryNumber}>{closedJobsCount}</Text>
+            <Text style={styles.summaryLabel}>Đã đóng</Text>
+          </View>
+        </View>
       </View>
 
       {/* 3 Tab Filters */}
-      <View style={[styles.tabBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+      <View style={[styles.tabBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setActiveTab('All')}
@@ -171,7 +189,7 @@ export default function RecruiterJobsScreen() {
             styles.tabText,
             activeTab === 'Closed' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }
           ]}>
-            Đã đóng ({recruiterJobs.length - activeJobsCount})
+            Đã đóng ({closedJobsCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -294,7 +312,7 @@ export default function RecruiterJobsScreen() {
           <Text style={styles.navItemText}>Trang chủ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/candidates')} style={styles.navItem}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
           <Ionicons name="people-outline" size={24} color="#8E8E93" />
           <Text style={styles.navItemText}>Quản lý ứng viên</Text>
         </TouchableOpacity>
@@ -326,13 +344,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 190 : 170,
+    backgroundColor: '#0084FF',
+  },
   headerBar: {
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    elevation: 4,
+    position: 'relative',
+    zIndex: 10,
   },
   iconBtn: {
     width: 40,
@@ -340,6 +367,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    zIndex: 2,
   },
   badgeContainer: {
     position: 'absolute',
@@ -360,42 +388,89 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerBarTitle: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   subHeader: {
     padding: 16,
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   subHeaderTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
     marginBottom: 4,
+    textAlign: 'center',
   },
   subHeaderDesc: {
     fontSize: 12,
     color: '#8E8E93',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  summaryItem: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  summaryNumber: {
+    color: '#0084FF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  summaryLabel: {
+    color: '#8E8E93',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 3,
+    textAlign: 'center',
   },
   tabBar: {
     flexDirection: 'row',
-    height: 44,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    height: 52,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 6,
+    gap: 6,
   },
   tabButton: {
     flex: 1,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    minWidth: 0,
+    paddingHorizontal: 6,
   },
   tabButtonActive: {
-    borderBottomColor: '#0084FF',
+    backgroundColor: '#E6F4FE',
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   tabTextActive: {
     color: '#0084FF',

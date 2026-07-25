@@ -43,8 +43,14 @@ export default function JobDetailsScreen() {
   const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
   const [employerInfo, setEmployerInfo] = useState<EmployerProfileInfo | null>(null);
   const [reportForm, setReportForm] = useState({
-    content: ''
+    reason: '',
+    otherReason: '',
   });
+  const reportReasons = [
+    'Tin đăng có dấu hiệu lừa đảo',
+    'Thông tin đăng không chính xác',
+    'Lý do khác',
+  ];
 
   // Get dynamic title from homepage navigation
   const { title, jobId, salary, location } = useLocalSearchParams<{
@@ -70,6 +76,7 @@ export default function JobDetailsScreen() {
   const displaySalary = currentJob?.salary || salary || '300.000đ /ngày';
   const displayLocation = currentJob?.location || location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
   const displayJobId = currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
+  const displayExperience = getFirstText((currentJob as any)?.experience, (currentJob as any)?.workingExperience, 'Không yêu cầu');
   const isSaved = savedJobs.some((savedJob) => savedJob.jobId === displayJobId);
   const isEmployerView = userRole === 'employer';
   const reporterName = userData?.fullName || 'Người dùng';
@@ -247,7 +254,46 @@ export default function JobDetailsScreen() {
       </View>
       <View style={styles.employerDetailTextCol}>
         <Text style={styles.employerDetailLabel}>{label}</Text>
-        <Text style={[styles.employerDetailValue, { color: isDark ? '#FFF' : '#11181C' }]}>
+        <Text style={[styles.employerDetailValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={3}>
+          {value || 'Chưa cập nhật'}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderHeroMetric = (
+    icon: keyof typeof Ionicons.glyphMap,
+    label: string,
+    value: string,
+    showDivider = true
+  ) => (
+    <View style={[styles.heroMetricItem, showDivider && styles.heroMetricDivider]}>
+      <View style={styles.heroMetricIconBox}>
+        <Ionicons name={icon} size={24} color="#0084FF" />
+      </View>
+      <Text style={styles.heroMetricLabel}>{label}</Text>
+      <Text style={styles.heroMetricValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+
+  const renderInfoChip = (label: string) => (
+    <View key={label} style={[styles.infoChip, { backgroundColor: isDark ? '#2C2C2E' : '#F1F3F5' }]}>
+      <Text style={[styles.infoChipText, { color: isDark ? '#ECEDEE' : '#334155' }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+
+  const renderCompanyDetailItem = (icon: keyof typeof Ionicons.glyphMap, label: string, value?: string) => (
+    <View style={[styles.companyDetailItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+      <View style={[styles.companyDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#EAF5FF' }]}>
+        <Ionicons name={icon} size={18} color="#0084FF" />
+      </View>
+      <View style={styles.companyDetailTextCol}>
+        <Text style={styles.companyDetailLabel}>{label}</Text>
+        <Text style={[styles.companyDetailValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
           {value || 'Chưa cập nhật'}
         </Text>
       </View>
@@ -262,104 +308,101 @@ export default function JobDetailsScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Top Header Bar */}
         <View style={styles.headerBar}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.back()}
-              style={styles.backButton}
-            >
-              <Ionicons name="chevron-back" size={24} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.brandTitle}>BybitJobs</Text>
-          </View>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={28} color="#11181C" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setEmployerInfoModalVisible(true)}
+            style={styles.moreButton}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#11181C" />
+          </TouchableOpacity>
         </View>
 
         {/* Scrollable Content */}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           
-          {/* Job Title Card */}
-          <View style={[styles.whiteCard, isDark && styles.darkCard]}>
-            <View style={styles.jobHeaderRow}>
+          {/* Hero Summary Card */}
+          <View style={[styles.heroSummaryCard, isDark && styles.darkCard]}>
+            <View style={[styles.heroLogoWrap, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
               {(currentJob as any)?.image ? (
                 <Image
                   source={{ uri: (currentJob as any).image }}
-                  style={styles.jobImage}
+                  style={styles.heroLogoImage}
                   resizeMode="cover"
                 />
               ) : (
-                <View style={[styles.jobImage, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0', justifyContent: 'center', alignItems: 'center' }]}>
-                  <Ionicons name="desktop-outline" size={32} color="#FF9800" />
-                </View>
+                <Ionicons name="business" size={38} color="#0084FF" />
               )}
-              <View style={styles.jobTitleCol}>
-                <Text style={[styles.jobTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  {displayTitle}
-                </Text>
-                <View style={styles.pricePillRow}>
-                  <View style={[styles.pricePill, { backgroundColor: isDark ? '#152E47' : '#E6F4FE' }]}>
-                    <Text style={styles.priceText}>
-                      {displaySalary}
-                    </Text>
-                  </View>
-                </View>
-              </View>
             </View>
 
-            {/* Quick Info Tags */}
-            <View style={styles.quickTagsRow}>
-              <View style={[styles.tagItem, isDark ? styles.tagItemDark : styles.tagItemLight]}>
-                <Ionicons name="briefcase-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
-                <Text style={[styles.tagLabelText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  {currentJob?.industry || 'Tuyển dụng'}
-                </Text>
-              </View>
+            <Text style={[styles.heroJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={3}>
+              {displayTitle}
+            </Text>
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setEmployerInfoModalVisible(true)}>
+              <Text style={styles.heroCompanyName} numberOfLines={2}>
+                {employerInfo?.companyName || employerName}
+              </Text>
+            </TouchableOpacity>
 
-              <View style={[styles.tagItem, isDark ? styles.tagItemDark : styles.tagItemLight]}>
-                <Ionicons name="time-outline" size={14} color={isDark ? '#9BA1A6' : '#687076'} style={styles.tagIcon} />
-                <Text style={[styles.tagLabelText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  {currentJob?.isOpen ? 'Đang tuyển' : 'Đã đóng'}
-                </Text>
-              </View>
-
-              {(currentJob as any)?.isPremium && (
-                <View style={styles.hotTagItem}>
-                  <Ionicons name="flame" size={14} color="#FFF" style={styles.tagIcon} />
-                  <Text style={styles.hotTagLabelText}>HOT</Text>
-                </View>
-              )}
+            <View style={styles.heroMetricsRow}>
+              {renderHeroMetric('cash-outline', 'Mức lương', displaySalary)}
+              {renderHeroMetric('location-outline', 'Địa điểm', displayLocation)}
+              {renderHeroMetric('star-outline', 'Kinh nghiệm', displayExperience, false)}
             </View>
           </View>
 
-          {/* Employer Card */}
+          <View style={[styles.detailTabs, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+            <View style={styles.detailTabActive}>
+              <Text style={styles.detailTabActiveText}>Thông tin</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoChipsWrap}>
+            {[
+              displayExperience === 'Không yêu cầu' ? 'Không yêu cầu kinh nghiệm chuyên môn' : displayExperience,
+              currentJob?.industry || 'Tuyển dụng',
+              (currentJob as any)?.type || 'Bán thời gian',
+              (currentJob as any)?.isPremium ? 'Tin tuyển dụng HOT' : 'Tin tuyển dụng mới',
+              currentJob?.deadline ? `Hạn ứng tuyển ${currentJob.deadline}` : 'Đang tuyển',
+            ].map(renderInfoChip)}
+          </View>
+
+          {/* Company Detail Card */}
           <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.9}
             onPress={() => setEmployerInfoModalVisible(true)}
-            style={[styles.whiteCard, styles.employerCard, isDark && styles.darkCard]}
+            style={[styles.companyProfileCard, isDark && styles.darkCard]}
           >
-            <View style={styles.employerLeft}>
-              <Image
-                source={require('../assets/images/android-icon-foreground.png')} // Custom smiling profile vector mockup
-                style={[styles.employerAvatar, { backgroundColor: isDark ? '#3C3C3E' : '#E6F4FE' }]}
-                resizeMode="cover"
-              />
-              <View style={styles.employerInfo}>
-                <View style={styles.employerNameRow}>
-                  <Text style={[styles.employerNameText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    {employerName}
-                  </Text>
-                  <Ionicons name="checkmark-circle" size={16} color="#0084FF" style={styles.verifiedIcon} />
-                </View>
-                
-                <View style={styles.employerStats}>
-                  <Ionicons name="star" size={14} color="#FFB300" style={styles.starIcon} />
-                  <Text style={[styles.ratingText, { color: isDark ? '#ECEDEE' : '#333' }]}>4.8</Text>
-                  <Text style={styles.statsSubtext}>(124 đánh giá)</Text>
-                  <View style={styles.dotSeparator} />
-                  <Text style={styles.statsSubtext}>Đã tham gia 2 năm</Text>
+            <View style={styles.companyProfileHeader}>
+              <View style={[styles.companyLogoLarge, { backgroundColor: isDark ? '#1C2A3A' : '#EAF5FF' }]}>
+                <Ionicons name="business" size={30} color="#0084FF" />
+              </View>
+              <View style={styles.companyProfileTitleCol}>
+                <Text style={styles.companySectionEyebrow}>Công ty tuyển dụng</Text>
+                <Text style={[styles.companyProfileName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                  {employerInfo?.companyName || employerName}
+                </Text>
+                <View style={styles.companyRatingLine}>
+                  <Ionicons name="star" size={14} color="#FFB300" />
+                  <Text style={[styles.companyRatingText, { color: isDark ? '#ECEDEE' : '#334155' }]}>4.8</Text>
+                  <Text style={styles.companyMutedText}>• Nhà tuyển dụng đã xác thực</Text>
                 </View>
               </View>
+              <Ionicons name="chevron-forward" size={20} color={isDark ? '#9BA1A6' : '#8E8E93'} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={isDark ? '#9BA1A6' : '#8E8E93'} />
+
+            <View style={styles.companyDetailsGrid}>
+              {renderCompanyDetailItem('person-outline', 'Người đại diện', employerInfo?.displayName || employerName)}
+              {renderCompanyDetailItem('call-outline', 'Số điện thoại', employerInfo?.phone)}
+              {renderCompanyDetailItem('mail-outline', 'Email', employerInfo?.email)}
+              {renderCompanyDetailItem('location-outline', 'Địa chỉ', employerInfo?.address)}
+            </View>
           </TouchableOpacity>
 
           {/* Job Description (Mô tả công việc) */}
@@ -518,33 +561,57 @@ export default function JobDetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.employerModalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
             <View style={styles.employerModalHeader}>
+              <View style={styles.employerModalHandle} />
               <TouchableOpacity
                 style={[styles.employerModalCloseButton, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
                 onPress={() => setEmployerInfoModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+                <Ionicons name="close" size={22} color={isDark ? '#9BA1A6' : '#687076'} />
               </TouchableOpacity>
-              <View style={styles.employerModalHandle} />
-              <View style={[styles.employerHeroCard, { backgroundColor: isDark ? '#152E47' : '#EAF5FF' }]}>
-                <View style={styles.employerHeroTop}>
-                  <View style={[styles.employerModalAvatar, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
-                    <Ionicons name="business" size={34} color="#0084FF" />
+
+              <View style={[styles.employerHeroCard, { backgroundColor: isDark ? '#102538' : '#EAF5FF' }]}>
+                <View style={styles.employerHeroPattern} />
+                <View style={[styles.employerModalAvatar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                  <Ionicons name="business" size={34} color="#0084FF" />
+                </View>
+                <Text style={[styles.employerModalTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+                  {employerInfo?.companyName || employerName}
+                </Text>
+                <View style={styles.employerBadgeRow}>
+                  <View style={[styles.employerVerifiedPill, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
+                    <Ionicons name="checkmark-circle" size={13} color="#0084FF" />
+                    <Text style={styles.employerVerifiedText}>Đã xác thực</Text>
                   </View>
-                  <View style={styles.employerHeroTextCol}>
-                    <Text style={[styles.employerModalTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
-                      {employerInfo?.companyName || employerName}
-                    </Text>
-                    <View style={[styles.employerVerifiedPill, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
-                      <Ionicons name="checkmark-circle" size={13} color="#0084FF" />
-                      <Text style={styles.employerVerifiedText}>Nhà tuyển dụng</Text>
-                    </View>
+                  <View style={[styles.employerRatingPill, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
+                    <Ionicons name="star" size={13} color="#FFB300" />
+                    <Text style={[styles.employerRatingPillText, { color: isDark ? '#ECEDEE' : '#11181C' }]}>4.8</Text>
                   </View>
                 </View>
               </View>
             </View>
 
             <ScrollView style={styles.employerModalBody} showsVerticalScrollIndicator={false}>
+              <View style={styles.employerStatsGrid}>
+                <View style={[styles.employerStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                  <Ionicons name="briefcase-outline" size={18} color="#0084FF" />
+                  <Text style={[styles.employerStatValue, { color: isDark ? '#FFF' : '#11181C' }]}>Đang tuyển</Text>
+                  <Text style={styles.employerStatLabel}>Trạng thái</Text>
+                </View>
+                <View style={[styles.employerStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#0084FF" />
+                  <Text style={[styles.employerStatValue, { color: isDark ? '#FFF' : '#11181C' }]}>Uy tín</Text>
+                  <Text style={styles.employerStatLabel}>Hồ sơ</Text>
+                </View>
+                <View style={[styles.employerStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+                  <Ionicons name="location-outline" size={18} color="#0084FF" />
+                  <Text style={[styles.employerStatValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                    {displayLocation.split(',').pop()?.trim() || 'Việt Nam'}
+                  </Text>
+                  <Text style={styles.employerStatLabel}>Khu vực</Text>
+                </View>
+              </View>
+
               <Text style={[styles.employerSectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
                 Thông tin liên hệ
               </Text>
@@ -553,6 +620,13 @@ export default function JobDetailsScreen() {
               {renderEmployerInfoRow('call-outline', 'Số điện thoại', employerInfo?.phone)}
               {renderEmployerInfoRow('mail-outline', 'Email', employerInfo?.email)}
               {renderEmployerInfoRow('location-outline', 'Địa chỉ', employerInfo?.address)}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setEmployerInfoModalVisible(false)}
+                style={styles.employerModalDoneButton}
+              >
+                <Text style={styles.employerModalDoneText}>Đã hiểu</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -590,6 +664,62 @@ export default function JobDetailsScreen() {
                 <Text style={[styles.formValue, { color: isDark ? '#ECEDEE' : '#333' }]}>{displayTitle}</Text>
               </View>
 
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Lý do báo cáo <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <View style={styles.reasonList}>
+                  {reportReasons.map((reason) => {
+                    const isSelected = reportForm.reason === reason;
+                    return (
+                      <TouchableOpacity
+                        key={reason}
+                        activeOpacity={0.8}
+                        onPress={() => setReportForm({
+                          reason,
+                          otherReason: reason === 'Lý do khác' ? reportForm.otherReason : '',
+                        })}
+                        style={styles.reasonItem}
+                      >
+                        <Ionicons
+                          name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                          size={24}
+                          color={isSelected ? '#0084FF' : (isDark ? '#6B7280' : '#B0BEC5')}
+                        />
+                        <Text style={[styles.reasonText, { color: isDark ? '#ECEDEE' : '#253341' }]}>
+                          {reason}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {reportForm.reason === 'Lý do khác' && (
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Nhập lý do khác <Text style={styles.requiredStar}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.textArea, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
+                    placeholder="Bạn vui lòng nhập rõ lý do báo cáo..."
+                    placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
+                    multiline={true}
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    value={reportForm.otherReason}
+                    onChangeText={(text) => setReportForm({ ...reportForm, otherReason: text })}
+                  />
+                </View>
+              )}
+
+              <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
+
+              <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Thông tin người báo cáo
+              </Text>
               <View style={[styles.reporterInfoBox, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
                 <View style={styles.reporterInfoRow}>
                   <Text style={styles.reporterInfoLabel}>Người báo cáo</Text>
@@ -605,33 +735,29 @@ export default function JobDetailsScreen() {
                 </View>
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Nội dung <Text style={styles.requiredStar}>*</Text></Text>
-                <TextInput
-                  style={[styles.textArea, { color: isDark ? '#FFF' : '#11181C', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}
-                  placeholder="Bạn vui lòng cung cấp rõ thông tin hoặc bằng chứng..."
-                  placeholderTextColor={isDark ? '#9BA1A6' : '#9CA3AF'}
-                  multiline={true}
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  value={reportForm.content}
-                  onChangeText={(text) => setReportForm({...reportForm, content: text})}
-                />
-              </View>
-
               <TouchableOpacity 
                 style={[styles.modalButton, styles.sendButton]}
                 activeOpacity={0.85}
                 onPress={async () => {
-                  if (!reportForm.content.trim()) {
-                    Alert.alert('Thông báo', 'Vui lòng nhập nội dung báo cáo.');
+                  if (!reportForm.reason) {
+                    Alert.alert('Thông báo', 'Vui lòng chọn lý do báo cáo.');
+                    return;
+                  }
+
+                  const finalReason = reportForm.reason === 'Lý do khác'
+                    ? reportForm.otherReason.trim()
+                    : reportForm.reason;
+
+                  if (!finalReason) {
+                    Alert.alert('Thông báo', 'Vui lòng nhập lý do báo cáo khác.');
                     return;
                   }
 
                   try {
                     await addDoc(collection(db, 'reports'), {
                       type: 'Phản ánh tin tuyển dụng',
-                      desc: reportForm.content.trim(),
+                      reason: reportForm.reason,
+                      desc: finalReason,
                       target: displayTitle,
                       targetBy: `Họ tên: ${reporterName} - SĐT: ${reporterPhone} - Email: ${reporterEmail}`,
                       reporterId: userData?.uid || '',
@@ -646,7 +772,7 @@ export default function JobDetailsScreen() {
                     });
                     Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');
                     setReportModalVisible(false);
-                    setReportForm({ content: '' });
+                    setReportForm({ reason: '', otherReason: '' });
                   } catch (e) {
                     console.error(e);
                     Alert.alert('Lỗi', 'Không thể gửi báo cáo lúc này. Vui lòng thử lại sau.');
@@ -674,7 +800,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 120 : 100,
+    height: Platform.OS === 'ios' ? 260 : 240,
     backgroundColor: '#0084FF',
   },
   safeArea: {
@@ -685,33 +811,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    height: 56,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    height: 64,
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
-  brandTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
+  moreButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 70,
   },
   whiteCard: {
     backgroundColor: '#FFFFFF',
@@ -804,6 +924,223 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  heroSummaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 58,
+    paddingBottom: 18,
+    marginBottom: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    alignItems: 'center',
+  },
+  heroLogoWrap: {
+    position: 'absolute',
+    top: -44,
+    width: 88,
+    height: 88,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  heroLogoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+  },
+  heroJobTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    lineHeight: 28,
+    textAlign: 'center',
+  },
+  heroCompanyName: {
+    color: '#8E8E93',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 21,
+  },
+  heroMetricsRow: {
+    flexDirection: 'row',
+    marginTop: 18,
+    width: '100%',
+  },
+  heroMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    minWidth: 0,
+  },
+  heroMetricDivider: {
+    borderRightWidth: 1,
+    borderRightColor: '#EEF2F7',
+  },
+  heroMetricIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E6F4FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  heroMetricLabel: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  heroMetricValue: {
+    color: '#0084FF',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+    maxWidth: '100%',
+  },
+  detailTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  detailTabActive: {
+    paddingVertical: 12,
+    marginRight: 28,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0084FF',
+  },
+  detailTab: {
+    paddingVertical: 12,
+    marginRight: 22,
+  },
+  detailTabActiveText: {
+    color: '#0084FF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  detailTabText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  infoChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  infoChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    maxWidth: '100%',
+  },
+  infoChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  companyProfileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  companyProfileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  companyLogoLarge: {
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  companyProfileTitleCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  companySectionEyebrow: {
+    color: '#0084FF',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 3,
+  },
+  companyProfileName: {
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  companyRatingLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 6,
+    gap: 4,
+  },
+  companyRatingText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  companyMutedText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  companyDetailsGrid: {
+    gap: 9,
+  },
+  companyDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 12,
+  },
+  companyDetailIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  companyDetailTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  companyDetailLabel: {
+    color: '#8E8E93',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  companyDetailValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
   employerCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -862,91 +1199,149 @@ const styles = StyleSheet.create({
   },
   employerModalContent: {
     width: '100%',
-    maxHeight: '76%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    maxHeight: '86%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     paddingBottom: Platform.OS === 'ios' ? 34 : 22,
+    overflow: 'hidden',
   },
   employerModalHeader: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 14,
+    paddingBottom: 12,
   },
   employerModalHandle: {
-    width: 42,
-    height: 4,
-    borderRadius: 2,
+    width: 46,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: '#D1D5DB',
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   employerModalCloseButton: {
     position: 'absolute',
-    top: 16,
+    top: 18,
     right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
   employerHeroCard: {
-    borderRadius: 20,
-    padding: 16,
-  },
-  employerHeroTop: {
-    flexDirection: 'row',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 22,
+    paddingBottom: 18,
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  employerHeroPattern: {
+    position: 'absolute',
+    top: -42,
+    right: -36,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0, 132, 255, 0.12)',
   },
   employerModalAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
+    width: 70,
+    height: 70,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  employerHeroTextCol: {
-    flex: 1,
-    paddingRight: 28,
+    marginBottom: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   employerModalTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    lineHeight: 22,
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 26,
+    textAlign: 'center',
+    paddingHorizontal: 18,
+  },
+  employerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
   },
   employerVerifiedPill: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   employerVerifiedText: {
     color: '#0084FF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    marginLeft: 4,
+  },
+  employerRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  employerRatingPillText: {
+    fontSize: 11,
+    fontWeight: '800',
     marginLeft: 4,
   },
   employerModalBody: {
     paddingHorizontal: 16,
-    paddingTop: 2,
+    paddingTop: 4,
+  },
+  employerStatsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  employerStatCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  employerStatValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  employerStatLabel: {
+    color: '#8E8E93',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
   },
   employerSectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 12,
   },
   employerDetailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 14,
     borderRadius: 16,
-    marginBottom: 9,
+    marginBottom: 10,
     backgroundColor: '#F4F5F7',
   },
   employerDetailIcon: {
@@ -969,8 +1364,27 @@ const styles = StyleSheet.create({
   },
   employerDetailValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: 21,
+  },
+  employerModalDoneButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#0084FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 10,
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  employerModalDoneText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '800',
   },
   sectionCard: {
     padding: 16,
@@ -1071,7 +1485,7 @@ const styles = StyleSheet.create({
   saveJobButton: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: '#0084FF',
     justifyContent: 'center',
@@ -1083,7 +1497,7 @@ const styles = StyleSheet.create({
   applyButton: {
     flex: 1,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: '#0084FF',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1177,6 +1591,21 @@ const styles = StyleSheet.create({
   formValue: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  reasonList: {
+    gap: 12,
+  },
+  reasonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 34,
+  },
+  reasonText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
   },
   reporterInfoBox: {
     borderRadius: 12,

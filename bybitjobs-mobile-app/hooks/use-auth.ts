@@ -86,6 +86,7 @@ export interface CandidateItem {
   avatar: string;
   email: string;
   phone: string;
+  desiredJob?: string;
   location: string;
   jobType: string;
   skills: string[];
