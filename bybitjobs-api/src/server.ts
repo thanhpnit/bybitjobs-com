@@ -19,6 +19,33 @@ const payos = new PayOS({
 // Khởi tạo biến môi trường
 dotenv.config();
 
+// Helper function to robustly generate content with Gemini models with fallback
+async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  
+  const modelsToTry = [
+    { model: 'gemini-1.5-flash', apiVersion: 'v1' },
+    { model: 'gemini-1.5-flash' },
+    { model: 'gemini-2.0-flash' },
+    { model: 'gemini-1.5-pro' },
+    { model: 'gemini-2.5-flash' },
+    { model: 'gemini-pro' }
+  ];
+
+  let lastError: any = null;
+  for (const mOpts of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel(mOpts as any);
+      const result = await model.generateContent(contents);
+      return result;
+    } catch (err: any) {
+      console.warn(`[Gemini API] Model ${mOpts.model} (${mOpts.apiVersion || 'default'}) failed: ${err.message}`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 // Cấu hình Nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
