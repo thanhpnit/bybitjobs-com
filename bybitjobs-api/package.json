@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "update-env": "node update-env.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +21,8 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.10.0",
     "mammoth": "^1.12.0",
-    "nodemailer": "^8.0.10"
+    "nodemailer": "^8.0.10",
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
