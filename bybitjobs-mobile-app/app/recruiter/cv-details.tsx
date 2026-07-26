@@ -429,11 +429,11 @@ export default function RecruiterCvDetailsScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleApprove}
-          style={[styles.bottomBtn, styles.approveActionBtn]}
+          style={[styles.bottomBtn, styles.approveActionBtn, isApproved && { backgroundColor: '#4CAF50' }]}
         >
-          <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" style={{ marginRight: 6 }} />
+          <Ionicons name={isApproved ? "checkmark-done-circle" : "checkmark-circle-outline"} size={20} color="#FFF" style={{ marginRight: 6 }} />
           <Text style={styles.approveActionBtnText}>
-            {isApproved ? 'Đã duyệt ứng viên' : 'Duyệt ứng viên'}
+            {isApproved ? 'Đã duyệt • Mở SĐT' : 'Duyệt ứng viên'}
           </Text>
         </TouchableOpacity>
 

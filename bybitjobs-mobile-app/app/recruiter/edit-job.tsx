@@ -39,7 +39,7 @@ export default function RecruiterEditJobScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { jobs, addJob, updateJob } = useAuth();
+  const { jobs, addJob, updateJob, userData } = useAuth();
 
   const isNew = id === 'new';
   const existingJob = jobs.find((j) => j.id === id);
@@ -344,29 +344,59 @@ export default function RecruiterEditJobScreen() {
             <View style={styles.inputGroup}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>MÔ TẢ CÔNG VIỆC</Text>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleGenerateAIJD}
-                  disabled={isGeneratingJD}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: '#7C3AED',
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 16,
-                    gap: 6
-                  }}
-                >
-                  {isGeneratingJD ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="sparkles" size={14} color="#FFF" />
-                      <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>AI soạn mô tả</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      if (!title.trim()) {
+                        Alert.alert('Thông báo', 'Vui lòng nhập tiêu đề công việc để xem trước.');
+                        return;
+                      }
+                      Alert.alert(
+                        `👀 Xem trước tin đăng: ${title}`,
+                        `🏢 Công ty: ${userData?.companyName || 'Doanh nghiệp'}\n📍 Địa điểm: ${location}\n💰 Lương: ${salary}\n\n📝 Mô tả:\n${description || 'Chưa có mô tả'}\n\n🎯 Yêu cầu:\n${requirements || 'Chưa có yêu cầu'}`
+                      );
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: isDark ? '#2C2C2E' : '#EBF5FF',
+                      borderColor: '#0084FF',
+                      borderWidth: 1,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      gap: 4
+                    }}
+                  >
+                    <Ionicons name="eye-outline" size={13} color="#0084FF" />
+                    <Text style={{ color: '#0084FF', fontSize: 11, fontWeight: '600' }}>Xem trước</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleGenerateAIJD}
+                    disabled={isGeneratingJD}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#7C3AED',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      gap: 6
+                    }}
+                  >
+                    {isGeneratingJD ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={14} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>AI soạn mô tả</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
               <View style={[styles.textareaBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
                 <TextInput

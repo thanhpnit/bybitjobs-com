@@ -392,6 +392,53 @@ export default function RecruiterDashboardScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Recruiter Quick Analytics Stat Grid */}
+        <View style={{ paddingHorizontal: 16, marginVertical: 6 }}>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="briefcase-outline" size={18} color="#0084FF" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{openJobs.length}</Text>
+                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Tin tuyển dụng</Text>
+              </View>
+            </View>
+
+            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="people-outline" size={18} color="#2E7D32" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>18</Text>
+                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Hồ sơ đã nhận</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="sparkles-outline" size={18} color="#7C3AED" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#7C3AED' }}>7</Text>
+                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Match Cao (&gt;80%)</Text>
+              </View>
+            </View>
+
+            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="eye-outline" size={18} color="#E65100" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>340</Text>
+                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Lượt xem tin</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Quick Functions Card */}
         <View style={[styles.quickFunctionsCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
           <View style={styles.quickGrid}>

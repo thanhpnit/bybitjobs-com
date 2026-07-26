@@ -259,6 +259,15 @@ export default function RecruiterJobsScreen() {
                 <View style={styles.cardFooterActions}>
                   <TouchableOpacity
                     activeOpacity={0.7}
+                    onPress={() => router.push('/(tabs)/my-jobs')}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="people-outline" size={16} color="#7C3AED" />
+                    <Text style={[styles.actionButtonText, { color: '#7C3AED' }]}>Ứng viên</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
                     onPress={() => handleEditJob(job.id)}
                     style={styles.actionButton}
                   >
