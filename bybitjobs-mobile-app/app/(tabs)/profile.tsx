@@ -57,6 +57,16 @@ function CandidateProfileScreen() {
 
   // Job seeking switch states
   const [isJobSeeking, setIsJobSeeking] = React.useState(true);
+
+  // AI CV Analyzer state
+  const [isAnalyzingCV, setIsAnalyzingCV] = React.useState(false);
+  const [cvAnalysisResult, setCvAnalysisResult] = React.useState<{
+    score: number;
+    strengths: string[];
+    improvements: string[];
+    suggestions: string[];
+  } | null>(null);
+  const [isCVAnalysisModalVisible, setIsCVAnalysisModalVisible] = React.useState(false);
   const [allowEmployerSearch, setAllowEmployerSearch] = React.useState(true);
 
   // 2-Step Verification state
@@ -398,6 +408,72 @@ function CandidateProfileScreen() {
       } catch (err) {
         Alert.alert('Lỗi', 'Không thể cập nhật số điện thoại lúc này.');
       }
+    }
+  };
+
+  const handleAnalyzeCV = async () => {
+    if (!userData?.uid) {
+      Alert.alert('Thông báo', 'Bạn cần đăng nhập để sử dụng tính năng này.');
+      return;
+    }
+
+    if (!cvFile || !cvFile.cvUrl) {
+      Alert.alert('Thông báo', 'Vui lòng tải lên CV của bạn trước khi chấm điểm.');
+      return;
+    }
+
+    const desiredJob = userData.desiredJob || 'Ứng viên (Mobile App)';
+    setIsAnalyzingCV(true);
+
+    try {
+      const response = await fetch(`http://160.250.246.119:4000/api/users/${userData.uid}/cv-analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ desiredJob }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Không thể kết nối đến máy chủ phân tích CV';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          if (response.status === 404) {
+            errorMessage = 'Đường dẫn phân tích CV không tồn tại trên máy chủ (404). Vui lòng cập nhật API backend.';
+          } else {
+            errorMessage = `Lỗi máy chủ (${response.status}): ${errorText.substring(0, 100)}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const resText = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        throw new Error('Phản hồi từ máy chủ không đúng định dạng JSON.');
+      }
+
+      if (data.success) {
+        setCvAnalysisResult({
+          score: data.score,
+          strengths: data.strengths || [],
+          improvements: data.improvements || [],
+          suggestions: data.suggestions || [],
+        });
+        setIsCVAnalysisModalVisible(true);
+      } else {
+        throw new Error(data.error || 'Lỗi phân tích CV từ AI');
+      }
+    } catch (error: any) {
+      console.error('Error analyzing CV:', error);
+      Alert.alert('Lỗi', `Không thể chấm điểm CV: ${error.message}`);
+    } finally {
+      setIsAnalyzingCV(false);
     }
   };
 
@@ -1725,6 +1801,29 @@ function CandidateProfileScreen() {
                   </View>
 
                   <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleAnalyzeCV}
+                    disabled={isAnalyzingCV}
+                    style={[
+                      styles.aiScoreBtn,
+                      {
+                        backgroundColor: isDark ? '#1F2937' : '#F0F7FF',
+                        borderColor: '#0084FF',
+                        marginTop: 12,
+                      }
+                    ]}
+                  >
+                    {isAnalyzingCV ? (
+                      <ActivityIndicator size="small" color="#0084FF" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={16} color="#0084FF" style={{ marginRight: 6 }} />
+                        <Text style={styles.aiScoreBtnText}>Chấm điểm CV bằng AI (ATS)</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => {
                       Alert.alert(
@@ -2812,6 +2911,119 @@ function CandidateProfileScreen() {
                 </View>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* AI CV Analysis Report Modal */}
+      <Modal
+        visible={isCVAnalysisModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsCVAnalysisModalVisible(false)}
+      >
+        <View style={styles.modalCenteredOverlay}>
+          <View style={[styles.aiAnalysisContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={styles.aiAnalysisHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="sparkles" size={20} color="#0084FF" style={{ marginRight: 8 }} />
+                <Text style={[styles.aiAnalysisTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  Kết quả chấm điểm CV
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setIsCVAnalysisModalVisible(false)}
+                style={styles.aiAnalysisCloseBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#8E8E93' : '#636366'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1, paddingHorizontal: 16 }}>
+              {/* Score circle card */}
+              <View style={[styles.scoreCard, { backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA' }]}>
+                <View style={[
+                  styles.scoreCircle,
+                  {
+                    borderColor: cvAnalysisResult && cvAnalysisResult.score >= 80 ? '#34C759' : (cvAnalysisResult && cvAnalysisResult.score >= 50 ? '#FFCC00' : '#FF3B30')
+                  }
+                ]}>
+                  <Text style={[styles.scoreNumber, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    {cvAnalysisResult?.score}
+                  </Text>
+                  <Text style={styles.scoreMax}>/100</Text>
+                </View>
+                
+                <Text style={[styles.scoreStatusText, {
+                  color: cvAnalysisResult && cvAnalysisResult.score >= 80 ? '#34C759' : (cvAnalysisResult && cvAnalysisResult.score >= 50 ? '#FFCC00' : '#FF3B30')
+                }]}>
+                  {cvAnalysisResult && cvAnalysisResult.score >= 80 ? 'CV Rất Tốt' : (cvAnalysisResult && cvAnalysisResult.score >= 50 ? 'CV Khá - Cần Tối Ưu' : 'CV Yếu - Cần Chỉnh Sửa')}
+                </Text>
+                <Text style={[styles.scoreTargetText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                  Vị trí đối chiếu: {userData?.desiredJob || 'Ứng viên (Mobile App)'}
+                </Text>
+              </View>
+
+              {/* Strengths Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  🌟 Điểm mạnh nổi bật
+                </Text>
+                {cvAnalysisResult?.strengths && cvAnalysisResult.strengths.length > 0 ? (
+                  cvAnalysisResult.strengths.map((item, idx) => (
+                    <View key={`strength-${idx}`} style={styles.bulletRow}>
+                      <Ionicons name="checkmark-circle" size={16} color="#34C759" style={{ marginTop: 2 }} />
+                      <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>{item}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>Chưa có thông tin</Text>
+                )}
+              </View>
+
+              {/* Improvements Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  ⚠️ Điểm cần cải thiện (ATS)
+                </Text>
+                {cvAnalysisResult?.improvements && cvAnalysisResult.improvements.length > 0 ? (
+                  cvAnalysisResult.improvements.map((item, idx) => (
+                    <View key={`improvement-${idx}`} style={styles.bulletRow}>
+                      <Ionicons name="warning" size={16} color="#FF9500" style={{ marginTop: 2 }} />
+                      <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>{item}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>Tuyệt vời! Không có điểm yếu lớn nào được phát hiện.</Text>
+                )}
+              </View>
+
+              {/* Suggestions Section */}
+              <View style={[styles.sectionContainer, { marginBottom: 24 }]}>
+                <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  💡 Gợi ý hành động từ AI
+                </Text>
+                {cvAnalysisResult?.suggestions && cvAnalysisResult.suggestions.length > 0 ? (
+                  cvAnalysisResult.suggestions.map((item, idx) => (
+                    <View key={`suggestion-${idx}`} style={styles.bulletRow}>
+                      <Ionicons name="bulb" size={16} color="#0084FF" style={{ marginTop: 2 }} />
+                      <Text style={[styles.bulletText, { color: isDark ? '#ECEDEE' : '#333' }]}>{item}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>Chưa có thông tin</Text>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={[styles.aiAnalysisFooter, { borderTopColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+              <TouchableOpacity
+                style={styles.closeFullBtn}
+                onPress={() => setIsCVAnalysisModalVisible(false)}
+              >
+                <Text style={styles.closeFullBtnText}>Đóng báo cáo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -4798,6 +5010,135 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  aiScoreBtn: {
+    flexDirection: 'row',
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#0084FF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  aiScoreBtnText: {
+    color: '#0084FF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  aiAnalysisContainer: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  aiAnalysisHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ECEFF1',
+  },
+  aiAnalysisTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  aiAnalysisCloseBtn: {
+    padding: 4,
+  },
+  scoreCard: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  scoreCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  scoreNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  scoreMax: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '600',
+    alignSelf: 'flex-end',
+    marginBottom: 6,
+  },
+  scoreStatusText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  scoreTargetText: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  sectionContainer: {
+    marginTop: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  bulletText: {
+    fontSize: 13.5,
+    lineHeight: 18,
+    flex: 1,
+    fontWeight: '500',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontStyle: 'italic',
+    paddingLeft: 8,
+  },
+  aiAnalysisFooter: {
+    padding: 16,
+    borderTopWidth: 0.5,
+    alignItems: 'center',
+  },
+  closeFullBtn: {
+    backgroundColor: '#0084FF',
+    height: 46,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  closeFullBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
 

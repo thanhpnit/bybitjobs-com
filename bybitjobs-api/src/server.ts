@@ -7,6 +7,8 @@ import fs from 'fs';
 import nodemailer from 'nodemailer';
 import { PayOS } from '@payos/node';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import mammoth from 'mammoth';
+
 
 const payos = new PayOS({
   clientId: '535dac20-5fd1-4df2-9f3b-c126ea23a3f0',
@@ -1421,7 +1423,172 @@ app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<a
   }
 });
 
+// API AI Cover Letter Generator
+app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<any> => {
+  const { jobTitle, companyName, candidateName, desiredJob } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  if (!jobTitle || !companyName || !candidateName) {
+    return res.status(400).json({ error: 'Thiếu thông tin jobTitle, companyName hoặc candidateName' });
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `
+    Hãy viết một bức thư giới thiệu (cover letter) chuyên nghiệp, lịch sự và cá nhân hóa gửi tới nhà tuyển dụng.
+    Thông tin công việc và ứng viên:
+    - Tiêu đề công việc ứng tuyển: ${jobTitle}
+    - Tên công ty: ${companyName}
+    - Tên ứng viên: ${candidateName}
+    - Vị trí mong muốn/Kinh nghiệm chính: ${desiredJob || 'Chưa cập nhật'}
+
+    Yêu cầu:
+    - Bức thư cần được viết bằng tiếng Việt.
+    - Độ dài khoảng 150-250 từ.
+    - Hành văn tự nhiên, chuyên nghiệp và thuyết phục.
+    - Cấu trúc chuẩn: Kính gửi nhà tuyển dụng/công ty, giới thiệu bản thân ngắn gọn, lý do vì sao phù hợp và mong muốn đóng góp cho công ty, lời chào kết thư lịch sự.
+    - Chỉ trả về nội dung bức thư giới thiệu, tuyệt đối không kèm theo bất kỳ lời dẫn, lời giới thiệu hay giải thích nào khác.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const coverLetter = result.response.text().trim();
+
+    return res.status(200).json({ success: true, coverLetter });
+  } catch (error: any) {
+    console.error('Error in Cover Letter Gen:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// API AI CV Analyze & ATS Optimizer
+app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  const { desiredJob } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  if (!desiredJob) {
+    return res.status(400).json({ error: 'Thiếu thông tin vị trí mong muốn (desiredJob)' });
+  }
+
+  try {
+    const db = admin.firestore();
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'Không tìm thấy thông tin người dùng' });
+    }
+
+    const userData = userDoc.data()!;
+    const cvUrl = userData.cvUrl;
+    const cvName = userData.cvName;
+
+    if (!cvUrl) {
+      return res.status(400).json({ error: 'Người dùng chưa tải lên CV nào' });
+    }
+
+    // Trích xuất safeFileName từ URL cvUrl: http://160.250.246.119:4000/uploads/cvs/${safeFileName}
+    const urlParts = cvUrl.split('/');
+    const safeFileName = urlParts[urlParts.length - 1];
+    const uploadsDir = path.join(__dirname, '../uploads/cvs');
+    const filePath = path.join(uploadsDir, safeFileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Không tìm thấy file CV trên máy chủ' });
+    }
+
+    const fileExt = path.extname(safeFileName).toLowerCase();
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    let contentPart: any;
+    let docxText = '';
+
+    if (fileExt === '.pdf') {
+      const fileBuffer = fs.readFileSync(filePath);
+      contentPart = {
+        inlineData: {
+          data: fileBuffer.toString('base64'),
+          mimeType: 'application/pdf'
+        }
+      };
+    } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
+      const fileBuffer = fs.readFileSync(filePath);
+      const mimeType = fileExt === '.png' ? 'image/png' : (fileExt === '.webp' ? 'image/webp' : 'image/jpeg');
+      contentPart = {
+        inlineData: {
+          data: fileBuffer.toString('base64'),
+          mimeType
+        }
+      };
+    } else if (fileExt === '.docx') {
+      // Dùng mammoth để trích xuất text
+      try {
+        const docxResult = await mammoth.extractRawText({ path: filePath });
+        docxText = docxResult.value;
+      } catch (err: any) {
+        console.error('Error parsing DOCX with mammoth:', err);
+        return res.status(500).json({ error: 'Không thể đọc nội dung file DOCX', details: err.message });
+      }
+    } else {
+      return res.status(400).json({ error: 'Hệ thống chỉ hỗ trợ chấm điểm CV định dạng PDF, DOCX hoặc file Ảnh (PNG, JPG, JPEG, WEBP).' });
+    }
+
+    const prompt = `
+    Bạn là một chuyên gia tuyển dụng cao cấp và chuyên gia tối ưu hóa CV theo tiêu chuẩn ATS (Applicant Tracking System).
+    Hãy đọc và phân tích kỹ CV của ứng viên dưới đây để đối chiếu và đánh giá mức độ phù hợp với vị trí mong muốn: "${desiredJob}".
+
+    ${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ CV:\n${docxText}\n` : 'Tài liệu CV được đính kèm ở định dạng PDF hoặc ảnh.'}
+
+    Yêu cầu:
+    Hãy đưa ra phản hồi đánh giá và tối ưu hóa CV dưới định dạng JSON duy nhất. JSON trả về phải khớp hoàn toàn với cấu trúc sau, không kèm bất kỳ giải thích nào bên ngoài:
+    {
+      "score": 85, 
+      "strengths": ["Điểm mạnh 1", "Điểm mạnh 2"], 
+      "improvements": ["Điểm cần cải thiện 1", "Điểm cần cải thiện 2"], 
+      "suggestions": ["Gợi ý hành động cụ thể 1", "Gợi ý hành động cụ thể 2"]
+    }
+
+    Lưu ý:
+    - Điểm số (score) từ 0 đến 100 dựa trên sự trùng khớp kỹ năng, kinh nghiệm với vị trí mong muốn và tính chuyên nghiệp của CV.
+    - Điểm mạnh (strengths): Liệt kê tối đa 4-5 điểm nổi bật về năng lực, định dạng, kỹ năng.
+    - Điểm cần cải thiện (improvements): Chỉ ra các điểm thiếu sót kỹ năng mềm/kỹ thuật, từ khóa chuyên ngành, thiếu số liệu định lượng, kinh nghiệm mô tả chưa rõ ràng hoặc không khớp vị trí mong muốn.
+    - Gợi ý (suggestions): Gợi ý các hành động cụ thể để cải thiện điểm số (ví dụ: bổ sung chứng chỉ X, thêm từ khóa Y vào phần giới thiệu, định lượng kết quả bằng %...).
+    - Toàn bộ kết quả phải viết bằng tiếng Việt.
+    `;
+
+    const result = await model.generateContent(docxText ? prompt : [contentPart, prompt]);
+    let text = result.response.text().trim();
+
+    if (text.startsWith('```json')) {
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    } else if (text.startsWith('```')) {
+      text = text.replace(/```/g, '').trim();
+    }
+
+    let analysisResult: any;
+    try {
+      analysisResult = JSON.parse(text);
+    } catch (e) {
+      console.error('Lỗi parse JSON từ Gemini CV Analyze:', text);
+      return res.status(500).json({ error: 'Lỗi định dạng phản hồi từ AI', rawText: text });
+    }
+
+    return res.status(200).json({ success: true, ...analysisResult });
+  } catch (error: any) {
+    console.error('Error in CV Analyze:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, async () => {
+
   console.log(`🚀 Server is running on port ${PORT}`);
   try {
     const webhookUrl = 'http://160.250.246.119:4000/api/webhooks/payos';

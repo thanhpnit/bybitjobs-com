@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,6 +44,66 @@ export default function ApplyJobScreen() {
   const [message, setMessage] = React.useState('');
   const [cvUploaded, setCvUploaded] = React.useState(false);
   const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string; url?: string } | null>(null);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = React.useState(false);
+
+  const handleGenerateAICoverLetter = async () => {
+    if (!fullName.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập họ và tên của bạn trước để AI cá nhân hóa thư xin việc.');
+      return;
+    }
+
+    setIsGeneratingCoverLetter(true);
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/ai/cover-letter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobTitle: displayTitle,
+          companyName: displayCompanyName,
+          candidateName: fullName.trim(),
+          desiredJob: userData?.desiredJob || '',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Không thể kết nối đến máy chủ AI';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          if (response.status === 404) {
+            errorMessage = 'Đường dẫn tạo thư giới thiệu không tồn tại trên máy chủ (404). Vui lòng cập nhật API backend.';
+          } else {
+            errorMessage = `Lỗi máy chủ (${response.status}): ${errorText.substring(0, 100)}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const resText = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        throw new Error('Phản hồi từ máy chủ không đúng định dạng JSON.');
+      }
+
+      if (data.success && data.coverLetter) {
+        setMessage(data.coverLetter);
+        Alert.alert('Thành công', 'AI đã viết thư giới thiệu cho bạn! Bạn có thể chỉnh sửa lại nội dung này.');
+      } else {
+        throw new Error(data.error || 'Lỗi không xác định từ AI');
+      }
+    } catch (error: any) {
+      console.error('Error generating cover letter:', error);
+      Alert.alert('Lỗi', `Không thể tạo thư giới thiệu tự động: ${error.message}`);
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
+  };
   const isAccountVerified = !!userData?.isVerified;
   const userFullName = userData?.fullName;
   const userEmailOrPhone = userData?.emailOrPhone;
@@ -367,9 +428,32 @@ export default function ApplyJobScreen() {
 
             {/* Cover Message */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                Thư giới thiệu
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333', marginBottom: 0 }]}>
+                  Thư giới thiệu
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleGenerateAICoverLetter}
+                  disabled={isGeneratingCoverLetter}
+                  style={[
+                    styles.aiButton,
+                    {
+                      backgroundColor: isDark ? '#1F2937' : '#F0F7FF',
+                      borderColor: '#0084FF',
+                    }
+                  ]}
+                >
+                  {isGeneratingCoverLetter ? (
+                    <ActivityIndicator size="small" color="#0084FF" />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={12} color="#0084FF" />
+                      <Text style={styles.aiButtonText}>AI viết hộ</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
               <View style={[
                 styles.textAreaShell,
                 {
@@ -738,6 +822,20 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#0084FF',
     fontWeight: 'bold',
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  aiButtonText: {
+    fontSize: 11,
+    color: '#0084FF',
+    fontWeight: '700',
   },
   scrollPaddingBottom: {
     height: 30,
