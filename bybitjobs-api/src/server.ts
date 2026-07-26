@@ -81,6 +81,26 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   }
 }
 
+// Helper function to safely extract and parse JSON from LLM markdown output
+function extractJsonFromText(text: string): any {
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+  
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (innerErr) {
+        throw new Error('Parse error: ' + innerErr);
+      }
+    }
+    throw e;
+  }
+}
+
 // Cấu hình Nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -1629,15 +1649,9 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
     const result = await generateGeminiContent(apiKey, docxText ? prompt : [contentPart, prompt]);
     let text = result.response.text().trim();
 
-    if (text.startsWith('```json')) {
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    } else if (text.startsWith('```')) {
-      text = text.replace(/```/g, '').trim();
-    }
-
     let analysisResult: any;
     try {
-      analysisResult = JSON.parse(text);
+      analysisResult = extractJsonFromText(text);
     } catch (e) {
       console.error('Lỗi parse JSON từ Gemini CV Analyze:', text);
       return res.status(500).json({ error: 'Lỗi định dạng phản hồi từ AI', rawText: text });
