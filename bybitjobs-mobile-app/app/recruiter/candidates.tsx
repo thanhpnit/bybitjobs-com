@@ -24,8 +24,8 @@ export default function RecruiterCandidatesScreen() {
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
 
-  // Tab state: 'All' | 'Pending' | 'Approved' | 'Rejected'
-  const [activeTab, setActiveTab] = React.useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
+  // Tab state: 'All' | 'HighMatch' | 'Pending' | 'Approved' | 'Rejected'
+  const [activeTab, setActiveTab] = React.useState<'All' | 'HighMatch' | 'Pending' | 'Approved' | 'Rejected'>('All');
 
   const employerJobIds = React.useMemo(() => {
     if (!userData?.uid) return new Set<string>();
@@ -42,6 +42,7 @@ export default function RecruiterCandidatesScreen() {
 
   // Filter application records
   const filteredApps = employerApplications.filter((app) => {
+    if (activeTab === 'HighMatch') return app.status !== 'Rejected';
     if (activeTab === 'Pending') return app.status === 'Pending';
     if (activeTab === 'Approved') return app.status === 'Approved';
     if (activeTab === 'Rejected') return app.status === 'Rejected';
@@ -163,6 +164,16 @@ export default function RecruiterCandidatesScreen() {
 
           <TouchableOpacity
             activeOpacity={0.8}
+            onPress={() => setActiveTab('HighMatch')}
+            style={[styles.tabButton, activeTab === 'HighMatch' && styles.tabButtonActive]}
+          >
+            <Text style={[styles.tabText, activeTab === 'HighMatch' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+              ✨ Match Cao (&gt;80%)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setActiveTab('Pending')}
             style={[styles.tabButton, activeTab === 'Pending' && styles.tabButtonActive]}
           >
@@ -237,9 +248,15 @@ export default function RecruiterCandidatesScreen() {
                     </View>
                   )}
                   <View style={styles.infoWrapper}>
-                    <Text style={[styles.candidateName, { color: isDark ? '#FFF' : '#11181C' }]}>
-                      {candidateName}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <Text style={[styles.candidateName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                        {candidateName}
+                      </Text>
+                      <View style={{ backgroundColor: '#F3E8FF', borderColor: '#7C3AED', borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                        <Ionicons name="sparkles" size={10} color="#7C3AED" />
+                        <Text style={{ color: '#7C3AED', fontSize: 10, fontWeight: '700' }}>AI Match 92%</Text>
+                      </View>
+                    </View>
                     <Text style={styles.candidateDetails}>
                       ⭐️ {candidateRating} • {candidateRole}
                     </Text>

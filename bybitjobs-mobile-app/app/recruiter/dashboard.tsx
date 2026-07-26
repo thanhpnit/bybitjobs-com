@@ -354,6 +354,44 @@ export default function RecruiterDashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Recruiter AI HR Core Assistant Card */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/ai-advisor')}
+          style={{
+            marginHorizontal: 16,
+            marginTop: 12,
+            marginBottom: 8,
+            borderRadius: 18,
+            padding: 16,
+            backgroundColor: isDark ? '#1F1A24' : '#F5F3FF',
+            borderColor: isDark ? '#3B2D54' : '#DDD6FE',
+            borderWidth: 1,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="sparkles" size={22} color="#FFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                    Trợ lý AI Tuyển dụng
+                  </Text>
+                  <View style={{ backgroundColor: '#7C3AED', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 }}>
+                    <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '700' }}>AI HR</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#6B7280', marginTop: 2 }}>
+                  Soạn JD tự động • Bộ câu hỏi phỏng vấn • Tra dải lương
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#7C3AED" />
+          </View>
+        </TouchableOpacity>
+
         {/* Quick Functions Card */}
         <View style={[styles.quickFunctionsCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
           <View style={styles.quickGrid}>

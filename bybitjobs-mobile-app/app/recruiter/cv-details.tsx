@@ -253,6 +253,30 @@ export default function RecruiterCvDetailsScreen() {
               Chưa thể đánh giá độ phù hợp của ứng viên.
             </Text>
           )}
+
+          {/* AI Interview Questions Generator Button */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              router.push('/ai-advisor');
+            }}
+            style={{
+              marginTop: 12,
+              backgroundColor: '#7C3AED',
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="sparkles" size={16} color="#FFF" />
+            <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>
+              AI Gợi ý câu hỏi phỏng vấn ứng viên này
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Card 2: Main Skills */}
