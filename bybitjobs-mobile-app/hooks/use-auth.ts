@@ -1415,25 +1415,29 @@ export function useAuth() {
       id: `app-${Date.now()}`,
       candidateId: user.uid,
       jobId,
-      jobTitle: payload.jobTitle,
-      companyName: payload.companyName,
-      jobSalary: payload.jobSalary,
-      jobLocation: payload.jobLocation,
-      applicantName: payload.applicantName,
-      applicantPhone: payload.applicantPhone,
-      applicantEmail: payload.applicantEmail,
-      message: payload.message,
+      jobTitle: payload.jobTitle || 'Công việc',
+      companyName: payload.companyName || 'Doanh nghiệp',
+      jobSalary: payload.jobSalary || 'Thỏa thuận',
+      jobLocation: payload.jobLocation || 'TP. Hồ Chí Minh',
+      applicantName: payload.applicantName || 'Ứng viên',
+      applicantPhone: payload.applicantPhone || '',
+      applicantEmail: payload.applicantEmail || '',
+      message: payload.message || '',
       status: 'Pending',
       appliedAt: new Date().toISOString(),
-      cvName: payload.cvName,
-      cvSize: payload.cvSize,
-      cvUploadTime: payload.cvUploadTime,
-      cvUrl: payload.cvUrl,
+      cvName: payload.cvName || '',
+      cvSize: payload.cvSize || '',
+      cvUploadTime: payload.cvUploadTime || '',
+      cvUrl: payload.cvUrl || '',
     };
+
+    const sanitizedApp = Object.fromEntries(
+      Object.entries(newApplication).map(([k, v]) => [k, v === undefined ? '' : v])
+    );
 
     globalApplications = [newApplication, ...globalApplications];
     try {
-      await setDoc(doc(db, 'applications', newApplication.id), newApplication);
+      await setDoc(doc(db, 'applications', newApplication.id), sanitizedApp);
     } catch (error) {
       console.error('Lỗi lưu việc đã ứng tuyển lên Firestore:', error);
     }
