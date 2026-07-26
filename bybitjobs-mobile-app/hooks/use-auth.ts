@@ -1540,12 +1540,16 @@ export function useAuth() {
       savedAt: new Date().toISOString(),
     };
 
+    const sanitizedSavedJob = Object.fromEntries(
+      Object.entries(newSavedJob).map(([k, v]) => [k, v === undefined ? '' : v])
+    );
+
     globalSavedJobs = [newSavedJob, ...globalSavedJobs];
     setSavedJobs([...globalSavedJobs]);
     notifyAll();
 
     try {
-      await setDoc(doc(db, 'savedJobs', savedJobId), newSavedJob);
+      await setDoc(doc(db, 'savedJobs', savedJobId), sanitizedSavedJob);
     } catch (error) {
       console.error('Lỗi lưu công việc:', error);
     }
