@@ -103,7 +103,7 @@ export default function RecruiterCvDetailsScreen() {
           const result = await response.json();
           if (result.success && isMounted) {
             setMatchScore(result.matchScore);
-            setMatchSummary(result.matchSummary);
+            setMatchSummary(result.reason || result.matchSummary);
           }
         }
       } catch (err) {

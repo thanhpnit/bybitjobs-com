@@ -1620,45 +1620,52 @@ Bạn là Chuyên gia Tuyển dụng IT & Nhân sự cao cấp (Senior HR Specia
 
 // API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
 app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
-  const { jobTitle, applicantName, candidateSkills, candidateExperience, message } = req.body;
+  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message, candidateCV } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
   }
 
   try {
+    const cvInfo = candidateCV || `Tên ứng viên: ${applicantName || 'Ứng viên'}. Kỹ năng: ${Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật')}. Kinh nghiệm: ${JSON.stringify(candidateExperience || [])}. Thư xin việc: ${message || 'Không có'}`;
+
     const prompt = `
-    Bạn là chuyên gia sàng lọc hồ sơ ứng viên bằng AI.
-    Hãy đánh giá độ phù hợp của ứng viên sau đối với công việc được tuyển dụng:
+Bạn là một Chuyên gia Tuyển dụng AI (HR AI Assistant). Nhiệm vụ của bạn là đánh giá độ phù hợp của Ứng viên so với Yêu cầu tuyển dụng (Job Description).
 
-    THÔNG TIN CÔNG VIỆC:
-    - Vị trí tuyển dụng: ${jobTitle || 'Chưa xác định'}
+[THÔNG TIN TIN TUYỂN DỤNG (JOB)]
+- Tiêu đề công việc: ${jobTitle || 'Chưa xác định'}
+- Mô tả & Yêu cầu: ${jobDescription || 'Công việc tuyển dụng tổng hợp'}
 
-    THÔNG TIN ỨNG VIÊN:
-    - Tên ứng viên: ${applicantName || 'Ứng viên'}
-    - Kỹ năng: ${Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật')}
-    - Kinh nghiệm: ${JSON.stringify(candidateExperience || [])}
-    - Thư xin việc/Lời nhắn: ${message || 'Không có'}
+[THÔNG TIN ỨNG VIÊN (CV)]
+- Tóm tắt CV / Kỹ năng / Kinh nghiệm: ${cvInfo}
 
-    Yêu cầu trả về duy nhất 1 JSON với định dạng:
-    {
-      "matchScore": 88, 
-      "matchSummary": "Ứng viên có 3 năm kinh nghiệm phù hợp với vị trí, kỹ năng đáp ứng tốt yêu cầu công việc, điểm cộng là có chứng chỉ chuyên môn."
-    }
+[YÊU CẦU ĐẦU RA (STRICT JSON)]
+1. Trả về DUY NHẤT một Object JSON hợp lệ.
+2. KHÔNG bọc trong markdown code block (KHÔNG dùng \`\`\`json hay \`\`\`).
+3. KHÔNG thêm lời chào hay văn bản thừa ngoài JSON.
+4. Cấu trúc JSON bắt buộc gồm 2 fields:
+   - "matchScore": Số nguyên từ 0 đến 100 thể hiện % phù hợp.
+   - "reason": Một câu nhận xét ngắn gọn (tối đa 2-3 câu), nêu rõ lý do chính tại sao điểm cao/thấp (điểm cộng/điểm trừ nổi bật).
 
-    Lưu ý:
-    - matchScore: Con số nguyên từ 50 đến 98 đại diện cho % độ phù hợp.
-    - matchSummary: Đúng 1 câu tóm tắt lý do đánh giá ngắn gọn, súc tích bằng tiếng Việt.
+[MẪU ĐẦU RA]
+{
+  "matchScore": 92,
+  "reason": "Ứng viên có 3 năm làm React Native, đã triển khai 2 dự án tương đồng, điểm cộng là có chứng chỉ tiếng Anh B2."
+}
     `;
 
     const result = await generateGeminiContent(apiKey, prompt);
     let text = result.response.text().trim();
     const parsed = extractJsonFromText(text);
 
+    const matchScore = typeof parsed.matchScore === 'number' ? parsed.matchScore : 88;
+    const matchSummary = parsed.reason || parsed.matchSummary || 'Ứng viên có kỹ năng và kinh nghiệm đáp ứng tốt các yêu cầu công việc.';
+
     return res.status(200).json({
       success: true,
-      matchScore: parsed.matchScore || Math.floor(Math.random() * 15) + 80,
-      matchSummary: parsed.matchSummary || 'Ứng viên có kỹ năng và kinh nghiệm phù hợp với các tiêu chí tuyển dụng của vị trí này.'
+      matchScore,
+      matchSummary,
+      reason: matchSummary
     });
   } catch (error: any) {
     console.error('Error in Candidate Match Score:', error);
