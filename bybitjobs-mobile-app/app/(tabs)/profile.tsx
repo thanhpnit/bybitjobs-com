@@ -1519,6 +1519,7 @@ function CandidateProfileScreen() {
                 </View>
               </View>
             </View>
+          )}
 
           {/* Trợ lý AI BybitJobs Button Card */}
           <TouchableOpacity
