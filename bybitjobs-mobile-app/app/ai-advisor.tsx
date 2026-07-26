@@ -49,10 +49,12 @@ export default function AIAdvisorScreen() {
 
   // Quick Action Chips
   const candidateChips = [
-    { label: '🎤 Phỏng vấn thử (Mock Interview)', prompt: 'Tôi muốn tập phỏng vấn thử vị trí ' + (userData?.desiredJob || 'Software Engineer') + '. Bạn hãy đóng vai nhà tuyển dụng và đặt câu hỏi cho tôi nhé!' },
+    { label: '💻 Phỏng vấn Kỹ thuật (Technical)', prompt: 'Tôi muốn tập phỏng vấn thử câu hỏi Kỹ thuật (Technical) vị trí ' + (userData?.desiredJob || 'Software Engineer') + '. Bạn hãy đóng vai Trưởng phòng Công nghệ và đặt 1 câu hỏi nhé!' },
+    { label: '🤝 Phỏng vấn Tình huống (Behavioral)', prompt: 'Tôi muốn tập phỏng vấn các câu hỏi Tình huống (Behavioral Questions) xử lý xung đột và làm việc nhóm cho vị trí ' + (userData?.desiredJob || 'Ứng viên') + '.' },
+    { label: '🌐 Phỏng vấn Tiếng Anh (English)', prompt: 'Let\'s conduct a mock interview in English for the position of ' + (userData?.desiredJob || 'Software Engineer') + '. Please ask me the first question in English.' },
+    { label: '🎤 Phỏng vấn Tổng hợp', prompt: 'Tôi muốn tập phỏng vấn thử tổng hợp vị trí ' + (userData?.desiredJob || 'Software Engineer') + '. Bạn hãy đóng vai nhà tuyển dụng và đặt câu hỏi cho tôi nhé!' },
     { label: '📝 Cố vấn viết & tối ưu CV', prompt: 'Hãy cho tôi các lời khuyên để tối ưu hóa CV cho vị trí ' + (userData?.desiredJob || 'Ứng viên') + ' chuẩn ATS.' },
     { label: '💼 Định hướng phát triển sự nghiệp', prompt: 'Làm sao để tôi phát triển lộ trình thăng tiến sự nghiệp hiệu quả nhất?' },
-    { label: '💰 Mẹo đàm phán lương thành công', prompt: 'Tôi nên chuẩn bị và đàm phán mức lương như thế nào trong buổi phỏng vấn?' },
   ];
 
   const employerChips = [
@@ -196,9 +198,25 @@ export default function AIAdvisorScreen() {
                   >
                     {msg.content}
                   </Text>
-                  <Text style={[styles.messageTime, isAI ? { color: isDark ? '#9CA3AF' : '#9CA3AF' } : { color: '#E0F2FE' }]}>
-                    {msg.timestamp}
-                  </Text>
+                  {isAI ? (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => Alert.alert('Đã sao chép', 'Nội dung phản hồi từ AI đã được lưu!')}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                      >
+                        <Ionicons name="copy-outline" size={12} color="#7C3AED" />
+                        <Text style={{ fontSize: 11, color: '#7C3AED', fontWeight: '600' }}>Sao chép</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.messageTime, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>
+                        {msg.timestamp}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.messageTime, { color: '#E0F2FE' }]}>
+                      {msg.timestamp}
+                    </Text>
+                  )}
                 </View>
               </View>
             );

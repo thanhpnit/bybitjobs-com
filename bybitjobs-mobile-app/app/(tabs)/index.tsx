@@ -1014,6 +1014,34 @@ function CandidateHomeScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Quick Category Chips Bar */}
+          <View style={{ marginTop: 8, marginBottom: 4 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+              {['Tất cả', 'IT & Công nghệ', 'Marketing', 'Thực tập', 'Làm từ xa (Remote)', 'Bán thời gian'].map((cat) => {
+                const isActive = selectedIndustry === cat || (cat === 'Tất cả' && selectedIndustry === 'Tất cả ngành nghề');
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedIndustry(cat === 'Tất cả' ? 'Tất cả ngành nghề' : cat)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 20,
+                      backgroundColor: isActive ? '#0084FF' : (isDark ? '#2C2C2E' : '#FFFFFF'),
+                      borderWidth: 1,
+                      borderColor: isActive ? '#0084FF' : (isDark ? '#3A3A3C' : '#E5E7EB'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '500', color: isActive ? '#FFF' : (isDark ? '#D1D5DB' : '#4B5563') }}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* Lời mời tuyển dụng section (nếu có pendingInvites) */}
           {pendingInvites.length > 0 && (
             <View style={styles.invitationsSection}>

@@ -104,6 +104,42 @@ export default function ApplyJobScreen() {
       setIsGeneratingCoverLetter(false);
     }
   };
+
+  const [isCheckingAIMatch, setIsCheckingAIMatch] = React.useState(false);
+
+  const handleCheckAIMatch = async () => {
+    setIsCheckingAIMatch(true);
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/ai/candidate-match-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobTitle: displayTitle,
+          applicantName: fullName.trim() || userData?.fullName || 'Ứng viên',
+          candidateSkills: userData?.skills || [],
+          candidateExperience: userData?.experience || [],
+          message,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Không thể kết nối đến AI.');
+
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert(
+          `✨ AI Match Score: ${data.matchScore}%`,
+          `Đánh giá độ phù hợp của bạn với vị trí "${displayTitle}":\n\n"${data.reason || data.matchSummary}"`,
+          [{ text: 'Đã hiểu', style: 'default' }]
+        );
+      } else {
+        throw new Error(data.error || 'Lỗi kiểm tra độ phù hợp.');
+      }
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể kiểm tra độ phù hợp với AI.');
+    } finally {
+      setIsCheckingAIMatch(false);
+    }
+  };
   const isAccountVerified = !!userData?.isVerified;
   const userFullName = userData?.fullName;
   const userEmailOrPhone = userData?.emailOrPhone;
@@ -432,27 +468,53 @@ export default function ApplyJobScreen() {
                 <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333', marginBottom: 0 }]}>
                   Thư giới thiệu
                 </Text>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleGenerateAICoverLetter}
-                  disabled={isGeneratingCoverLetter}
-                  style={[
-                    styles.aiButton,
-                    {
-                      backgroundColor: isDark ? '#1F2937' : '#F0F7FF',
-                      borderColor: '#0084FF',
-                    }
-                  ]}
-                >
-                  {isGeneratingCoverLetter ? (
-                    <ActivityIndicator size="small" color="#0084FF" />
-                  ) : (
-                    <>
-                      <Ionicons name="sparkles" size={12} color="#0084FF" />
-                      <Text style={styles.aiButtonText}>AI viết hộ</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleCheckAIMatch}
+                    disabled={isCheckingAIMatch}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#7C3AED',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      gap: 4
+                    }}
+                  >
+                    {isCheckingAIMatch ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={12} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '600' }}>AI Match %</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleGenerateAICoverLetter}
+                    disabled={isGeneratingCoverLetter}
+                    style={[
+                      styles.aiButton,
+                      {
+                        backgroundColor: isDark ? '#1F2937' : '#F0F7FF',
+                        borderColor: '#0084FF',
+                      }
+                    ]}
+                  >
+                    {isGeneratingCoverLetter ? (
+                      <ActivityIndicator size="small" color="#0084FF" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={12} color="#0084FF" />
+                        <Text style={styles.aiButtonText}>AI viết hộ</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
               <View style={[
                 styles.textAreaShell,
