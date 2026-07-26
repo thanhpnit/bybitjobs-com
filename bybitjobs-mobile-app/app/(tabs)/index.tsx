@@ -337,7 +337,7 @@ function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, userData, invitations, respondToInvitation, savedJobs, viewedJobs } = useAuth();
+  const { jobs, userData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole } = useAuth();
 
   const pendingInvites = React.useMemo(() => {
     if (!userData?.uid) return [];
