@@ -1737,7 +1737,11 @@ export function useAuth() {
           let serverErrorMsg = 'Cập nhật thất bại từ Server';
           try {
             const errorObj = JSON.parse(errorText);
-            serverErrorMsg = errorObj.error || serverErrorMsg;
+            if (errorObj.details) {
+              serverErrorMsg = `${errorObj.error} - Chi tiết: ${errorObj.details}`;
+            } else {
+              serverErrorMsg = errorObj.error || serverErrorMsg;
+            }
           } catch (e) {}
           throw new Error(serverErrorMsg);
         }

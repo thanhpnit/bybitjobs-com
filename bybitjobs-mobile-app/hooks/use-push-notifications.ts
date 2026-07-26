@@ -5,40 +5,42 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../src/config/firebase';
 import Constants from 'expo-constants';
 
-// Cấu hình cách hiển thị thông báo khi app đang mở (Foreground)
-
-
 export async function registerForPushNotificationsAsync(userId: string) {
   let token;
 
-  // Cấu hình kênh thông báo mặc định cho Android (Bắt buộc để phát tiếng chuông trên Android 8.0+)
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-      sound: 'default', // Phát tiếng chuông mặc định của điện thoại
-    });
+  // Bỏ qua đăng ký Push Notification nếu đang chạy trong Expo Go (Expo SDK 53+ không hỗ trợ remote push trong Expo Go)
+  if (Constants.appOwnership === 'expo') {
+    return;
   }
 
-  if (Device.isDevice) {
-    // Kiểm tra quyền thông báo hiện tại
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    // Nếu chưa được cấp quyền, tiến hành xin quyền
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+  try {
+    // Cấu hình kênh thông báo mặc định cho Android (Bắt buộc để phát tiếng chuông trên Android 8.0+)
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+        sound: 'default', // Phát tiếng chuông mặc định của điện thoại
+      });
     }
 
-    if (finalStatus !== 'granted') {
-      console.log('Không xin được quyền thông báo đẩy!');
-      return;
-    }
+    if (Device.isDevice) {
+      // Kiểm tra quyền thông báo hiện tại
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    try {
+      // Nếu chưa được cấp quyền, tiến hành xin quyền
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.log('Không xin được quyền thông báo đẩy!');
+        return;
+      }
+
       // Lấy projectId cấu hình EAS động từ app.json
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ??
@@ -74,11 +76,11 @@ export async function registerForPushNotificationsAsync(userId: string) {
         }, { merge: true });
         console.log(`Đã lưu token thông báo đẩy cho user: ${userId}`);
       }
-    } catch (error) {
-      console.error('Lỗi khi lấy hoặc lưu Expo Push Token:', error);
+    } else {
+      console.log('Phải sử dụng thiết bị thật để kiểm tra Push Notification');
     }
-  } else {
-    console.log('Phải sử dụng thiết bị thật để kiểm tra Push Notification');
+  } catch (error) {
+    console.error('Lỗi khi lấy hoặc lưu Expo Push Token:', error);
   }
 
   return token;
