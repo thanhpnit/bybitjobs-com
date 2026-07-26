@@ -24,14 +24,12 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   const genAI = new GoogleGenerativeAI(apiKey);
   
   const modelsToTry = [
-    'gemini-2.0-flash-exp',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
     'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-8b',
     'gemini-1.5-pro',
-    'gemini-1.5-pro-latest',
-    'gemini-pro'
+    'gemini-1.5-flash',
+    'gemini-2.0-flash-exp'
   ];
 
   for (const modelName of modelsToTry) {
@@ -48,24 +46,35 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   try {
     const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (!listRes.ok) {
-      const errJson = await listRes.json().catch(() => null);
+      const errJson: any = await listRes.json().catch(() => null);
       const msg = errJson?.error?.message || `HTTP ${listRes.status} ${listRes.statusText}`;
       throw new Error(`Google API Key check failed: ${msg}`);
     }
     const data: any = await listRes.json();
     const availableModels: any[] = data.models || [];
-    const validModel = availableModels.find(m => 
+    const validModels = availableModels.filter(m => 
       m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
     );
 
-    if (validModel) {
-      const cleanName = validModel.name.replace('models/', '');
-      console.log(`[Gemini API] Dynamic discovery found model for key: ${cleanName}`);
-      const model = genAI.getGenerativeModel({ model: cleanName });
-      return await model.generateContent(contents);
-    } else {
-      throw new Error(`Khoá API này không có model Gemini nào hỗ trợ generateContent. Các model khả dụng: ${availableModels.map(m => m.name).join(', ')}`);
+    let lastModelError: any = null;
+    for (const m of validModels) {
+      const cleanName = m.name.replace('models/', '');
+      try {
+        console.log(`[Gemini API] Dynamic discovery trying model: ${cleanName}`);
+        const model = genAI.getGenerativeModel({ model: cleanName });
+        const result = await model.generateContent(contents);
+        return result;
+      } catch (err: any) {
+        console.warn(`[Gemini API] Dynamic model ${cleanName} failed: ${err.message}`);
+        lastModelError = err;
+      }
     }
+
+    if (lastModelError) {
+      throw lastModelError;
+    }
+
+    throw new Error(`Khoá API này không có model Gemini nào hoạt động. Các model tìm thấy: ${availableModels.map(m => m.name).join(', ')}`);
   } catch (fetchErr: any) {
     console.error('[Gemini API] Dynamic discovery failed:', fetchErr.message);
     throw new Error(`Gemini API Error: ${fetchErr.message}`);
