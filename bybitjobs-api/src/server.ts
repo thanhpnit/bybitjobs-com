@@ -43,6 +43,7 @@ if (fs.existsSync(serviceAccountPath)) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+    admin.firestore().settings({ ignoreUndefinedProperties: true });
     console.log('🔥 Firebase Admin SDK initialized successfully');
   } catch (error) {
     console.error('⚠️ Lỗi khởi tạo Firebase Admin SDK:', error);
@@ -173,8 +174,14 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
   }
 
   try {
+    const updateData: Record<string, any> = {};
+    if (cvName !== undefined) updateData.cvName = cvName;
+    if (cvSize !== undefined) updateData.cvSize = cvSize;
+    if (cvUploadTime !== undefined) updateData.cvUploadTime = cvUploadTime;
+    if (cvUrl !== undefined) updateData.cvUrl = cvUrl;
+
     const db = admin.firestore();
-    await db.collection('users').doc(uid).set({ cvName, cvSize, cvUploadTime, cvUrl }, { merge: true });
+    await db.collection('users').doc(uid).set(updateData, { merge: true });
     return res.status(200).json({ success: true, message: 'Cập nhật CV thành công' });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật CV:', error);
@@ -1436,9 +1443,6 @@ app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<an
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `
     Hãy viết một bức thư giới thiệu (cover letter) chuyên nghiệp, lịch sự và cá nhân hóa gửi tới nhà tuyển dụng.
     Thông tin công việc và ứng viên:
@@ -1455,7 +1459,7 @@ app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<an
     - Chỉ trả về nội dung bức thư giới thiệu, tuyệt đối không kèm theo bất kỳ lời dẫn, lời giới thiệu hay giải thích nào khác.
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateGeminiContent(apiKey, prompt);
     const coverLetter = result.response.text().trim();
 
     return res.status(200).json({ success: true, coverLetter });
@@ -1504,9 +1508,6 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
     }
 
     const fileExt = path.extname(safeFileName).toLowerCase();
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     let contentPart: any;
     let docxText = '';
 
@@ -1563,7 +1564,7 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
     - Toàn bộ kết quả phải viết bằng tiếng Việt.
     `;
 
-    const result = await model.generateContent(docxText ? prompt : [contentPart, prompt]);
+    const result = await generateGeminiContent(apiKey, docxText ? prompt : [contentPart, prompt]);
     let text = result.response.text().trim();
 
     if (text.startsWith('```json')) {
