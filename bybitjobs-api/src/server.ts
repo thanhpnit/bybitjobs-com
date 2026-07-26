@@ -1535,20 +1535,26 @@ app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<an
 
   try {
     const prompt = `
-    Bạn là người viết thư xin việc chuyên nghiệp.
-    Hãy viết một bức thư giới thiệu (cover letter) gửi tới công ty tuyển dụng: "${companyName}".
-    
-    THÔNG TIN BẮT BUỘC:
-    1. Người gửi (Ứng viên): ${candidateName}
-    2. Người nhận (Công ty tuyển dụng): ${companyName}
-    3. Vị trí công việc ứng tuyển: ${jobTitle}
-    4. Kinh nghiệm / Vị trí chuyên môn của ứng viên: ${desiredJob || 'Ứng viên tiềm năng'}
+[VAI TRÒ VÀ NHIỆM VỤ]
+Bạn là một chuyên gia viết Cover Letter (Thư xin việc). Hãy viết một bức thư xin việc cá nhân hóa, thuyết phục dựa trên các thông tin sau:
 
-    QUY TẮC BẮT BUỘC KHÔNG ĐƯỢC VI PHẠM:
-    - Lời chào đầu thư PHẢI là: "Kính gửi Ban Tuyển dụng ${companyName}," hoặc "Kính gửi Bộ phận Nhân sự ${companyName},". Tuyệt đối KHÔNG ĐƯỢC dùng tên ứng viên (${candidateName}) làm tên công ty hay tên người nhận.
-    - Trong thư, ứng viên xưng là "Tôi" (${candidateName}) và xưng hô với người nhận là "Quý công ty" hoặc "${companyName}".
-    - Độ dài khoảng 150-250 từ, bằng tiếng Việt.
-    - Chỉ trả về duy nhất nội dung bức thư, không kèm theo bất kỳ câu dẫn hay giải thích nào khác.
+[CẤU TRÚC VÀ RÀNG BUỘC CHÍNH XÁC]
+- Ngôn ngữ: Tiếng Việt.
+- Tên người gửi (Ứng viên): ${candidateName} ("Tôi").
+- Tên công ty/Bộ phận nhận: ${companyName} ("Quý công ty" hoặc "${companyName}").
+- Lời chào đầu thư (BẮT BUỘC KHÔNG THAY ĐỔI): "Kính gửi Ban Tuyển dụng ${companyName},"
+- Lời kết thư (BẮT BUỘC KHÔNG THAY ĐỔI): "Trân trọng,\n${candidateName}"
+- Xưng hô trong thư: Ứng viên xưng là "Tôi", nhà tuyển dụng là "Quý công ty" hoặc "${companyName}". Tuyệt đối KHÔNG DÙNG tên ứng viên (${candidateName}) làm tên người nhận hay tên công ty.
+- Vị trí công việc ứng tuyển: ${jobTitle}
+- Vị trí mong muốn / Kinh nghiệm: ${desiredJob || 'Ứng viên tiềm năng'}
+- Độ dài: BẮT BUỘC trong khoảng 150 đến 250 từ.
+- Định dạng đầu ra: CHỈ XUẤT RA NỘI DUNG THƯ, tuyệt đối không thêm bất kỳ lời dẫn, ghi chú hay ký tự Markdown bọc ngoài.
+
+[NỘI DUNG CẦN CÓ]
+1. Mở bài: Bày tỏ sự quan tâm đến vị trí ${jobTitle} tại ${companyName}.
+2. Thân bài 1: Thể hiện sự nhiệt huyết, kỹ năng chuyên môn phù hợp với vị trí ${jobTitle}.
+3. Thân bài 2: Nhấn mạnh thái độ làm việc, tinh thần trách nhiệm và tinh thần làm việc nhóm.
+4. Kết bài: Lời cảm ơn và đề xuất một buổi phỏng vấn trực tiếp.
     `;
 
     const result = await generateGeminiContent(apiKey, prompt);
@@ -1575,22 +1581,26 @@ app.post('/api/ai/generate-jd', async (req: Request, res: Response): Promise<any
 
   try {
     const prompt = `
-    Bạn là một chuyên gia tuyển dụng và nhân sự cao cấp.
-    Hãy tự động tạo một bản Mô tả công việc (Job Description) và Yêu cầu công việc (Job Requirements) chuyên nghiệp, thu hút cho vị trí sau:
-    - Tiêu đề công việc: ${title}
-    - Ngành nghề: ${industry || 'Công nghệ / Tổng hợp'}
-    - Mức lương: ${salary || 'Thỏa thuận'}
-    - Địa điểm: ${location || 'Việt Nam'}
+[VAI TRÒ VÀ NHIỆM VỤ]
+Bạn là Chuyên gia Tuyển dụng IT & Nhân sự cao cấp (Senior HR Specialist). Hãy tạo nội dung Mô tả công việc (JD) cho vị trí tuyển dụng sau.
 
-    Yêu cầu cấu trúc trả về duy nhất dưới dạng JSON:
-    {
-      "description": "Giới thiệu chung về công việc (2-3 câu). Các trách nhiệm chính (dạng gạch đầu dòng ngắn gọn - 4 đến 5 ý). Các quyền lợi được hưởng (4 đến 5 ý).",
-      "requirements": "Yêu cầu bằng cấp/kinh nghiệm. Kỹ năng chuyên môn bắt buộc. Kỹ năng mềm và thái độ làm việc (dạng gạch đầu dòng 4 đến 6 ý)."
-    }
+[THÔNG TIN ĐẦU VÀO]
+- Vị trí tuyển dụng: ${title}
+- Ngành nghề: ${industry || 'Công nghệ thông tin (IT)'}
+- Mức lương: ${salary || 'Thỏa thuận'}
+- Địa điểm làm việc: ${location || 'Việt Nam'}
 
-    Lưu ý:
-    - Văn phong chuyên nghiệp, chuẩn mực bằng tiếng Việt.
-    - Không chèn bất kỳ lời dẫn hay mã markdown nào ngoài mảng JSON.
+[YÊU CẦU ĐẦU RA STRICTOR]
+1. Đầu ra CHỈ LÀ MỘT OBJECT JSON HỢP LỆ (Valid JSON Object).
+2. KHÔNG sử dụng Markdown bọc code (KHÔNG dùng \`\`\`json hay \`\`\`).
+3. KHÔNG thêm bất kỳ đoạn văn bản chào hỏi hay giải thích nào khác.
+4. Cấu trúc JSON bắt buộc phải gồm đúng 2 keys: "description" và "requirements".
+
+[CẤU TRÚC MẪU DỰ KIẾN]
+{
+  "description": "Nội dung giới thiệu công ty, vị trí, trách nhiệm công việc chính (dạng gạch đầu dòng 4 đến 5 ý) và các quyền lợi như mức lương ${salary}, môi trường làm việc...",
+  "requirements": "Yêu cầu kỹ thuật chuyên môn bắt buộc, tư duy logic, kinh nghiệm, kỹ năng mềm và tinh thần làm việc nhóm (dạng gạch đầu dòng 4 đến 6 ý)."
+}
     `;
 
     const result = await generateGeminiContent(apiKey, prompt);
@@ -1729,26 +1739,31 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
     }
 
     const prompt = `
-    Bạn là một chuyên gia tuyển dụng cao cấp và chuyên gia tối ưu hóa CV theo tiêu chuẩn ATS (Applicant Tracking System).
-    Hãy đọc và phân tích kỹ CV của ứng viên dưới đây để đối chiếu và đánh giá mức độ phù hợp với vị trí mong muốn: "${desiredJob}".
+[VAI TRÒ VÀ NHIỆM VỤ]
+Bạn là Chuyên gia Tuyển dụng cao cấp và Chuyên gia tối ưu hóa CV theo tiêu chuẩn ATS (Applicant Tracking System).
+Hãy đọc và phân tích kỹ CV của ứng viên dưới đây để đối chiếu và đánh giá mức độ phù hợp với vị trí mong muốn: "${desiredJob}".
 
-    ${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ CV:\n${docxText}\n` : 'Tài liệu CV được đính kèm ở định dạng PDF hoặc ảnh.'}
+${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ CV:\n${docxText}\n` : 'Tài liệu CV được đính kèm ở định dạng PDF hoặc ảnh.'}
 
-    Yêu cầu:
-    Hãy đưa ra phản hồi đánh giá và tối ưu hóa CV dưới định dạng JSON duy nhất. JSON trả về phải khớp hoàn toàn với cấu trúc sau, không kèm bất kỳ giải thích nào bên ngoài:
-    {
-      "score": 85, 
-      "strengths": ["Điểm mạnh 1", "Điểm mạnh 2"], 
-      "improvements": ["Điểm cần cải thiện 1", "Điểm cần cải thiện 2"], 
-      "suggestions": ["Gợi ý hành động cụ thể 1", "Gợi ý hành động cụ thể 2"]
-    }
+[YÊU CẦU ĐẦU RA STRICTOR]
+1. Đầu ra CHỈ LÀ MỘT OBJECT JSON HỢP LỆ (Valid JSON Object).
+2. KHÔNG sử dụng Markdown bọc code (KHÔNG dùng \`\`\`json hay \`\`\`).
+3. KHÔNG thêm bất kỳ văn bản chào hỏi hay giải thích nào khác ngoài Object JSON.
+4. Cấu trúc JSON bắt buộc:
+{
+  "score": 85,
+  "overallScore": 85,
+  "strengths": ["Điểm mạnh 1", "Điểm mạnh 2", "Điểm mạnh 3"],
+  "improvements": ["Điểm cần cải thiện 1", "Điểm cần cải thiện 2"],
+  "suggestions": ["Gợi ý hành động cụ thể 1", "Gợi ý hành động cụ thể 2"]
+}
 
-    Lưu ý:
-    - Điểm số (score) từ 0 đến 100 dựa trên sự trùng khớp kỹ năng, kinh nghiệm với vị trí mong muốn và tính chuyên nghiệp của CV.
-    - Điểm mạnh (strengths): Liệt kê tối đa 4-5 điểm nổi bật về năng lực, định dạng, kỹ năng.
-    - Điểm cần cải thiện (improvements): Chỉ ra các điểm thiếu sót kỹ năng mềm/kỹ thuật, từ khóa chuyên ngành, thiếu số liệu định lượng, kinh nghiệm mô tả chưa rõ ràng hoặc không khớp vị trí mong muốn.
-    - Gợi ý (suggestions): Gợi ý các hành động cụ thể để cải thiện điểm số (ví dụ: bổ sung chứng chỉ X, thêm từ khóa Y vào phần giới thiệu, định lượng kết quả bằng %...).
-    - Toàn bộ kết quả phải viết bằng tiếng Việt.
+[QUY TẮC ĐÁNH GIÁ]
+- score / overallScore: Con số nguyên từ 0 đến 100 dựa trên sự trùng khớp kỹ năng và tính chuyên nghiệp.
+- strengths: Tối đa 4-5 điểm nổi bật về năng lực, trình bày, từ khóa.
+- improvements: Các điểm thiếu sót từ khóa chuyên ngành, thiếu số liệu định lượng, hoặc chưa khớp vị trí mong muốn.
+- suggestions: Hành động cụ thể để nâng cao điểm số CV.
+- Toàn bộ kết quả phải viết bằng tiếng Việt.
     `;
 
     const result = await generateGeminiContent(apiKey, docxText ? prompt : [contentPart, prompt]);

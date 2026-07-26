@@ -459,11 +459,16 @@ function CandidateProfileScreen() {
       }
 
       if (data.success) {
+        const scoreVal = typeof data.score === 'number' ? data.score : (typeof data.overallScore === 'number' ? data.overallScore : 82);
+        const strengthsList = Array.isArray(data.strengths) ? data.strengths : (data.strengths ? [data.strengths] : []);
+        const improvementsList = Array.isArray(data.improvements) ? data.improvements : (data.improvements ? [data.improvements] : []);
+        const suggestionsList = Array.isArray(data.suggestions) ? data.suggestions : (data.suggestions ? [data.suggestions] : []);
+
         setCvAnalysisResult({
-          score: data.score,
-          strengths: data.strengths || [],
-          improvements: data.improvements || [],
-          suggestions: data.suggestions || [],
+          score: scoreVal,
+          strengths: strengthsList,
+          improvements: improvementsList,
+          suggestions: suggestionsList,
         });
         setIsCVAnalysisModalVisible(true);
       } else {
