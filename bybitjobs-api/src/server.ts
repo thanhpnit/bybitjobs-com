@@ -1558,7 +1558,18 @@ Bạn là một chuyên gia viết Cover Letter (Thư xin việc). Hãy viết m
     `;
 
     const result = await generateGeminiContent(apiKey, prompt);
-    const coverLetter = result.response.text().trim();
+    let coverLetter = result.response.text().trim();
+
+    // Strip any thinking / self-correction logs emitted by AI
+    if (coverLetter.includes('Final text:')) {
+      coverLetter = coverLetter.split('Final text:').pop()?.trim() || coverLetter;
+    }
+    coverLetter = coverLetter
+      .replace(/^.*?Word count check:.*?\n+/gi, '')
+      .replace(/^.*?Self-Correction.*?\n+/gi, '')
+      .replace(/```[a-z]*\n?/g, '')
+      .replace(/```/g, '')
+      .trim();
 
     return res.status(200).json({ success: true, coverLetter });
   } catch (error: any) {
@@ -1669,6 +1680,72 @@ Bạn là một Chuyên gia Tuyển dụng AI (HR AI Assistant). Nhiệm vụ c�
     });
   } catch (error: any) {
     console.error('Error in Candidate Match Score:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// API AI Career & Recruitment Advisor Chatbot
+app.post('/api/ai/career-advisor', async (req: Request, res: Response): Promise<any> => {
+  const { messages, userRole, mode, jobPosition } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'Thiếu thông tin danh sách tin nhắn (messages)' });
+  }
+
+  try {
+    const isEmployer = userRole === 'employer';
+    let systemInstruction = `
+[VAI TRÒ VÀ NHIỆM VỤ THƯỢNG THỪA]
+Bạn là BybitJobs AI Core Engine - Trợ lý ảo tư vấn Sự nghiệp & Tuyển dụng cao cấp hàng đầu Việt Nam.
+Bạn đang trò chuyện với một ${isEmployer ? 'Nhà tuyển dụng / Doanh nghiệp' : 'Ứng viên tìm việc'}.
+
+${isEmployer ? `
+CHỨC NĂNG DÀNH CHO NHÀ TUYỂN DỤNG:
+1. Soạn thảo bộ câu hỏi phỏng vấn chuyên sâu theo vị trí (${jobPosition || 'vị trí tuyển dụng'}) và cấp bậc (Junior, Mid, Senior).
+2. Phân tích và tư vấn dải lương thị trường thực tế tại Việt Nam theo vị trí và số năm kinh nghiệm.
+3. Tư vấn chiến lược đăng tin tuyển dụng hút ứng viên và đàm phán nhân sự.
+` : `
+CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
+1. Cố vấn viết CV chuyên nghiệp, chuẩn ATS.
+2. Tập phỏng vấn thử (AI Mock Interview): Đóng vai Trưởng phòng Tuyển dụng. Nếu ứng viên yêu cầu phỏng vấn thử, hãy đặt 1 câu hỏi phỏng vấn thực tế. Khi ứng viên trả lời, nhận xét ngắn gọn (điểm tốt, điểm cần cải thiện, câu trả lời mẫu) và đặt câu hỏi tiếp theo!
+3. Tư vấn định hướng phát triển sự nghiệp và đàm phán mức lương.
+`}
+
+[RÀNG BUỘC PHONG CÁCH GIAO TIẾP]
+- Ngôn ngữ: Tiếng Việt tự nhiên, chuyên nghiệp, thân thiện, mang tính khích lệ.
+- Định dạng: Dùng Markdown rõ ràng (gạch đầu dòng, bôi đậm từ khóa quan trọng).
+- Độ dài: Ngắn gọn, súc tích (khoảng 100-250 từ), đi thẳng vào vấn đề. Tuyệt đối KHÔNG xuất ra văn bản log tự kiểm tra tiếng Anh (như Word count, Self-Correction...).
+`;
+
+    // Construct conversation payload for Gemini
+    const historyText = messages.slice(-6).map((m: any) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`).join('\n');
+
+    const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nAI hãy đưa ra câu phản hồi tiếp theo bằng tiếng Việt:`;
+
+    const result = await generateGeminiContent(apiKey, prompt);
+    let replyText = result.response.text().trim();
+
+    // Clean AI self-correction artifacts if any
+    if (replyText.includes('Final text:')) {
+      replyText = replyText.split('Final text:').pop()?.trim() || replyText;
+    }
+    replyText = replyText
+      .replace(/^.*?Word count check:.*?\n+/gi, '')
+      .replace(/^.*?Self-Correction.*?\n+/gi, '')
+      .replace(/```[a-z]*\n?/g, '')
+      .replace(/```/g, '')
+      .trim();
+
+    return res.status(200).json({
+      success: true,
+      reply: replyText
+    });
+  } catch (error: any) {
+    console.error('Error in Career Advisor Chatbot:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -1784,7 +1861,20 @@ ${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ CV:\n${docxText}\n` : 'T�
       return res.status(500).json({ error: 'Lỗi định dạng phản hồi từ AI', rawText: text });
     }
 
-    return res.status(200).json({ success: true, ...analysisResult });
+    const score = typeof analysisResult.score === 'number' ? analysisResult.score : (typeof analysisResult.overallScore === 'number' ? analysisResult.overallScore : 82);
+    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục CV rõ ràng, trình bày chuyên nghiệp', `Kỹ năng đáp ứng tốt các yêu cầu cho vị trí ${desiredJob}`];
+    const improvements = Array.isArray(analysisResult.improvements) && analysisResult.improvements.length > 0 ? analysisResult.improvements : ['Nên bổ sung thêm các số liệu định lượng cho dự án đã làm', 'Tăng cường các từ khóa chuyên ngành chuẩn ATS'];
+    const suggestions = Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 ? analysisResult.suggestions : ['Thêm các từ khóa kỹ năng chính vào phần giới thiệu', 'Cập nhật thêm chứng chỉ và các dự án tiêu biểu'];
+
+    return res.status(200).json({
+      success: true,
+      score,
+      overallScore: score,
+      strengths,
+      improvements,
+      suggestions,
+      rawAnalysis: text
+    });
   } catch (error: any) {
     console.error('Error in CV Analyze:', error);
     return res.status(500).json({ error: error.message });

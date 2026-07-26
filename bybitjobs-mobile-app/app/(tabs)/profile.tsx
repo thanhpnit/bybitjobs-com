@@ -1517,9 +1517,40 @@ function CandidateProfileScreen() {
                     </View>
                   )}
                 </View>
-              </View>
+          {/* Trợ lý AI BybitJobs Button Card */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/ai-advisor')}
+            style={[
+              styles.whiteCard,
+              isDark && styles.darkCard,
+              {
+                backgroundColor: isDark ? '#1C1528' : '#F5F3FF',
+                borderColor: isDark ? '#3B2D54' : '#DDD6FE',
+                borderWidth: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 16,
+                gap: 14,
+                marginBottom: 16,
+              },
+            ]}
+          >
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center' }}>
+              <Ionicons name="sparkles" size={24} color="#FFF" />
             </View>
-          )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                Trợ lý AI BybitJobs
+              </Text>
+              <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#6B7280', marginTop: 2 }}>
+                {userRole === 'employer'
+                  ? 'Soạn câu hỏi phỏng vấn & tư vấn lương thị trường'
+                  : 'Tập phỏng vấn thử (Mock Interview) & Cố vấn CV'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#7C3AED" />
+          </TouchableOpacity>
 
           {/* Employer Card (Company details displayed dynamically if role is Employer) */}
           {userRole === 'employer' && (

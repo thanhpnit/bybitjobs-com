@@ -975,9 +975,44 @@ function CandidateHomeScreen() {
               <Text style={styles.selectorText} numberOfLines={1}>
                 {selectedLocation}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#FFF" />
             </TouchableOpacity>
           </View>
+
+          {/* AI Advisor Banner */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/ai-advisor')}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              marginBottom: 4,
+              borderRadius: 16,
+              padding: 14,
+              backgroundColor: isDark ? '#1F1A24' : '#F5F3FF',
+              borderColor: isDark ? '#3B2D54' : '#DDD6FE',
+              borderWidth: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="sparkles" size={20} color="#FFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                  Trợ lý AI BybitJobs
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#6B7280', marginTop: 1 }}>
+                  {userRole === 'employer' ? 'Tư vấn câu hỏi phỏng vấn & dải lương thị trường' : 'Tập phỏng vấn thử (Mock Interview) & Cố vấn CV'}
+                </Text>
+              </View>
+            </View>
+            <View style={{ backgroundColor: '#7C3AED', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
+              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Hỏi AI ✨</Text>
+            </View>
+          </TouchableOpacity>
 
           {/* Lời mời tuyển dụng section (nếu có pendingInvites) */}
           {pendingInvites.length > 0 && (
