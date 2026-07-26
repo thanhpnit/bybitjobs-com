@@ -19,31 +19,57 @@ const payos = new PayOS({
 // Khởi tạo biến môi trường
 dotenv.config();
 
-// Helper function to robustly generate content with Gemini models with fallback
+// Helper function to robustly generate content with Gemini models with dynamic fallback
 async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
   const genAI = new GoogleGenerativeAI(apiKey);
   
   const modelsToTry = [
-    { model: 'gemini-1.5-flash', apiVersion: 'v1' },
-    { model: 'gemini-1.5-flash' },
-    { model: 'gemini-2.0-flash' },
-    { model: 'gemini-1.5-pro' },
-    { model: 'gemini-2.5-flash' },
-    { model: 'gemini-pro' }
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+    'gemini-1.5-pro-latest',
+    'gemini-pro'
   ];
 
-  let lastError: any = null;
-  for (const mOpts of modelsToTry) {
+  for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel(mOpts as any);
+      const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(contents);
       return result;
     } catch (err: any) {
-      console.warn(`[Gemini API] Model ${mOpts.model} (${mOpts.apiVersion || 'default'}) failed: ${err.message}`);
-      lastError = err;
+      console.warn(`[Gemini API] Model ${modelName} failed: ${err.message}`);
     }
   }
-  throw lastError;
+
+  // Nếu tất cả model tên cố định đều không được, gọi API tra cứu danh sách model khả dụng cho API key này
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (!listRes.ok) {
+      const errJson = await listRes.json().catch(() => null);
+      const msg = errJson?.error?.message || `HTTP ${listRes.status} ${listRes.statusText}`;
+      throw new Error(`Google API Key check failed: ${msg}`);
+    }
+    const data: any = await listRes.json();
+    const availableModels: any[] = data.models || [];
+    const validModel = availableModels.find(m => 
+      m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    if (validModel) {
+      const cleanName = validModel.name.replace('models/', '');
+      console.log(`[Gemini API] Dynamic discovery found model for key: ${cleanName}`);
+      const model = genAI.getGenerativeModel({ model: cleanName });
+      return await model.generateContent(contents);
+    } else {
+      throw new Error(`Khoá API này không có model Gemini nào hỗ trợ generateContent. Các model khả dụng: ${availableModels.map(m => m.name).join(', ')}`);
+    }
+  } catch (fetchErr: any) {
+    console.error('[Gemini API] Dynamic discovery failed:', fetchErr.message);
+    throw new Error(`Gemini API Error: ${fetchErr.message}`);
+  }
 }
 
 // Cấu hình Nodemailer
