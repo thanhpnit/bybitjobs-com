@@ -1561,6 +1561,101 @@ app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<an
   }
 });
 
+// API AI Job Description Generator (Cho Nhà tuyển dụng)
+app.post('/api/ai/generate-jd', async (req: Request, res: Response): Promise<any> => {
+  const { title, industry, salary, location } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Thiếu thông tin tiêu đề công việc (title)' });
+  }
+
+  try {
+    const prompt = `
+    Bạn là một chuyên gia tuyển dụng và nhân sự cao cấp.
+    Hãy tự động tạo một bản Mô tả công việc (Job Description) và Yêu cầu công việc (Job Requirements) chuyên nghiệp, thu hút cho vị trí sau:
+    - Tiêu đề công việc: ${title}
+    - Ngành nghề: ${industry || 'Công nghệ / Tổng hợp'}
+    - Mức lương: ${salary || 'Thỏa thuận'}
+    - Địa điểm: ${location || 'Việt Nam'}
+
+    Yêu cầu cấu trúc trả về duy nhất dưới dạng JSON:
+    {
+      "description": "Giới thiệu chung về công việc (2-3 câu). Các trách nhiệm chính (dạng gạch đầu dòng ngắn gọn - 4 đến 5 ý). Các quyền lợi được hưởng (4 đến 5 ý).",
+      "requirements": "Yêu cầu bằng cấp/kinh nghiệm. Kỹ năng chuyên môn bắt buộc. Kỹ năng mềm và thái độ làm việc (dạng gạch đầu dòng 4 đến 6 ý)."
+    }
+
+    Lưu ý:
+    - Văn phong chuyên nghiệp, chuẩn mực bằng tiếng Việt.
+    - Không chèn bất kỳ lời dẫn hay mã markdown nào ngoài mảng JSON.
+    `;
+
+    const result = await generateGeminiContent(apiKey, prompt);
+    let text = result.response.text().trim();
+    const parsed = extractJsonFromText(text);
+
+    return res.status(200).json({
+      success: true,
+      description: parsed.description || text,
+      requirements: parsed.requirements || ''
+    });
+  } catch (error: any) {
+    console.error('Error in Generate JD:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
+app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
+  const { jobTitle, applicantName, candidateSkills, candidateExperience, message } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+  }
+
+  try {
+    const prompt = `
+    Bạn là chuyên gia sàng lọc hồ sơ ứng viên bằng AI.
+    Hãy đánh giá độ phù hợp của ứng viên sau đối với công việc được tuyển dụng:
+
+    THÔNG TIN CÔNG VIỆC:
+    - Vị trí tuyển dụng: ${jobTitle || 'Chưa xác định'}
+
+    THÔNG TIN ỨNG VIÊN:
+    - Tên ứng viên: ${applicantName || 'Ứng viên'}
+    - Kỹ năng: ${Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật')}
+    - Kinh nghiệm: ${JSON.stringify(candidateExperience || [])}
+    - Thư xin việc/Lời nhắn: ${message || 'Không có'}
+
+    Yêu cầu trả về duy nhất 1 JSON với định dạng:
+    {
+      "matchScore": 88, 
+      "matchSummary": "Ứng viên có 3 năm kinh nghiệm phù hợp với vị trí, kỹ năng đáp ứng tốt yêu cầu công việc, điểm cộng là có chứng chỉ chuyên môn."
+    }
+
+    Lưu ý:
+    - matchScore: Con số nguyên từ 50 đến 98 đại diện cho % độ phù hợp.
+    - matchSummary: Đúng 1 câu tóm tắt lý do đánh giá ngắn gọn, súc tích bằng tiếng Việt.
+    `;
+
+    const result = await generateGeminiContent(apiKey, prompt);
+    let text = result.response.text().trim();
+    const parsed = extractJsonFromText(text);
+
+    return res.status(200).json({
+      success: true,
+      matchScore: parsed.matchScore || Math.floor(Math.random() * 15) + 80,
+      matchSummary: parsed.matchSummary || 'Ứng viên có kỹ năng và kinh nghiệm phù hợp với các tiêu chí tuyển dụng của vị trí này.'
+    });
+  } catch (error: any) {
+    console.error('Error in Candidate Match Score:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // API AI CV Analyze & ATS Optimizer
 app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;

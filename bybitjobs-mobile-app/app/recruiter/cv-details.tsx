@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,11 @@ export default function RecruiterCvDetailsScreen() {
   const { appId } = useLocalSearchParams<{ appId: string }>();
   const { applications, candidates, updateApplicationStatus } = useAuth();
   const [isCVPreviewVisible, setIsCVPreviewVisible] = React.useState(false);
+
+  // AI Match Score & Summary States
+  const [matchScore, setMatchScore] = React.useState<number | null>(null);
+  const [matchSummary, setMatchSummary] = React.useState<string | null>(null);
+  const [isLoadingMatch, setIsLoadingMatch] = React.useState(false);
 
   const application = applications.find((a) => a.id === appId);
   const candidate = candidates.find((c) => c.id === application?.candidateId);
@@ -72,6 +78,44 @@ export default function RecruiterCvDetailsScreen() {
     .map((part) => part[0])
     .join('')
     .toUpperCase() || 'UV';
+
+  React.useEffect(() => {
+    if (!application) return;
+
+    let isMounted = true;
+    const fetchAIMatchScore = async () => {
+      setIsLoadingMatch(true);
+      try {
+        const response = await fetch('http://160.250.246.119:4000/api/ai/candidate-match-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobTitle: application.jobTitle,
+            applicantName: candidateName,
+            candidateSkills,
+            candidateExperience,
+            message: application.message,
+            cvUrl: application.cvUrl
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && isMounted) {
+            setMatchScore(result.matchScore);
+            setMatchSummary(result.matchSummary);
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi lấy AI Match Score:', err);
+      } finally {
+        if (isMounted) setIsLoadingMatch(false);
+      }
+    };
+
+    fetchAIMatchScore();
+    return () => { isMounted = false; };
+  }, [appId]);
 
   const handleApprove = () => {
     updateApplicationStatus(application.id, 'Approved');
@@ -178,6 +222,37 @@ export default function RecruiterCvDetailsScreen() {
             <Ionicons name="time-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
             <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidateJobType}</Text>
           </View>
+        </View>
+
+        {/* Card AI Match Score & Review */}
+        <View style={[styles.aiMatchCard, { backgroundColor: isDark ? '#1C1528' : '#F5F3FF', borderColor: isDark ? '#3B2D54' : '#DDD6FE' }]}>
+          <View style={styles.aiMatchHeaderRow}>
+            <View style={styles.aiMatchBadge}>
+              <Ionicons name="sparkles" size={18} color="#7C3AED" />
+              <Text style={styles.aiMatchBadgeText}>AI Match Review</Text>
+            </View>
+            {isLoadingMatch ? (
+              <ActivityIndicator size="small" color="#7C3AED" />
+            ) : matchScore !== null ? (
+              <View style={styles.scorePill}>
+                <Text style={styles.scorePillText}>AI Match: {matchScore}%</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {isLoadingMatch ? (
+            <Text style={[styles.aiMatchSummaryText, { color: isDark ? '#D1D5DB' : '#6B7280', fontStyle: 'italic' }]}>
+              Đang đối chiếu hồ sơ ứng viên với công việc bằng AI...
+            </Text>
+          ) : matchSummary ? (
+            <Text style={[styles.aiMatchSummaryText, { color: isDark ? '#E5E7EB' : '#374151' }]}>
+              "{matchSummary}"
+            </Text>
+          ) : (
+            <Text style={[styles.aiMatchSummaryText, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+              Chưa thể đánh giá độ phù hợp của ứng viên.
+            </Text>
+          )}
         </View>
 
         {/* Card 2: Main Skills */}
@@ -699,5 +774,42 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  aiMatchCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  aiMatchHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiMatchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  aiMatchBadgeText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  scorePill: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  scorePillText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  aiMatchSummaryText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

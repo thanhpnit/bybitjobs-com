@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +61,41 @@ export default function RecruiterEditJobScreen() {
       .filter(Boolean);
     return values.length ? values : ['Công nghệ thông tin'];
   });
+
+  const [isGeneratingJD, setIsGeneratingJD] = React.useState(false);
+
+  const handleGenerateAIJD = async () => {
+    if (!title.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập tiêu đề công việc trước khi dùng AI tạo mô tả.');
+      return;
+    }
+
+    setIsGeneratingJD(true);
+    try {
+      const response = await fetch('http://160.250.246.119:4000/api/ai/generate-jd', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, industry, salary, location }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể kết nối đến máy chủ AI');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        if (result.description) setDescription(result.description);
+        if (result.requirements) setRequirements(result.requirements);
+        Alert.alert('✨ Thành công', 'AI đã tự động soạn thảo Mô tả & Yêu cầu công việc cho bạn!');
+      } else {
+        throw new Error(result.error || 'Lỗi tạo JD từ AI');
+      }
+    } catch (error: any) {
+      Alert.alert('Lỗi', error.message || 'Không thể tạo mô tả công việc bằng AI.');
+    } finally {
+      setIsGeneratingJD(false);
+    }
+  };
 
   // Date Picker Modal States
   const [isDatePickerVisible, setIsDatePickerVisible] = React.useState(false);
@@ -306,7 +342,32 @@ export default function RecruiterEditJobScreen() {
 
             {/* Input: Description */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>MÔ TẢ CÔNG VIỆC</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>MÔ TẢ CÔNG VIỆC</Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleGenerateAIJD}
+                  disabled={isGeneratingJD}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#7C3AED',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    gap: 6
+                  }}
+                >
+                  {isGeneratingJD ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={14} color="#FFF" />
+                      <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>AI soạn mô tả</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
               <View style={[styles.textareaBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
                 <TextInput
                   style={[styles.textarea, { color: isDark ? '#FFF' : '#11181C' }]}
