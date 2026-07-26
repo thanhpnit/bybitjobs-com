@@ -1733,7 +1733,13 @@ export function useAuth() {
           body: JSON.stringify({ cvName, cvSize, cvUploadTime, cvUrl })
         });
         if (!response.ok) {
-          throw new Error('Cập nhật thất bại từ Server');
+          const errorText = await response.text();
+          let serverErrorMsg = 'Cập nhật thất bại từ Server';
+          try {
+            const errorObj = JSON.parse(errorText);
+            serverErrorMsg = errorObj.error || serverErrorMsg;
+          } catch (e) {}
+          throw new Error(serverErrorMsg);
         }
       } catch (error) {
         console.warn('Lỗi khi cập nhật CV lên server (đang sử dụng chế độ offline/local state):', error);
