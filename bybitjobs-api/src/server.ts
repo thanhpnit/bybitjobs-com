@@ -49,9 +49,10 @@ let cachedGeminiModel: string | null = null;
 
 // Helper function to build correct headers for Gemini API
 function buildGeminiHeaders(apiKey: string): Record<string, string> {
+  const cleanKey = (apiKey || '').trim().replace(/\s+/g, '');
   return {
     'Content-Type': 'application/json',
-    'X-goog-api-key': apiKey
+    'X-goog-api-key': cleanKey
   };
 }
 
@@ -68,9 +69,7 @@ async function generateGeminiContent(inputKey: string, contents: any): Promise<a
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro'
+    'gemini-flash-latest'
   ];
 
   let lastError: any = null;
@@ -139,9 +138,7 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro'
+    'gemini-flash-latest'
   ];
 
   let lastStreamError: any = null;
