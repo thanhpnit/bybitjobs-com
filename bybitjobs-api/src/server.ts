@@ -48,50 +48,56 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   const modelsToTry = [
     'gemini-flash-latest',
-    'gemini-1.5-flash-latest',
-    'gemini-2.0-flash-exp',
-    'gemini-2.5-flash'
+    'gemini-pro-latest',
+    'gemini-1.0-pro'
   ];
 
   let lastError: any = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: buildGeminiHeaders(apiKey),
-        body: JSON.stringify({
-          contents: formattedContents,
-          generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
-        })
-      });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const modelName of modelsToTry) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: buildGeminiHeaders(apiKey),
+          body: JSON.stringify({
+            contents: formattedContents,
+            generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
+          })
+        });
 
-      if (res.ok) {
-        const data: any = await res.json();
-        const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        if (generatedText) {
-          cachedGeminiModel = modelName;
-          return {
-            response: {
-              text: () => generatedText
-            }
-          };
+        if (res.ok) {
+          const data: any = await res.json();
+          const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (generatedText) {
+            cachedGeminiModel = modelName;
+            return {
+              response: {
+                text: () => generatedText
+              }
+            };
+          }
+        } else {
+          const errJson: any = await res.json().catch(() => null);
+          const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
+          console.warn(`[Gemini Direct API] Model ${modelName} returned error: ${msg}`);
+          lastError = new Error(msg);
+
+          if (msg.includes('Quota exceeded') || msg.includes('429')) {
+            console.log(`[Gemini Direct API] Quota limit hit. Auto-waiting 2.5s before retry (Attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, 2500));
+          }
         }
-      } else {
-        const errJson: any = await res.json().catch(() => null);
-        const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
-        console.warn(`[Gemini Direct API] Model ${modelName} returned error: ${msg}`);
-        lastError = new Error(msg);
+      } catch (err: any) {
+        console.warn(`[Gemini Direct API] Model ${modelName} fetch error: ${err.message}`);
+        lastError = err;
       }
-    } catch (err: any) {
-      console.warn(`[Gemini Direct API] Model ${modelName} fetch error: ${err.message}`);
-      lastError = err;
     }
   }
 
   if (lastError && (lastError.message.includes('Quota exceeded') || lastError.message.includes('rate-limit') || lastError.message.includes('429'))) {
-    throw new Error('Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (15 lượt/phút). Vui lòng thử lại sau 5 giây!');
+    throw new Error('Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (20 lượt/phút). Vui lòng thử lại sau 5 giây!');
   }
 
   throw lastError || new Error('Không thể kết nối đến dịch vụ Google Gemini API.');
@@ -110,71 +116,77 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   const modelsToTry = [
     'gemini-flash-latest',
-    'gemini-1.5-flash-latest',
-    'gemini-2.0-flash-exp',
-    'gemini-2.5-flash'
+    'gemini-pro-latest',
+    'gemini-1.0-pro'
   ];
 
   let lastStreamError: any = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: buildGeminiHeaders(apiKey),
-        body: JSON.stringify({
-          contents: formattedContents,
-          generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
-        })
-      });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const modelName of modelsToTry) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: buildGeminiHeaders(apiKey),
+          body: JSON.stringify({
+            contents: formattedContents,
+            generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
+          })
+        });
 
-      if (res.ok && res.body) {
-        let fullText = '';
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
+        if (res.ok && res.body) {
+          let fullText = '';
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.replace('data: ', '').trim();
-              if (dataStr === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(dataStr);
-                const textChunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (textChunk) {
-                  fullText += textChunk;
-                  onChunk(textChunk);
-                }
-              } catch (e) {}
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const dataStr = line.replace('data: ', '').trim();
+                if (dataStr === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const textChunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (textChunk) {
+                    fullText += textChunk;
+                    onChunk(textChunk);
+                  }
+                } catch (e) {}
+              }
             }
           }
+          if (fullText) {
+            cachedGeminiModel = modelName;
+            return fullText;
+          }
+        } else {
+          const errJson: any = await res.json().catch(() => null);
+          const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
+          console.warn(`[Gemini Direct Stream] Model ${modelName} returned error: ${msg}`);
+          lastStreamError = new Error(msg);
+
+          if (msg.includes('Quota exceeded') || msg.includes('429')) {
+            console.log(`[Gemini Direct Stream] Quota limit hit. Auto-waiting 2.5s before retry (Attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, 2500));
+          }
         }
-        if (fullText) {
-          cachedGeminiModel = modelName;
-          return fullText;
-        }
-      } else {
-        const errJson: any = await res.json().catch(() => null);
-        const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
-        console.warn(`[Gemini Direct Stream] Model ${modelName} returned error: ${msg}`);
-        lastStreamError = new Error(msg);
+      } catch (err: any) {
+        console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
+        lastStreamError = err;
       }
-    } catch (err: any) {
-      console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
-      lastStreamError = err;
     }
   }
 
   if (lastStreamError && (lastStreamError.message.includes('Quota exceeded') || lastStreamError.message.includes('rate-limit') || lastStreamError.message.includes('429'))) {
-    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (15 lượt/phút). Vui lòng thử lại sau 5 giây!';
+    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (20 lượt/phút). Vui lòng thử lại sau 5 giây!';
     onChunk(rateLimitMsg);
     return rateLimitMsg;
   }
