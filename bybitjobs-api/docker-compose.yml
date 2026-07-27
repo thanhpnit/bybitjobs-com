@@ -7,12 +7,10 @@ services:
     restart: always
     ports:
       - "4000:4000"
-    env_file:
-      - .env
     environment:
       - PORT=4000
       - NODE_ENV=production
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=AQ.Ab8RN6J3BkL7fofKb53UPwmnkSCnkpLDtmUHAocxHfMFL8bSVA
       - EMAIL_USER=thanhpnvpbq@gmail.com
       - EMAIL_PASS=uuto vgwt hcms rnif
     volumes:

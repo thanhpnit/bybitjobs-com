@@ -17,7 +17,10 @@ const payos = new PayOS({
 });
 
 // Khởi tạo biến môi trường
-dotenv.config();
+// Helper function to safely get Gemini API Key with fallback
+function getGeminiApiKey(): string {
+  return process.env.GEMINI_API_KEY || 'AQ.Ab8RN6J3BkL7fofKb53UPwmnkSCnkpLDtmUHAocxHfMFL8bSVA';
+}
 
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
@@ -1461,10 +1464,7 @@ app.post('/api/setup-webhook', async (req: Request, res: Response): Promise<any>
 // API AI Match
 app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promise<any> => {
   const jobId = req.params.jobId as string;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   try {
     const db = admin.firestore();
@@ -1544,10 +1544,7 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
 // API Gợi ý tên công ty
 app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<any> => {
   const q = req.query.q as string;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
   if (!q || q.trim().length === 0) {
     return res.status(200).json([]);
   }
@@ -1585,10 +1582,7 @@ app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<a
 // API AI Cover Letter Generator
 app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<any> => {
   const { jobTitle, companyName, candidateName, desiredJob } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   if (!jobTitle || !companyName || !candidateName) {
     return res.status(400).json({ error: 'Thiếu thông tin jobTitle, companyName hoặc candidateName' });
@@ -1634,10 +1628,7 @@ Bạn là Chuyên gia viết Thư Xin Việc (Cover Letter). Hãy tạo một b�
 // API AI Job Description Generator (Cho Nhà tuyển dụng)
 app.post('/api/ai/generate-jd', async (req: Request, res: Response): Promise<any> => {
   const { title, industry, salary, location } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Thiếu thông tin tiêu đề công việc (title)' });
@@ -1681,10 +1672,7 @@ Trả về CHÍNH XÁC MỘT OBJECT JSON hợp lệ, KHÔNG bọc mã code block
 // API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
 app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
   const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   try {
     const skillsText = Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật');
@@ -1732,10 +1720,7 @@ Trả về CHÍNH XÁC 1 Object JSON không bọc markdown:
 // API AI Career & Recruitment Advisor Chatbot
 app.post('/api/ai/career-advisor', async (req: Request, res: Response): Promise<any> => {
   const { messages, userRole, mode, jobPosition } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'Thiếu thông tin danh sách tin nhắn (messages)' });
@@ -1802,10 +1787,7 @@ CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
 app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
   const { desiredJob } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
-  }
+  const apiKey = getGeminiApiKey();
 
   const targetPosition = desiredJob || 'Ứng viên tiềm năng';
 
