@@ -99,6 +99,55 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   }
 }
 
+// Helper function to robustly generate streaming content with Gemini models
+async function generateGeminiStream(apiKey: string, contents: any, onChunk: (text: string) => void): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  if (cachedGeminiModel) {
+    try {
+      const model = genAI.getGenerativeModel({ model: cachedGeminiModel });
+      const resultStream = await model.generateContentStream(contents);
+      let fullText = '';
+      for await (const chunk of resultStream.stream) {
+        const text = chunk.text();
+        fullText += text;
+        onChunk(text);
+      }
+      return fullText;
+    } catch (err: any) {
+      console.warn(`[Gemini API Stream] Cached model ${cachedGeminiModel} failed (${err.message}). Invalidating cache.`);
+      cachedGeminiModel = null;
+    }
+  }
+
+  const modelsToTry = [
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-pro'
+  ];
+
+  for (const modelName of modelsToTry) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const resultStream = await model.generateContentStream(contents);
+      let fullText = '';
+      cachedGeminiModel = modelName;
+      for await (const chunk of resultStream.stream) {
+        const text = chunk.text();
+        fullText += text;
+        onChunk(text);
+      }
+      return fullText;
+    } catch (err: any) {
+      console.warn(`[Gemini API Stream] Model ${modelName} failed: ${err.message}`);
+    }
+  }
+
+  throw new Error('Không thể khởi tạo dịch vụ Gemini Stream.');
+}
+
 // Helper function to safely extract and parse JSON from LLM markdown output with fallback
 function extractJsonFromText(text: string): any {
   let cleaned = text.trim();
@@ -1740,28 +1789,28 @@ CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
 
     const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nLƯU Ý QUAN TRỌNG: Hãy đưa ra câu trả lời thuần Tiếng Việt 100%, tuyệt đối không ghi thêm bất kỳ từ tiếng Anh nào về hệ thống, role hay identity:`;
 
-    const result = await generateGeminiContent(apiKey, prompt);
-    let replyText = result.response.text().trim();
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-    // Clean AI self-correction & system leakage artifacts if any
-    if (replyText.includes('Final text:')) {
-      replyText = replyText.split('Final text:').pop()?.trim() || replyText;
-    }
-    replyText = replyText
-      .replace(/^.*?Word count check:.*?\n+/gi, '')
-      .replace(/^.*?Self-Correction.*?\n+/gi, '')
-      .replace(/(?:user role|identity|system instruction|user context|assistant role):\s*/gi, '')
-      .replace(/```[a-z]*\n?/g, '')
-      .replace(/```/g, '')
-      .trim();
-
-    return res.status(200).json({
-      success: true,
-      reply: replyText
+    await generateGeminiStream(apiKey, prompt, (chunkText) => {
+      const cleanChunk = chunkText
+        .replace(/(?:user role|identity|system instruction|user context|assistant role):\s*/gi, '');
+      if (cleanChunk) {
+        res.write(`data: ${JSON.stringify({ text: cleanChunk })}\n\n`);
+      }
     });
+
+    res.write(`data: [DONE]\n\n`);
+    res.end();
   } catch (error: any) {
-    console.error('Error in Career Advisor Chatbot:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error in Career Advisor Chatbot Stream:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 });
 

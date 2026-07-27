@@ -88,42 +88,74 @@ export default function AIAdvisorScreen() {
     if (!textToSend) setInputText('');
     setIsSending(true);
 
-    try {
-      const apiPayload = newMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+    const apiPayload = newMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-      const response = await fetch('http://160.250.246.119:4000/api/ai/career-advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    const aiReplyId = (Date.now() + 1).toString();
+    const initialAiMsg: Message = {
+      id: aiReplyId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, initialAiMsg]);
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://160.250.246.119:4000/api/ai/career-advisor');
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      let seenIndex = 0;
+      let fullStreamText = '';
+
+      xhr.onprogress = () => {
+        const responseText = xhr.responseText;
+        const newChunk = responseText.substring(seenIndex);
+        seenIndex = responseText.length;
+
+        const lines = newChunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.replace('data: ', '').trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.text) {
+                fullStreamText += parsed.text;
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === aiReplyId ? { ...m, content: fullStreamText } : m))
+                );
+              }
+            } catch (e) {}
+          }
+        }
+      };
+
+      xhr.onload = () => {
+        setIsSending(false);
+        if (xhr.status !== 200) {
+          Alert.alert('Lỗi kết nối', 'Không thể kết nối đến Trợ lý AI.');
+        }
+      };
+
+      xhr.onerror = () => {
+        setIsSending(false);
+        Alert.alert('Lỗi kết nối', 'Có lỗi kết nối mạng tới Trợ lý AI.');
+      };
+
+      xhr.send(
+        JSON.stringify({
           messages: apiPayload,
           userRole: userRole || 'candidate',
           jobPosition: userData?.desiredJob || '',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Không thể kết nối đến Trợ lý AI.');
-      }
-
-      const data = await response.json();
-      if (data.success && data.reply) {
-        const aiReplyMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.reply,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages((prev) => [...prev, aiReplyMsg]);
-      } else {
-        throw new Error(data.error || 'Trợ lý AI chưa đưa ra câu trả lời.');
-      }
+        })
+      );
     } catch (err: any) {
-      Alert.alert('Lỗi kết nối', err.message || 'Có lỗi xảy ra khi trò chuyện với Trợ lý AI.');
-    } finally {
       setIsSending(false);
+      Alert.alert('Lỗi kết nối', err.message || 'Có lỗi xảy ra khi trò chuyện với Trợ lý AI.');
     }
   };
 
