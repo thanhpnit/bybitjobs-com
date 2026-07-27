@@ -27,6 +27,18 @@ function getGeminiApiKey(): string {
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
 
+// Helper function to build correct headers for both API Keys and OAuth Access Tokens (AQ.Ab...)
+function buildGeminiHeaders(apiKey: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-goog-api-key': apiKey
+  };
+  if (apiKey.startsWith('AQ.Ab') || apiKey.includes('.')) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
 // Helper function to robustly generate content with Gemini models (Supports AQ.Ab... & AIzaSy... keys)
 async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
   let formattedContents = [];
@@ -48,16 +60,13 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   let lastError: any = null;
 
-  // 1. Phân giải gọi trực tiếp REST API bằng Header x-goog-api-key (Hỗ trợ chuẩn mã AQ.Ab... mới của Google)
+  // 1. Phân giải gọi trực tiếp REST API bằng Header x-goog-api-key & Authorization Bearer
   for (const modelName of modelsToTry) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
+        headers: buildGeminiHeaders(apiKey),
         body: JSON.stringify({
           contents: formattedContents,
           generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
@@ -125,10 +134,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
       const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
+        headers: buildGeminiHeaders(apiKey),
         body: JSON.stringify({
           contents: formattedContents,
           generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
