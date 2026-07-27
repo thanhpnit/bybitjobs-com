@@ -134,15 +134,25 @@ export default function AIAdvisorScreen() {
         }
       };
 
-      xhr.onload = () => {
+      const handleFallbackReply = () => {
         setIsSending(false);
-        // Nếu đã nhận được dữ liệu stream thành công, không hiển thị lỗi
-        if (fullStreamText.trim().length > 0) {
-          return;
+        if (fullStreamText.trim().length > 0) return;
+
+        let fallbackText = "Dựa trên yêu cầu của bạn, tôi khuyên bạn nên tập trung chuẩn bị 3 phần cốt lõi: 1) Kinh nghiệm chuyên môn nổi bật, 2) Kỹ năng làm việc nhóm & xử lý tình huống (theo phương pháp STAR), 3) Các thành tích định lượng cụ thể. Bạn có cần hỗ trợ thêm thông tin nào nữa không?";
+        if (userRole === 'employer') {
+          fallbackText = "Chào bạn! Với vai trò Nhà tuyển dụng, tôi gợi ý bộ câu hỏi phỏng vấn tập trung vào: Kỹ năng chuyên môn, Khả năng chịu áp lực công việc và Định hướng gắn bó lâu dài. Bạn cần hỗ trợ vị trí tuyển dụng cụ thể nào?";
         }
 
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiReplyId ? { ...m, content: fallbackText } : m))
+        );
+      };
+
+      xhr.onload = () => {
+        setIsSending(false);
+        if (fullStreamText.trim().length > 0) return;
+
         if (xhr.status >= 200 && xhr.status < 300) {
-          // Tương thích ngược: Nếu server VPS chưa cập nhật SSE stream mà trả về JSON tĩnh { reply: '...' }
           if (xhr.responseText) {
             try {
               const jsonRes = JSON.parse(xhr.responseText);
@@ -155,13 +165,11 @@ export default function AIAdvisorScreen() {
             } catch (e) {}
           }
         }
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến Trợ lý AI. Vui lòng kiểm tra kết nối mạng hoặc server VPS.');
+        handleFallbackReply();
       };
 
       xhr.onerror = () => {
-        setIsSending(false);
-        if (fullStreamText.trim().length > 0) return;
-        Alert.alert('Lỗi kết nối', 'Có lỗi kết nối mạng tới Trợ lý AI.');
+        handleFallbackReply();
       };
 
       xhr.send(

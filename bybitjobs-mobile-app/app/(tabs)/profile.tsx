@@ -5071,8 +5071,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   aiAnalysisContainer: {
-    width: '90%',
-    maxHeight: '80%',
+    width: '92%',
+    height: '80%',
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000',
