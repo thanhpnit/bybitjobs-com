@@ -20,23 +20,19 @@ const payos = new PayOS({
 // Helper function to safely get Gemini API Key with fallback
 function getGeminiApiKey(): string {
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  const k = 'QVEuQWI4Uk42TGpTVHVhT3h0Tmg2MnZKaTlyWU9lS0RReXVfVlRCNzFULUNEYTN4WEtjRXc=';
+  const k = 'QVEuQWI4Uk42TFRHSkRpODRXOUxRVGYyYURKTkZmaGNVV2VocDJEaWd1Q1ktQzgxNWhXQnc=';
   return Buffer.from(k, 'base64').toString('utf-8');
 }
 
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
 
-// Helper function to build correct headers for both API Keys and OAuth Access Tokens (AQ.Ab...)
+// Helper function to build correct headers for Gemini API
 function buildGeminiHeaders(apiKey: string): Record<string, string> {
-  const headers: Record<string, string> = {
+  return {
     'Content-Type': 'application/json',
     'x-goog-api-key': apiKey
   };
-  if (apiKey.startsWith('AQ.Ab') || apiKey.includes('.')) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
-  return headers;
 }
 
 // Helper function to robustly generate content with Gemini models (Supports AQ.Ab... & AIzaSy... keys)
@@ -63,7 +59,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   // 1. Phân giải gọi trực tiếp REST API bằng Header x-goog-api-key & Authorization Bearer
   for (const modelName of modelsToTry) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: buildGeminiHeaders(apiKey),
@@ -131,7 +127,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   for (const modelName of modelsToTry) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}&alt=sse`;
       const res = await fetch(url, {
         method: 'POST',
         headers: buildGeminiHeaders(apiKey),
