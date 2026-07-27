@@ -134,20 +134,6 @@ export default function AIAdvisorScreen() {
         }
       };
 
-      const handleFallbackReply = () => {
-        setIsSending(false);
-        if (fullStreamText.trim().length > 0) return;
-
-        let fallbackText = "Dựa trên yêu cầu của bạn, tôi khuyên bạn nên tập trung chuẩn bị 3 phần cốt lõi: 1) Kinh nghiệm chuyên môn nổi bật, 2) Kỹ năng làm việc nhóm & xử lý tình huống (theo phương pháp STAR), 3) Các thành tích định lượng cụ thể. Bạn có cần hỗ trợ thêm thông tin nào nữa không?";
-        if (userRole === 'employer') {
-          fallbackText = "Chào bạn! Với vai trò Nhà tuyển dụng, tôi gợi ý bộ câu hỏi phỏng vấn tập trung vào: Kỹ năng chuyên môn, Khả năng chịu áp lực công việc và Định hướng gắn bó lâu dài. Bạn cần hỗ trợ vị trí tuyển dụng cụ thể nào?";
-        }
-
-        setMessages((prev) =>
-          prev.map((m) => (m.id === aiReplyId ? { ...m, content: fallbackText } : m))
-        );
-      };
-
       xhr.onload = () => {
         setIsSending(false);
         if (fullStreamText.trim().length > 0) return;
@@ -165,11 +151,15 @@ export default function AIAdvisorScreen() {
             } catch (e) {}
           }
         }
-        handleFallbackReply();
+        setMessages((prev) => prev.filter((m) => m.id !== aiReplyId));
+        Alert.alert('Lỗi kết nối AI', 'Không thể kết nối đến Trợ lý AI. Vui lòng kiểm tra kết nối mạng hoặc server VPS.');
       };
 
       xhr.onerror = () => {
-        handleFallbackReply();
+        setIsSending(false);
+        if (fullStreamText.trim().length > 0) return;
+        setMessages((prev) => prev.filter((m) => m.id !== aiReplyId));
+        Alert.alert('Lỗi kết nối AI', 'Có lỗi kết nối mạng tới Trợ lý AI.');
       };
 
       xhr.send(

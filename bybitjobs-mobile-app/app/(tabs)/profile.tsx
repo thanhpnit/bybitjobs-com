@@ -475,29 +475,8 @@ function CandidateProfileScreen() {
         throw new Error(data.error || 'Lỗi phân tích CV từ AI');
       }
     } catch (error: any) {
-      console.warn('Error analyzing CV, using client fallback report:', error);
-      const scoreVal = 85;
-      const strengthsList = [
-        'Bố cục hồ sơ được trình bày rõ ràng, chuyên nghiệp',
-        `Kỹ năng và hồ sơ đáp ứng tốt yêu cầu cho vị trí ${desiredJob}`,
-        'Thông tin cá nhân và định hướng công việc nhất quán'
-      ];
-      const improvementsList = [
-        'Nên bổ sung thêm số liệu thành tích định lượng cụ thể cho các dự án',
-        'Tăng cường các từ khóa chuyên ngành chuẩn hệ thống ATS'
-      ];
-      const suggestionsList = [
-        'Thêm từ khóa kỹ năng chính vào phần mục tiêu nghề nghiệp',
-        'Cập nhật thêm chứng chỉ và các dự án thực tế nổi bật'
-      ];
-
-      setCvAnalysisResult({
-        score: scoreVal,
-        strengths: strengthsList,
-        improvements: improvementsList,
-        suggestions: suggestionsList,
-      });
-      setIsCVAnalysisModalVisible(true);
+      console.error('Error analyzing CV:', error);
+      Alert.alert('Lỗi phân tích CV', error.message || 'Không thể chấm điểm CV từ AI.');
     } finally {
       setIsAnalyzingCV(false);
     }

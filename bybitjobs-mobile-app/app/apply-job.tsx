@@ -98,10 +98,8 @@ export default function ApplyJobScreen() {
         throw new Error(data.error || 'Lỗi không xác định từ AI');
       }
     } catch (error: any) {
-      console.warn('Error generating cover letter, using fallback:', error);
-      const fallbackLetter = `Kính gửi Ban Tuyển dụng ${displayCompanyName},\n\nTôi viết thư này để bày tỏ sự quan tâm đặc biệt tới vị trí ${displayTitle} tại ${displayCompanyName}. Với kinh nghiệm và kỹ năng chuyên môn phù hợp, tôi tin tưởng sẽ đóng góp tích cực cho các mục tiêu phát triển của Quý công ty.\n\nRất mong có cơ hội được trao đổi trực tiếp trong một buổi phỏng vấn.\n\nTrân trọng,\n${fullName.trim() || 'Ứng viên'}`;
-      setMessage(fallbackLetter);
-      Alert.alert('Thành công', 'AI đã tự động soạn thư giới thiệu cho bạn! Bạn có thể chỉnh sửa lại nội dung này.');
+      console.error('Error generating cover letter:', error);
+      Alert.alert('Lỗi', `Không thể tạo thư giới thiệu tự động: ${error.message}`);
     } finally {
       setIsGeneratingCoverLetter(false);
     }
@@ -137,12 +135,7 @@ export default function ApplyJobScreen() {
         throw new Error(data.error || 'Lỗi kiểm tra độ phù hợp.');
       }
     } catch (err: any) {
-      console.warn('Error checking AI match, using fallback:', err);
-      Alert.alert(
-        `✨ AI Match Score: 88%`,
-        `Đánh giá độ phù hợp của bạn với vị trí "${displayTitle}":\n\n"Hồ sơ và kỹ năng của bạn đáp ứng rất tốt các yêu cầu chính cho vị trí ${displayTitle}."`,
-        [{ text: 'Đã hiểu', style: 'default' }]
-      );
+      Alert.alert('Lỗi', err.message || 'Không thể kiểm tra độ phù hợp với AI.');
     } finally {
       setIsCheckingAIMatch(false);
     }

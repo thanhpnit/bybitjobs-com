@@ -91,10 +91,7 @@ export default function RecruiterEditJobScreen() {
         throw new Error(result.error || 'Lỗi tạo JD từ AI');
       }
     } catch (error: any) {
-      console.warn('Error generating AI JD, using fallback:', error);
-      setDescription(`- Quản lý và thực hiện các nhiệm vụ chuyên môn liên quan đến vị trí ${title}.\n- Phối hợp làm việc với đội ngũ dự án nhằm đạt mục tiêu đề ra.\n- Đảm bảo chất lượng công việc và hoàn thành đúng tiến độ.\n- Đề xuất giải pháp cải tiến quy trình công việc hiện tại.`);
-      setRequirements(`- Có kinh nghiệm làm việc ở vị trí ${title} hoặc tương đương.\n- Thành thạo các kỹ năng chuyên môn liên quan.\n- Tư duy logic, có tinh thần trách nhiệm và làm việc nhóm tốt.\n- Khả năng chủ động giải quyết vấn đề hiệu quả.`);
-      Alert.alert('✨ Thành công', 'AI đã tự động soạn thảo Mô tả & Yêu cầu công việc cho bạn!');
+      Alert.alert('Lỗi', error.message || 'Không thể tạo mô tả công việc bằng AI.');
     } finally {
       setIsGeneratingJD(false);
     }
