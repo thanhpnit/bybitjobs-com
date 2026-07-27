@@ -30,8 +30,7 @@ let cachedGeminiModel: string | null = null;
 // Helper function to build correct headers for Gemini API
 function buildGeminiHeaders(apiKey: string): Record<string, string> {
   return {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': apiKey
+    'Content-Type': 'application/json'
   };
 }
 
@@ -56,7 +55,6 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   let lastError: any = null;
 
-  // 1. Phân giải gọi trực tiếp REST API bằng Header x-goog-api-key & Authorization Bearer
   for (const modelName of modelsToTry) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -92,18 +90,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
     }
   }
 
-  // 2. Dự phòng bằng SDK nếu cần
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: cachedGeminiModel || 'gemini-1.5-flash',
-      generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
-    });
-    const result = await model.generateContent(contents);
-    return result;
-  } catch (sdkErr: any) {
-    throw lastError || sdkErr;
-  }
+  throw lastError || new Error('Không thể kết nối đến dịch vụ Google Gemini API.');
 }
 
 // Helper function to robustly generate streaming content with Gemini models
@@ -124,6 +111,8 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
     'gemini-1.5-flash-8b',
     'gemini-1.5-pro'
   ];
+
+  let lastStreamError: any = null;
 
   for (const modelName of modelsToTry) {
     try {
@@ -169,26 +158,19 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
           cachedGeminiModel = modelName;
           return fullText;
         }
+      } else {
+        const errJson: any = await res.json().catch(() => null);
+        const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
+        console.warn(`[Gemini Direct Stream] Model ${modelName} returned error: ${msg}`);
+        lastStreamError = new Error(msg);
       }
     } catch (err: any) {
       console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
+      lastStreamError = err;
     }
   }
 
-  // Fallback to SDK stream
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
-  });
-  const resultStream = await model.generateContentStream(contents);
-  let fullText = '';
-  for await (const chunk of resultStream.stream) {
-    const text = chunk.text();
-    fullText += text;
-    onChunk(text);
-  }
-  return fullText;
+  throw lastStreamError || new Error('Không thể khởi tạo dịch vụ Gemini Stream.');
 }
 
 // Helper function to safely extract and parse JSON from LLM markdown output with fallback
