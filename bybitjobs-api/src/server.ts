@@ -20,7 +20,7 @@ const payos = new PayOS({
 // Helper function to safely get Gemini API Key with fallback
 function getGeminiApiKey(): string {
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  const k = 'QVEuQWI4Uk42SjNCa0w3Zm9mS2I1M1VQd21ua1NDbmtwTER0bVVIQW9jeEhmTUZMOGJTVkE=';
+  const k = 'QVEuQWI4Uk42TGpTVHVhT3h0Tmg2MnZKaTlyWU9lS0RReXVfVlRCNzFULUNEYTN4WEtjRXc=';
   return Buffer.from(k, 'base64').toString('utf-8');
 }
 
