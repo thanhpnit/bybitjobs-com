@@ -47,12 +47,13 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   }
 
   const modelsToTry = [
-    'gemini-flash-latest',
-    'gemini-pro-latest',
-    'gemini-1.0-pro'
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro'
   ];
 
   let lastError: any = null;
+  let isQuotaError = false;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     for (const modelName of modelsToTry) {
@@ -84,9 +85,10 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
           console.warn(`[Gemini Direct API] Model ${modelName} returned error: ${msg}`);
           lastError = new Error(msg);
 
-          if (msg.includes('Quota exceeded') || msg.includes('429')) {
-            console.log(`[Gemini Direct API] Quota limit hit. Auto-waiting 2.5s before retry (Attempt ${attempt + 1})...`);
-            await new Promise(r => setTimeout(r, 2500));
+          if (msg.includes('Quota exceeded') || msg.includes('429') || msg.includes('rate-limit')) {
+            isQuotaError = true;
+            console.log(`[Gemini Direct API] Quota limit hit. Auto-waiting 2s before retry (Attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, 2000));
           }
         }
       } catch (err: any) {
@@ -96,8 +98,8 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
     }
   }
 
-  if (lastError && (lastError.message.includes('Quota exceeded') || lastError.message.includes('rate-limit') || lastError.message.includes('429'))) {
-    throw new Error('Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (20 lượt/phút). Vui lòng thử lại sau 5 giây!');
+  if (isQuotaError) {
+    throw new Error('Hệ thống AI đang chạm giới hạn tần suất 15 lượt/phút từ Google AI Studio. Vui lòng chờ 5-10 giây rồi thử lại!');
   }
 
   throw lastError || new Error('Không thể kết nối đến dịch vụ Google Gemini API.');
@@ -115,12 +117,13 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
   }
 
   const modelsToTry = [
-    'gemini-flash-latest',
-    'gemini-pro-latest',
-    'gemini-1.0-pro'
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro'
   ];
 
   let lastStreamError: any = null;
+  let isQuotaStreamError = false;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     for (const modelName of modelsToTry) {
@@ -173,9 +176,10 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
           console.warn(`[Gemini Direct Stream] Model ${modelName} returned error: ${msg}`);
           lastStreamError = new Error(msg);
 
-          if (msg.includes('Quota exceeded') || msg.includes('429')) {
-            console.log(`[Gemini Direct Stream] Quota limit hit. Auto-waiting 2.5s before retry (Attempt ${attempt + 1})...`);
-            await new Promise(r => setTimeout(r, 2500));
+          if (msg.includes('Quota exceeded') || msg.includes('429') || msg.includes('rate-limit')) {
+            isQuotaStreamError = true;
+            console.log(`[Gemini Direct Stream] Quota limit hit. Auto-waiting 2s before retry (Attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, 2000));
           }
         }
       } catch (err: any) {
@@ -185,8 +189,8 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
     }
   }
 
-  if (lastStreamError && (lastStreamError.message.includes('Quota exceeded') || lastStreamError.message.includes('rate-limit') || lastStreamError.message.includes('429'))) {
-    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (20 lượt/phút). Vui lòng thử lại sau 5 giây!';
+  if (isQuotaStreamError) {
+    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất 15 lượt/phút từ Google AI Studio. Vui lòng chờ 5-10 giây rồi thử lại!';
     onChunk(rateLimitMsg);
     return rateLimitMsg;
   }
