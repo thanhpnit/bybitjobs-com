@@ -136,25 +136,31 @@ export default function AIAdvisorScreen() {
 
       xhr.onload = () => {
         setIsSending(false);
+        // Nếu đã nhận được dữ liệu stream thành công, không hiển thị lỗi
+        if (fullStreamText.trim().length > 0) {
+          return;
+        }
+
         if (xhr.status >= 200 && xhr.status < 300) {
           // Tương thích ngược: Nếu server VPS chưa cập nhật SSE stream mà trả về JSON tĩnh { reply: '...' }
-          if (!fullStreamText && xhr.responseText) {
+          if (xhr.responseText) {
             try {
               const jsonRes = JSON.parse(xhr.responseText);
               if (jsonRes.reply) {
                 setMessages((prev) =>
                   prev.map((m) => (m.id === aiReplyId ? { ...m, content: jsonRes.reply } : m))
                 );
+                return;
               }
             } catch (e) {}
           }
-        } else {
-          Alert.alert('Lỗi kết nối', 'Không thể kết nối đến Trợ lý AI. Vui lòng kiểm tra server VPS.');
         }
+        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến Trợ lý AI. Vui lòng kiểm tra kết nối mạng hoặc server VPS.');
       };
 
       xhr.onerror = () => {
         setIsSending(false);
+        if (fullStreamText.trim().length > 0) return;
         Alert.alert('Lỗi kết nối', 'Có lỗi kết nối mạng tới Trợ lý AI.');
       };
 
