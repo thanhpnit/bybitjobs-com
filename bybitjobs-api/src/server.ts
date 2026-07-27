@@ -1596,32 +1596,24 @@ app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<an
 
   try {
     const prompt = `
-[VAI TRÒ VÀ NHIỆM VỤ]
-Bạn là một chuyên gia viết Cover Letter (Thư xin việc). Hãy viết một bức thư xin việc cá nhân hóa, thuyết phục dựa trên các thông tin sau:
+[VAI TRÒ VÀ NGUYÊN TẮC SIÊU NGẮN GỌN]
+Bạn là Chuyên gia viết Thư Xin Việc (Cover Letter). Hãy tạo một bức thư xin việc cá nhân hóa, thuyết phục dựa trên thông tin sau:
+- Ứng viên: ${candidateName}
+- Công ty tuyển dụng: ${companyName}
+- Vị trí ứng tuyển: ${jobTitle}
+- Chuyên môn / Vị trí mong muốn: ${desiredJob || 'Ứng viên tiềm năng'}
 
-[CẤU TRÚC VÀ RÀNG BUỘC CHÍNH XÁC]
-- Ngôn ngữ: Tiếng Việt.
-- Tên người gửi (Ứng viên): ${candidateName} ("Tôi").
-- Tên công ty/Bộ phận nhận: ${companyName} ("Quý công ty" hoặc "${companyName}").
-- Lời chào đầu thư (BẮT BUỘC KHÔNG THAY ĐỔI): "Kính gửi Ban Tuyển dụng ${companyName},"
-- Lời kết thư (BẮT BUỘC KHÔNG THAY ĐỔI): "Trân trọng,\n${candidateName}"
-- Xưng hô trong thư: Ứng viên xưng là "Tôi", nhà tuyển dụng là "Quý công ty" hoặc "${companyName}". Tuyệt đối KHÔNG DÙNG tên ứng viên (${candidateName}) làm tên người nhận hay tên công ty.
-- Vị trí công việc ứng tuyển: ${jobTitle}
-- Vị trí mong muốn / Kinh nghiệm: ${desiredJob || 'Ứng viên tiềm năng'}
-- Độ dài: BẮT BUỘC trong khoảng 150 đến 250 từ.
-- Định dạng đầu ra: CHỈ XUẤT RA NỘI DUNG THƯ, tuyệt đối không thêm bất kỳ lời dẫn, ghi chú hay ký tự Markdown bọc ngoài.
-
-[NỘI DUNG CẦN CÓ]
-1. Mở bài: Bày tỏ sự quan tâm đến vị trí ${jobTitle} tại ${companyName}.
-2. Thân bài 1: Thể hiện sự nhiệt huyết, kỹ năng chuyên môn phù hợp với vị trí ${jobTitle}.
-3. Thân bài 2: Nhấn mạnh thái độ làm việc, tinh thần trách nhiệm và tinh thần làm việc nhóm.
-4. Kết bài: Lời cảm ơn và đề xuất một buổi phỏng vấn trực tiếp.
+[RÀNG BUỘC CHÍNH XÁC & ĐỊNH DẠNG]
+1. ĐỘ DÀI: Ngắn gọn từ 120 đến 180 từ, đi thẳng vào vấn đề, không rườm rà.
+2. LỜI CHÀO: "Kính gửi Ban Tuyển dụng ${companyName},"
+3. LỜI KẾT: "Trân trọng,\n${candidateName}"
+4. XƯNG HÔ: "Tôi" (Ứng viên) và "Quý công ty" (Nhà tuyển dụng).
+5. CHỈ XUẤT RA NỘI DUNG THƯ XIN VIỆC: Không kèm thêm lời dẫn, chú thích hay mã Markdown bọc ngoài.
     `;
 
     const result = await generateGeminiContent(apiKey, prompt);
     let coverLetter = result.response.text().trim();
 
-    // Strip any thinking / self-correction logs emitted by AI
     if (coverLetter.includes('Final text:')) {
       coverLetter = coverLetter.split('Final text:').pop()?.trim() || coverLetter;
     }
@@ -1653,25 +1645,18 @@ app.post('/api/ai/generate-jd', async (req: Request, res: Response): Promise<any
 
   try {
     const prompt = `
-[VAI TRÒ VÀ NHIỆM VỤ]
-Bạn là Chuyên gia Tuyển dụng IT & Nhân sự cao cấp (Senior HR Specialist). Hãy tạo nội dung Mô tả công việc (JD) cho vị trí tuyển dụng sau.
-
-[THÔNG TIN ĐẦU VÀO]
-- Vị trí tuyển dụng: ${title}
-- Ngành nghề: ${industry || 'Công nghệ thông tin (IT)'}
+[VAI TRÒ VÀ NGUYÊN TẮC]
+Bạn là Chuyên gia Tuyển dụng Senior HR. Hãy tạo nội dung Mô tả công việc (JD) chuyên nghiệp, súc tích cho vị trí:
+- Tiêu đề: ${title}
+- Ngành nghề: ${industry || 'Công nghệ thông tin'}
 - Mức lương: ${salary || 'Thỏa thuận'}
-- Địa điểm làm việc: ${location || 'Việt Nam'}
+- Địa điểm: ${location || 'Việt Nam'}
 
-[YÊU CẦU ĐẦU RA STRICTOR]
-1. Đầu ra CHỈ LÀ MỘT OBJECT JSON HỢP LỆ (Valid JSON Object).
-2. KHÔNG sử dụng Markdown bọc code (KHÔNG dùng \`\`\`json hay \`\`\`).
-3. KHÔNG thêm bất kỳ đoạn văn bản chào hỏi hay giải thích nào khác.
-4. Cấu trúc JSON bắt buộc phải gồm đúng 2 keys: "description" và "requirements".
-
-[CẤU TRÚC MẪU DỰ KIẾN]
+[YÊU CẦU BẮT BUỘC]
+Trả về CHÍNH XÁC MỘT OBJECT JSON hợp lệ, KHÔNG bọc mã code block, gồm 2 keys:
 {
-  "description": "Nội dung giới thiệu công ty, vị trí, trách nhiệm công việc chính (dạng gạch đầu dòng 4 đến 5 ý) và các quyền lợi như mức lương ${salary}, môi trường làm việc...",
-  "requirements": "Yêu cầu kỹ thuật chuyên môn bắt buộc, tư duy logic, kinh nghiệm, kỹ năng mềm và tinh thần làm việc nhóm (dạng gạch đầu dòng 4 đến 6 ý)."
+  "description": "Nội dung trách nhiệm công việc chính (gạch đầu dòng 4-5 ý ngắn gọn) và quyền lợi.",
+  "requirements": "Yêu cầu chuyên môn, kinh nghiệm, kỹ năng mềm (gạch đầu dòng 4-5 ý ngắn gọn)."
 }
     `;
 
@@ -1679,10 +1664,13 @@ Bạn là Chuyên gia Tuyển dụng IT & Nhân sự cao cấp (Senior HR Specia
     let text = result.response.text().trim();
     const parsed = extractJsonFromText(text);
 
+    const description = parsed.description || `- Quản lý và thực hiện các nhiệm vụ chuyên môn liên quan đến vị trí ${title}.\n- Phối hợp làm việc với đội ngũ dự án nhằm đạt mục tiêu đề ra.\n- Đảm bảo chất lượng công việc và hoàn thành đúng tiến độ.\n- Đề xuất giải pháp cải tiến quy trình công việc hiện tại.`;
+    const requirements = parsed.requirements || `- Có kinh nghiệm làm việc ở vị trí ${title} hoặc tương đương.\n- Thành thạo các kỹ năng chuyên môn liên quan.\n- Tư duy logic, có tinh thần trách nhiệm và làm việc nhóm tốt.\n- Khả năng chủ động giải quyết vấn đề hiệu quả.`;
+
     return res.status(200).json({
       success: true,
-      description: parsed.description || text,
-      requirements: parsed.requirements || ''
+      description,
+      requirements
     });
   } catch (error: any) {
     console.error('Error in Generate JD:', error);
@@ -1692,37 +1680,33 @@ Bạn là Chuyên gia Tuyển dụng IT & Nhân sự cao cấp (Senior HR Specia
 
 // API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
 app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
-  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message, candidateCV } = req.body;
+  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
   }
 
   try {
-    const cvInfo = candidateCV || `Tên ứng viên: ${applicantName || 'Ứng viên'}. Kỹ năng: ${Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật')}. Kinh nghiệm: ${JSON.stringify(candidateExperience || [])}. Thư xin việc: ${message || 'Không có'}`;
+    const skillsText = Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật');
+    const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
 
     const prompt = `
-Bạn là một Chuyên gia Tuyển dụng AI (HR AI Assistant). Nhiệm vụ của bạn là đánh giá độ phù hợp của Ứng viên so với Yêu cầu tuyển dụng (Job Description).
+Bạn là Chuyên gia Tuyển dụng AI. Hãy đánh giá độ phù hợp của Ứng viên so với Yêu cầu tuyển dụng:
+[TIN TUYỂN DỤNG]
+- Tiêu đề: ${jobTitle || 'Công việc'}
+- Mô tả: ${jobDescription || 'Yêu cầu kỹ năng chuyên môn'}
 
-[THÔNG TIN TIN TUYỂN DỤNG (JOB)]
-- Tiêu đề công việc: ${jobTitle || 'Chưa xác định'}
-- Mô tả & Yêu cầu: ${jobDescription || 'Công việc tuyển dụng tổng hợp'}
+[ỨNG VIÊN]
+- Tên: ${applicantName || 'Ứng viên'}
+- Kỹ năng: ${skillsText}
+- Kinh nghiệm: ${expText}
+- Thư xin việc: ${message || 'Không có'}
 
-[THÔNG TIN ỨNG VIÊN (CV)]
-- Tóm tắt CV / Kỹ năng / Kinh nghiệm: ${cvInfo}
-
-[YÊU CẦU ĐẦU RA (STRICT JSON)]
-1. Trả về DUY NHẤT một Object JSON hợp lệ.
-2. KHÔNG bọc trong markdown code block (KHÔNG dùng \`\`\`json hay \`\`\`).
-3. KHÔNG thêm lời chào hay văn bản thừa ngoài JSON.
-4. Cấu trúc JSON bắt buộc gồm 2 fields:
-   - "matchScore": Số nguyên từ 0 đến 100 thể hiện % phù hợp.
-   - "reason": Một câu nhận xét ngắn gọn (tối đa 2-3 câu), nêu rõ lý do chính tại sao điểm cao/thấp (điểm cộng/điểm trừ nổi bật).
-
-[MẪU ĐẦU RA]
+[YÊU CẦU ĐẦU RA STRICT JSON]
+Trả về CHÍNH XÁC 1 Object JSON không bọc markdown:
 {
-  "matchScore": 92,
-  "reason": "Ứng viên có 3 năm làm React Native, đã triển khai 2 dự án tương đồng, điểm cộng là có chứng chỉ tiếng Anh B2."
+  "matchScore": 88,
+  "reason": "Ứng viên có kỹ năng ${skillsText} rất phù hợp với vị trí ${jobTitle}, kinh nghiệm thực tế tốt."
 }
     `;
 
@@ -1730,8 +1714,8 @@ Bạn là một Chuyên gia Tuyển dụng AI (HR AI Assistant). Nhiệm vụ c�
     let text = result.response.text().trim();
     const parsed = extractJsonFromText(text);
 
-    const matchScore = typeof parsed.matchScore === 'number' ? parsed.matchScore : 88;
-    const matchSummary = parsed.reason || parsed.matchSummary || 'Ứng viên có kỹ năng và kinh nghiệm đáp ứng tốt các yêu cầu công việc.';
+    const matchScore = typeof parsed.matchScore === 'number' ? parsed.matchScore : 85;
+    const matchSummary = parsed.reason || parsed.matchSummary || `Ứng viên có kỹ năng (${skillsText}) đáp ứng tốt yêu cầu vị trí ${jobTitle || 'tuyển dụng'}.`;
 
     return res.status(200).json({
       success: true,
@@ -1823,9 +1807,7 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
     return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
   }
 
-  if (!desiredJob) {
-    return res.status(400).json({ error: 'Thiếu thông tin vị trí mong muốn (desiredJob)' });
-  }
+  const targetPosition = desiredJob || 'Ứng viên tiềm năng';
 
   try {
     const db = admin.firestore();
@@ -1836,99 +1818,83 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
 
     const userData = userDoc.data()!;
     const cvUrl = userData.cvUrl;
-    const cvName = userData.cvName;
-
-    if (!cvUrl) {
-      return res.status(400).json({ error: 'Người dùng chưa tải lên CV nào' });
-    }
-
-    // Trích xuất safeFileName từ URL cvUrl: http://160.250.246.119:4000/uploads/cvs/${safeFileName}
-    const urlParts = cvUrl.split('/');
-    const safeFileName = urlParts[urlParts.length - 1];
-    const uploadsDir = path.join(__dirname, '../uploads/cvs');
-    const filePath = path.join(uploadsDir, safeFileName);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Không tìm thấy file CV trên máy chủ' });
-    }
-
-    const fileExt = path.extname(safeFileName).toLowerCase();
-    let contentPart: any;
     let docxText = '';
+    let contentPart: any = null;
 
-    if (fileExt === '.pdf') {
-      const fileBuffer = fs.readFileSync(filePath);
-      contentPart = {
-        inlineData: {
-          data: fileBuffer.toString('base64'),
-          mimeType: 'application/pdf'
+    // Kiểm tra xem có file đính kèm thực tế không
+    if (cvUrl) {
+      const urlParts = cvUrl.split('/');
+      const safeFileName = urlParts[urlParts.length - 1];
+      const uploadsDir = path.join(__dirname, '../uploads/cvs');
+      const filePath = path.join(uploadsDir, safeFileName);
+
+      if (fs.existsSync(filePath)) {
+        const fileExt = path.extname(safeFileName).toLowerCase();
+        if (fileExt === '.pdf') {
+          const fileBuffer = fs.readFileSync(filePath);
+          contentPart = {
+            inlineData: {
+              data: fileBuffer.toString('base64'),
+              mimeType: 'application/pdf'
+            }
+          };
+        } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
+          const fileBuffer = fs.readFileSync(filePath);
+          const mimeType = fileExt === '.png' ? 'image/png' : (fileExt === '.webp' ? 'image/webp' : 'image/jpeg');
+          contentPart = {
+            inlineData: {
+              data: fileBuffer.toString('base64'),
+              mimeType
+            }
+          };
+        } else if (fileExt === '.docx') {
+          try {
+            const docxResult = await mammoth.extractRawText({ path: filePath });
+            docxText = docxResult.value;
+          } catch (err) {}
         }
-      };
-    } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
-      const fileBuffer = fs.readFileSync(filePath);
-      const mimeType = fileExt === '.png' ? 'image/png' : (fileExt === '.webp' ? 'image/webp' : 'image/jpeg');
-      contentPart = {
-        inlineData: {
-          data: fileBuffer.toString('base64'),
-          mimeType
-        }
-      };
-    } else if (fileExt === '.docx') {
-      // Dùng mammoth để trích xuất text
-      try {
-        const docxResult = await mammoth.extractRawText({ path: filePath });
-        docxText = docxResult.value;
-      } catch (err: any) {
-        console.error('Error parsing DOCX with mammoth:', err);
-        return res.status(500).json({ error: 'Không thể đọc nội dung file DOCX', details: err.message });
       }
-    } else {
-      return res.status(400).json({ error: 'Hệ thống chỉ hỗ trợ chấm điểm CV định dạng PDF, DOCX hoặc file Ảnh (PNG, JPG, JPEG, WEBP).' });
     }
+
+    // Nếu không có nội dung file đính kèm, tạo bản tóm tắt hồ sơ từ Firestore
+    const profileSummary = `
+Tên ứng viên: ${userData.name || userData.fullName || 'Ứng viên'}
+Vị trí mong muốn: ${targetPosition}
+Kỹ năng: ${Array.isArray(userData.skills) ? userData.skills.join(', ') : (userData.skills || 'Chuyên môn linh hoạt')}
+Kinh nghiệm: ${typeof userData.experience === 'string' ? userData.experience : JSON.stringify(userData.experience || [])}
+Giới thiệu bản thân: ${userData.bio || userData.about || 'Ứng viên tìm việc chuyên nghiệp'}
+    `;
 
     const prompt = `
 [VAI TRÒ VÀ NHIỆM VỤ]
-Bạn là Chuyên gia Tuyển dụng cao cấp và Chuyên gia tối ưu hóa CV theo tiêu chuẩn ATS (Applicant Tracking System).
-Hãy đọc và phân tích kỹ CV của ứng viên dưới đây để đối chiếu và đánh giá mức độ phù hợp với vị trí mong muốn: "${desiredJob}".
+Bạn là Chuyên gia Tuyển dụng và Tối ưu hóa CV chuẩn ATS. Hãy đánh giá CV/Hồ sơ ứng viên cho vị trí mong muốn: "${targetPosition}".
 
-${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ CV:\n${docxText}\n` : 'Tài liệu CV được đính kèm ở định dạng PDF hoặc ảnh.'}
+${docxText ? `NỘI DUNG CV:\n${docxText}` : `TÓM TẮT HỒ SƠ ỨNG VIÊN:\n${profileSummary}`}
 
-[YÊU CẦU ĐẦU RA STRICTOR]
-1. Đầu ra CHỈ LÀ MỘT OBJECT JSON HỢP LỆ (Valid JSON Object).
-2. KHÔNG sử dụng Markdown bọc code (KHÔNG dùng \`\`\`json hay \`\`\`).
-3. KHÔNG thêm bất kỳ văn bản chào hỏi hay giải thích nào khác ngoài Object JSON.
-4. Cấu trúc JSON bắt buộc:
+[YÊU CẦU ĐẦU RA STRICT JSON]
+Trả về CHÍNH XÁC MỘT OBJECT JSON KHÔNG BỌC CODE BLOCK:
 {
-  "score": 85,
-  "overallScore": 85,
-  "strengths": ["Điểm mạnh 1", "Điểm mạnh 2", "Điểm mạnh 3"],
-  "improvements": ["Điểm cần cải thiện 1", "Điểm cần cải thiện 2"],
-  "suggestions": ["Gợi ý hành động cụ thể 1", "Gợi ý hành động cụ thể 2"]
+  "score": 88,
+  "strengths": ["Điểm mạnh 1 súc tích", "Điểm mạnh 2 súc tích", "Điểm mạnh 3 súc tích"],
+  "improvements": ["Điểm cần cải thiện 1 súc tích", "Điểm cần cải thiện 2 súc tích"],
+  "suggestions": ["Gợi ý nâng cao điểm số 1", "Gợi ý nâng cao điểm số 2"]
 }
-
-[QUY TẮC ĐÁNH GIÁ]
-- score / overallScore: Con số nguyên từ 0 đến 100 dựa trên sự trùng khớp kỹ năng và tính chuyên nghiệp.
-- strengths: Tối đa 4-5 điểm nổi bật về năng lực, trình bày, từ khóa.
-- improvements: Các điểm thiếu sót từ khóa chuyên ngành, thiếu số liệu định lượng, hoặc chưa khớp vị trí mong muốn.
-- suggestions: Hành động cụ thể để nâng cao điểm số CV.
-- Toàn bộ kết quả phải viết bằng tiếng Việt.
     `;
 
-    const result = await generateGeminiContent(apiKey, docxText ? prompt : [contentPart, prompt]);
-    let text = result.response.text().trim();
-
-    let analysisResult: any;
-    try {
-      analysisResult = extractJsonFromText(text);
-    } catch (e) {
-      console.error('Lỗi parse JSON từ Gemini CV Analyze:', text);
-      return res.status(500).json({ error: 'Lỗi định dạng phản hồi từ AI', rawText: text });
+    let result: any;
+    if (contentPart) {
+      result = await generateGeminiContent(apiKey, [contentPart, prompt]);
+    } else {
+      result = await generateGeminiContent(apiKey, prompt);
     }
 
-    const score = typeof analysisResult.score === 'number' ? analysisResult.score : (typeof analysisResult.overallScore === 'number' ? analysisResult.overallScore : 82);
-    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục CV rõ ràng, trình bày chuyên nghiệp', `Kỹ năng đáp ứng tốt các yêu cầu cho vị trí ${desiredJob}`];
-    const improvements = Array.isArray(analysisResult.improvements) && analysisResult.improvements.length > 0 ? analysisResult.improvements : ['Nên bổ sung thêm các số liệu định lượng cho dự án đã làm', 'Tăng cường các từ khóa chuyên ngành chuẩn ATS'];
-    const suggestions = Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 ? analysisResult.suggestions : ['Thêm các từ khóa kỹ năng chính vào phần giới thiệu', 'Cập nhật thêm chứng chỉ và các dự án tiêu biểu'];
+    let text = result.response.text().trim();
+    const analysisResult = extractJsonFromText(text);
+
+    const score = typeof analysisResult.score === 'number' ? analysisResult.score : (typeof analysisResult.overallScore === 'number' ? analysisResult.overallScore : 85);
+    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục hồ sơ trình bày rõ ràng', `Kỹ năng phù hợp với vị trí ${targetPosition}`];
+    const improvements = Array.isArray(analysisResult.improvements) && analysisResult.improvements.length > 0 ? analysisResult.improvements : ['Cần bổ sung thêm số liệu thành tích cụ thể', 'Tăng cường từ khóa chuyên ngành chuẩn ATS'];
+    const suggestions = Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 ? analysisResult.suggestions : ['Thêm từ khóa kỹ năng chính vào phần mục tiêu', 'Cập nhật thêm chứng chỉ và các dự án thực tế'];
 
     return res.status(200).json({
       success: true,
