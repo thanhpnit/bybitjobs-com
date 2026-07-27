@@ -1812,47 +1812,50 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
   try {
     const db = admin.firestore();
     const userDoc = await db.collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: 'Không tìm thấy thông tin người dùng' });
+    
+    let userData: any = {};
+    if (userDoc.exists) {
+      userData = userDoc.data()!;
     }
 
-    const userData = userDoc.data()!;
     const cvUrl = userData.cvUrl;
     let docxText = '';
     let contentPart: any = null;
 
     // Kiểm tra xem có file đính kèm thực tế không
     if (cvUrl) {
-      const urlParts = cvUrl.split('/');
-      const safeFileName = urlParts[urlParts.length - 1];
-      const uploadsDir = path.join(__dirname, '../uploads/cvs');
-      const filePath = path.join(uploadsDir, safeFileName);
+      try {
+        const urlParts = cvUrl.split('/');
+        const safeFileName = urlParts[urlParts.length - 1];
+        const uploadsDir = path.join(__dirname, '../uploads/cvs');
+        const filePath = path.join(uploadsDir, safeFileName);
 
-      if (fs.existsSync(filePath)) {
-        const fileExt = path.extname(safeFileName).toLowerCase();
-        if (fileExt === '.pdf') {
-          const fileBuffer = fs.readFileSync(filePath);
-          contentPart = {
-            inlineData: {
-              data: fileBuffer.toString('base64'),
-              mimeType: 'application/pdf'
-            }
-          };
-        } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
-          const fileBuffer = fs.readFileSync(filePath);
-          const mimeType = fileExt === '.png' ? 'image/png' : (fileExt === '.webp' ? 'image/webp' : 'image/jpeg');
-          contentPart = {
-            inlineData: {
-              data: fileBuffer.toString('base64'),
-              mimeType
-            }
-          };
-        } else if (fileExt === '.docx') {
-          try {
+        if (fs.existsSync(filePath)) {
+          const fileExt = path.extname(safeFileName).toLowerCase();
+          if (fileExt === '.pdf') {
+            const fileBuffer = fs.readFileSync(filePath);
+            contentPart = {
+              inlineData: {
+                data: fileBuffer.toString('base64'),
+                mimeType: 'application/pdf'
+              }
+            };
+          } else if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
+            const fileBuffer = fs.readFileSync(filePath);
+            const mimeType = fileExt === '.png' ? 'image/png' : (fileExt === '.webp' ? 'image/webp' : 'image/jpeg');
+            contentPart = {
+              inlineData: {
+                data: fileBuffer.toString('base64'),
+                mimeType
+              }
+            };
+          } else if (fileExt === '.docx') {
             const docxResult = await mammoth.extractRawText({ path: filePath });
             docxText = docxResult.value;
-          } catch (err) {}
+          }
         }
+      } catch (err) {
+        console.warn('Lỗi đọc file CV vật lý:', err);
       }
     }
 
