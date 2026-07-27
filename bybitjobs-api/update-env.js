@@ -8,7 +8,6 @@ conn.on('ready', () => {
   
   const projectPath = '/root/bybitjobs-com';
   
-  // Read local .env file content dynamically
   const envPath = path.join(__dirname, '.env');
   if (!fs.existsSync(envPath)) {
     console.error('.env file does not exist locally at:', envPath);
@@ -16,16 +15,15 @@ conn.on('ready', () => {
     process.exit(1);
   }
   const envContent = fs.readFileSync(envPath, 'utf8');
-
-  // Encode the content to base64 to prevent escape/quoting issues on the shell
   const base64Content = Buffer.from(envContent).toString('base64');
   
   const commands = [
     `mkdir -p "${projectPath}/bybitjobs-api"`,
     `echo "${base64Content}" | base64 -d > "${projectPath}/bybitjobs-api/.env"`,
     `echo "=== .env updated on VPS ==="`,
-    `cd "${projectPath}/bybitjobs-api" && docker compose down && docker compose up -d --build`,
-    `echo "=== Rebuilt and restarted docker container on VPS ==="`,
+    `cd "${projectPath}" && git fetch origin && git reset --hard origin/main`,
+    `cd "${projectPath}/bybitjobs-api" && docker compose down && docker compose build --no-cache && docker compose up -d`,
+    `echo "=== Rebuilt without cache and restarted docker container on VPS ==="`,
     `docker ps`
   ].join(' && ');
 

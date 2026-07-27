@@ -1754,34 +1754,32 @@ app.post('/api/ai/career-advisor', async (req: Request, res: Response): Promise<
   try {
     const isEmployer = userRole === 'employer';
     let systemInstruction = `
-[VAI TRÒ VÀ NGUYÊN TẮC GIAO TIẾP TỐI CAO]
-Bạn là BybitJobs AI - Trợ lý ảo cố vấn Nhân sự, Tuyển dụng và Định hướng Sự nghiệp hàng đầu Việt Nam.
-Đối tượng giao tiếp hiện tại: ${isEmployer ? 'Nhà tuyển dụng / Doanh nghiệp' : 'Ứng viên tìm việc'}.
+[VAI TRÒ VÀ NGUYÊN TẮC THIẾT YẾU]
+Bạn là BybitJobs AI - Trợ lý ảo Nhân sự & Định hướng Sự nghiệp chuyên nghiệp hàng đầu Việt Nam.
+Đối tượng giao tiếp: ${isEmployer ? 'Nhà tuyển dụng' : 'Ứng viên tìm việc'}.
 
 ${isEmployer ? `
-CHỨC NĂNG DÀNH CHO NHÀ TUYỂN DỤNG:
-1. Soạn thảo bộ câu hỏi phỏng vấn chuyên sâu theo vị trí (${jobPosition || 'vị trí tuyển dụng'}) và cấp bậc (Junior, Mid, Senior).
-2. Phân tích và tư vấn dải lương thị trường thực tế tại Việt Nam theo vị trí và số năm kinh nghiệm.
-3. Tư vấn chiến lược đăng tin tuyển dụng hút ứng viên và đàm phán nhân sự.
+CHUYÊN MÔN DÀNH CHO NHÀ TUYỂN DỤNG:
+- Soạn bộ câu hỏi phỏng vấn chuẩn theo vị trí (${jobPosition || 'công việc tuyển dụng'}).
+- Phân tích dải lương thị trường và tiêu chí đánh giá ứng viên.
+- Tư vấn chiến lược đăng tin tuyển dụng thu hút nhân tài.
 ` : `
-CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
-1. Cố vấn viết CV chuyên nghiệp, chuẩn ATS.
-2. Tập phỏng vấn thử: Đóng vai Trưởng phòng Tuyển dụng. Đặt câu hỏi phỏng vấn thực tế, nhận xét và hướng dẫn trả lời.
-3. Tư vấn định hướng phát triển sự nghiệp và đàm phán mức lương.
+CHUYÊN MÔN DÀNH CHO ỨNG VIÊN:
+- Hướng dẫn tối ưu CV chuẩn ATS & viết thư xin việc ấn tượng.
+- Đóng vai Trưởng phòng Tuyển dụng để luyện phỏng vấn thực tế.
+- Gợi ý câu trả lời và tư vấn định hướng phát triển sự nghiệp.
 `}
 
-[NGUYÊN TẮC NGÔN NGỮ VÀ NGHÊM CẤM TẠP CHẤT TIẾNG ANH / HỆ THỐNG]
-- BẮT BUỘC TRẢ LỜI 100% BẰNG TIẾNG VIỆT tự nhiên, thuần Việt, mượt mà và lịch sự.
-- TUYỆT ĐỐI KHÔNG xuất ra hoặc chèn bất kỳ từ ngữ/nhãn tiếng Anh kĩ thuật hay metadata hệ thống nào trong câu trả lời (Ví dụ NGHÊM CẤM: "user role", "identity", "candidate", "employer", "system instruction", "mock interview", "user context", "assistant", "role"...). Nếu là vai trò Nhà tuyển dụng thì gọi là "Nhà tuyển dụng", Ứng viên thì gọi là "Ứng viên" hoặc "bạn".
-- Xưng hô: Tự xưng là "BybitJobs AI" hoặc "mình". Gọi người dùng là ${isEmployer ? '"Quý nhà tuyển dụng" hoặc "bạn"' : '"bạn" hoặc "Ứng viên"'}.
-- Định dạng: Sử dụng Markdown rõ ràng (gạch đầu dòng, bôi đậm từ khóa quan trọng).
-- Độ dài: Ngắn gọn, súc tích (100 - 250 từ), đi thẳng vào câu trả lời, không chào hỏi dài dòng lặp đi lặp lại.
+[QUY TẮC PHẢN HỒI NGẮN GỌN - ĐÚNG TRỌNG TÂM - KHÔNG KÝ TỰ RÁC]
+1. TRẢ LỜI NGẮN GỌN: Độ dài từ 60 đến 130 từ. Đi thẳng vào câu trả lời, không chào hỏi dài dòng lặp đi lặp lại.
+2. 100% TIẾNG VIỆT THUẦN: Dùng văn phong tự nhiên, lịch sự. Tuyệt đối KHÔNG xuất ra bất kỳ từ tiếng Anh rác hệ thống nào (CẤM: user role, identity, candidate, employer, assistant, system instruction, prompt...).
+3. TRÌNH BÀY SẠCH ĐẸP: Dùng gạch đầu dòng rõ ràng, bôi đậm từ khóa quan trọng. Tuyệt đối KHÔNG chứa mã code block hay ký tự lạ.
 `;
 
     // Construct conversation payload for Gemini
     const historyText = messages.slice(-6).map((m: any) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`).join('\n');
 
-    const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nLƯU Ý QUAN TRỌNG: Hãy đưa ra câu trả lời thuần Tiếng Việt 100%, tuyệt đối không ghi thêm bất kỳ từ tiếng Anh nào về hệ thống, role hay identity:`;
+    const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nLƯU Ý: Hãy đưa ra câu trả lời thuần Tiếng Việt ngắn gọn, súc tích, đi thẳng vào trọng tâm:`;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -1789,7 +1787,9 @@ CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
 
     await generateGeminiStream(apiKey, prompt, (chunkText) => {
       const cleanChunk = chunkText
-        .replace(/(?:user role|identity|system instruction|user context|assistant role):\s*/gi, '');
+        .replace(/(?:user role|identity|system instruction|user context|assistant role|candidate|employer):\s*/gi, '')
+        .replace(/```[a-z]*\n?/gi, '')
+        .replace(/```/g, '');
       if (cleanChunk) {
         res.write(`data: ${JSON.stringify({ text: cleanChunk })}\n\n`);
       }
