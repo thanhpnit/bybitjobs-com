@@ -20,21 +20,22 @@ const payos = new PayOS({
 // Helper function to safely get Gemini API Key with fallback
 function getGeminiApiKey(): string {
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  const k = 'QVEuQWI4Uk42TFRHSkRpODRXOUxRVGYyYURKTkZmaGNVV2VocDJEaWd1Q1ktQzgxNWhXQnc=';
+  const k = 'QVEuQWI4Uk42TGlRSmVvMG9fZS1DZjR3amdoQW11YzMwM25iTzBaekhSeWp4Nm1QRVkyMXc=';
   return Buffer.from(k, 'base64').toString('utf-8');
 }
 
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
 
-// Helper function to build correct headers for Gemini API
+// Helper function to build correct headers for Gemini API (Official Google AI Studio Format)
 function buildGeminiHeaders(apiKey: string): Record<string, string> {
   return {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-goog-api-key': apiKey
   };
 }
 
-// Helper function to robustly generate content with Gemini models (Supports AQ.Ab... & AIzaSy... keys)
+// Helper function to robustly generate content with Gemini models
 async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
   let formattedContents = [];
   if (typeof contents === 'string') {
@@ -46,6 +47,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   }
 
   const modelsToTry = [
+    'gemini-flash-latest',
     'gemini-1.5-flash',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',
@@ -57,7 +59,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   for (const modelName of modelsToTry) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
       const res = await fetch(url, {
         method: 'POST',
         headers: buildGeminiHeaders(apiKey),
@@ -105,6 +107,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
   }
 
   const modelsToTry = [
+    'gemini-flash-latest',
     'gemini-1.5-flash',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',
@@ -116,7 +119,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   for (const modelName of modelsToTry) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}&alt=sse`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
       const res = await fetch(url, {
         method: 'POST',
         headers: buildGeminiHeaders(apiKey),
