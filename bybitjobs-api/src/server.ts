@@ -1711,9 +1711,9 @@ app.post('/api/ai/career-advisor', async (req: Request, res: Response): Promise<
   try {
     const isEmployer = userRole === 'employer';
     let systemInstruction = `
-[VAI TRÒ VÀ NHIỆM VỤ THƯỢNG THỪA]
-Bạn là BybitJobs AI Core Engine - Trợ lý ảo tư vấn Sự nghiệp & Tuyển dụng cao cấp hàng đầu Việt Nam.
-Bạn đang trò chuyện với một ${isEmployer ? 'Nhà tuyển dụng / Doanh nghiệp' : 'Ứng viên tìm việc'}.
+[VAI TRÒ VÀ NGUYÊN TẮC GIAO TIẾP TỐI CAO]
+Bạn là BybitJobs AI - Trợ lý ảo cố vấn Nhân sự, Tuyển dụng và Định hướng Sự nghiệp hàng đầu Việt Nam.
+Đối tượng giao tiếp hiện tại: ${isEmployer ? 'Nhà tuyển dụng / Doanh nghiệp' : 'Ứng viên tìm việc'}.
 
 ${isEmployer ? `
 CHỨC NĂNG DÀNH CHO NHÀ TUYỂN DỤNG:
@@ -1723,31 +1723,34 @@ CHỨC NĂNG DÀNH CHO NHÀ TUYỂN DỤNG:
 ` : `
 CHỨC NĂNG DÀNH CHO ỨNG VIÊN:
 1. Cố vấn viết CV chuyên nghiệp, chuẩn ATS.
-2. Tập phỏng vấn thử (AI Mock Interview): Đóng vai Trưởng phòng Tuyển dụng. Nếu ứng viên yêu cầu phỏng vấn thử, hãy đặt 1 câu hỏi phỏng vấn thực tế. Khi ứng viên trả lời, nhận xét ngắn gọn (điểm tốt, điểm cần cải thiện, câu trả lời mẫu) và đặt câu hỏi tiếp theo!
+2. Tập phỏng vấn thử: Đóng vai Trưởng phòng Tuyển dụng. Đặt câu hỏi phỏng vấn thực tế, nhận xét và hướng dẫn trả lời.
 3. Tư vấn định hướng phát triển sự nghiệp và đàm phán mức lương.
 `}
 
-[RÀNG BUỘC PHONG CÁCH GIAO TIẾP]
-- Ngôn ngữ: Tiếng Việt tự nhiên, chuyên nghiệp, thân thiện, mang tính khích lệ.
-- Định dạng: Dùng Markdown rõ ràng (gạch đầu dòng, bôi đậm từ khóa quan trọng).
-- Độ dài: Ngắn gọn, súc tích (khoảng 100-250 từ), đi thẳng vào vấn đề. Tuyệt đối KHÔNG xuất ra văn bản log tự kiểm tra tiếng Anh (như Word count, Self-Correction...).
+[NGUYÊN TẮC NGÔN NGỮ VÀ NGHÊM CẤM TẠP CHẤT TIẾNG ANH / HỆ THỐNG]
+- BẮT BUỘC TRẢ LỜI 100% BẰNG TIẾNG VIỆT tự nhiên, thuần Việt, mượt mà và lịch sự.
+- TUYỆT ĐỐI KHÔNG xuất ra hoặc chèn bất kỳ từ ngữ/nhãn tiếng Anh kĩ thuật hay metadata hệ thống nào trong câu trả lời (Ví dụ NGHÊM CẤM: "user role", "identity", "candidate", "employer", "system instruction", "mock interview", "user context", "assistant", "role"...). Nếu là vai trò Nhà tuyển dụng thì gọi là "Nhà tuyển dụng", Ứng viên thì gọi là "Ứng viên" hoặc "bạn".
+- Xưng hô: Tự xưng là "BybitJobs AI" hoặc "mình". Gọi người dùng là ${isEmployer ? '"Quý nhà tuyển dụng" hoặc "bạn"' : '"bạn" hoặc "Ứng viên"'}.
+- Định dạng: Sử dụng Markdown rõ ràng (gạch đầu dòng, bôi đậm từ khóa quan trọng).
+- Độ dài: Ngắn gọn, súc tích (100 - 250 từ), đi thẳng vào câu trả lời, không chào hỏi dài dòng lặp đi lặp lại.
 `;
 
     // Construct conversation payload for Gemini
     const historyText = messages.slice(-6).map((m: any) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`).join('\n');
 
-    const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nAI hãy đưa ra câu phản hồi tiếp theo bằng tiếng Việt:`;
+    const prompt = `${systemInstruction}\n\n[LỊCH SỬ TRÒ CHUYỆN GẦN ĐÂY]\n${historyText}\n\nLƯU Ý QUAN TRỌNG: Hãy đưa ra câu trả lời thuần Tiếng Việt 100%, tuyệt đối không ghi thêm bất kỳ từ tiếng Anh nào về hệ thống, role hay identity:`;
 
     const result = await generateGeminiContent(apiKey, prompt);
     let replyText = result.response.text().trim();
 
-    // Clean AI self-correction artifacts if any
+    // Clean AI self-correction & system leakage artifacts if any
     if (replyText.includes('Final text:')) {
       replyText = replyText.split('Final text:').pop()?.trim() || replyText;
     }
     replyText = replyText
       .replace(/^.*?Word count check:.*?\n+/gi, '')
       .replace(/^.*?Self-Correction.*?\n+/gi, '')
+      .replace(/(?:user role|identity|system instruction|user context|assistant role):\s*/gi, '')
       .replace(/```[a-z]*\n?/g, '')
       .replace(/```/g, '')
       .trim();
