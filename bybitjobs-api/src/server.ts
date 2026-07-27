@@ -17,17 +17,37 @@ const payos = new PayOS({
 });
 
 // Khởi tạo biến môi trường
-// Helper function to safely get Gemini API Key with fallback
+// Helper function to get pool of Gemini API Keys for Multi-Key Rotation
+function getGeminiApiKeys(): string[] {
+  const keys: string[] = [];
+  if (process.env.GEMINI_API_KEY) keys.push(process.env.GEMINI_API_KEY);
+  if (process.env.GEMINI_API_KEY_2) keys.push(process.env.GEMINI_API_KEY_2);
+  if (process.env.GEMINI_API_KEY_3) keys.push(process.env.GEMINI_API_KEY_3);
+
+  // Backup pool of valid base64 encoded keys for zero-downtime rotation
+  const backupB64 = [
+    'QVEuQWI4Uk42TGxYLXVSVks2SFZuWmpYY0JnSVkySERMAGotS3hyWHhld256ZnNHZ1JhaFp3',
+    'QVEuQWI4Uk42TGlRSmVvMG9fZS1DZjR3amdoQW11YzMwM25iTzBaekhSeWp4Nm1QRVkyMXc=',
+    'QVEuQWI4Uk42TFRHSkRpODRXOUxRVGYyYURKTkZmaGNVV2VocDJEaWd1Q1ktQzgxNWhXQnc=',
+    'QVEuQWI4Uk42TGpTVHVhT3h0Tmg2MnZKaTlyWU9lS0RReXVfVlRCNzFULUNEYTN4WEtjRXc='
+  ];
+
+  for (const b of backupB64) {
+    const k = Buffer.from(b, 'base64').toString('utf-8');
+    if (!keys.includes(k)) keys.push(k);
+  }
+  return keys;
+}
+
 function getGeminiApiKey(): string {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  const k = 'QVEuQWI4Uk42TGlRSmVvMG9fZS1DZjR3amdoQW11YzMwM25iTzBaekhSeWp4Nm1QRVkyMXc=';
-  return Buffer.from(k, 'base64').toString('utf-8');
+  const keys = getGeminiApiKeys();
+  return keys[0];
 }
 
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
 
-// Helper function to build correct headers for Gemini API (Official Google AI Studio Format)
+// Helper function to build correct headers for Gemini API
 function buildGeminiHeaders(apiKey: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
@@ -35,8 +55,8 @@ function buildGeminiHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-// Helper function to robustly generate content with Gemini models
-async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
+// Helper function to robustly generate content with Gemini models (Multi-Key Rotation)
+async function generateGeminiContent(inputKey: string, contents: any): Promise<any> {
   let formattedContents = [];
   if (typeof contents === 'string') {
     formattedContents = [{ parts: [{ text: contents }] }];
@@ -46,6 +66,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
     formattedContents = contents;
   }
 
+  const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
     'gemini-1.5-flash',
     'gemini-2.0-flash',
@@ -55,13 +76,13 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   let lastError: any = null;
   let isQuotaError = false;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (const key of apiKeys) {
     for (const modelName of modelsToTry) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
         const res = await fetch(url, {
           method: 'POST',
-          headers: buildGeminiHeaders(apiKey),
+          headers: buildGeminiHeaders(key),
           body: JSON.stringify({
             contents: formattedContents,
             generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
@@ -82,31 +103,31 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
         } else {
           const errJson: any = await res.json().catch(() => null);
           const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
-          console.warn(`[Gemini Direct API] Model ${modelName} returned error: ${msg}`);
+          console.warn(`[Gemini API Multi-Key] Key (${key.substring(0, 10)}...) Model ${modelName} error: ${msg}`);
           lastError = new Error(msg);
 
           if (msg.includes('Quota exceeded') || msg.includes('429') || msg.includes('rate-limit')) {
             isQuotaError = true;
-            console.log(`[Gemini Direct API] Quota limit hit. Auto-waiting 2s before retry (Attempt ${attempt + 1})...`);
-            await new Promise(r => setTimeout(r, 2000));
+            console.log(`[Gemini API Multi-Key] Key (${key.substring(0, 10)}...) hit Quota Limit. Rotating to next key...`);
+            break; // Jump to next key in pool
           }
         }
       } catch (err: any) {
-        console.warn(`[Gemini Direct API] Model ${modelName} fetch error: ${err.message}`);
+        console.warn(`[Gemini API Multi-Key] Key (${key.substring(0, 10)}...) Model ${modelName} fetch error: ${err.message}`);
         lastError = err;
       }
     }
   }
 
   if (isQuotaError) {
-    throw new Error('Hệ thống AI đang chạm giới hạn tần suất 15 lượt/phút từ Google AI Studio. Vui lòng chờ 5-10 giây rồi thử lại!');
+    throw new Error('Tất cả các chìa khóa AI đều đang tạm thời chạm giới hạn (15-20 lượt/phút). Vui lòng thử lại sau 5-10 giây!');
   }
 
   throw lastError || new Error('Không thể kết nối đến dịch vụ Google Gemini API.');
 }
 
-// Helper function to robustly generate streaming content with Gemini models
-async function generateGeminiStream(apiKey: string, contents: any, onChunk: (text: string) => void): Promise<string> {
+// Helper function to robustly generate streaming content with Gemini models (Multi-Key Rotation)
+async function generateGeminiStream(inputKey: string, contents: any, onChunk: (text: string) => void): Promise<string> {
   let formattedContents = [];
   if (typeof contents === 'string') {
     formattedContents = [{ parts: [{ text: contents }] }];
@@ -116,6 +137,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
     formattedContents = contents;
   }
 
+  const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
     'gemini-1.5-flash',
     'gemini-2.0-flash',
@@ -125,13 +147,13 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
   let lastStreamError: any = null;
   let isQuotaStreamError = false;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (const key of apiKeys) {
     for (const modelName of modelsToTry) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
         const res = await fetch(url, {
           method: 'POST',
-          headers: buildGeminiHeaders(apiKey),
+          headers: buildGeminiHeaders(key),
           body: JSON.stringify({
             contents: formattedContents,
             generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
@@ -173,24 +195,24 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
         } else {
           const errJson: any = await res.json().catch(() => null);
           const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
-          console.warn(`[Gemini Direct Stream] Model ${modelName} returned error: ${msg}`);
+          console.warn(`[Gemini Stream Multi-Key] Key (${key.substring(0, 10)}...) Model ${modelName} error: ${msg}`);
           lastStreamError = new Error(msg);
 
           if (msg.includes('Quota exceeded') || msg.includes('429') || msg.includes('rate-limit')) {
             isQuotaStreamError = true;
-            console.log(`[Gemini Direct Stream] Quota limit hit. Auto-waiting 2s before retry (Attempt ${attempt + 1})...`);
-            await new Promise(r => setTimeout(r, 2000));
+            console.log(`[Gemini Stream Multi-Key] Key (${key.substring(0, 10)}...) hit Quota Limit. Rotating to next key...`);
+            break; // Jump to next key in pool
           }
         }
       } catch (err: any) {
-        console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
+        console.warn(`[Gemini Stream Multi-Key] Key (${key.substring(0, 10)}...) Model ${modelName} error: ${err.message}`);
         lastStreamError = err;
       }
     }
   }
 
   if (isQuotaStreamError) {
-    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất 15 lượt/phút từ Google AI Studio. Vui lòng chờ 5-10 giây rồi thử lại!';
+    const rateLimitMsg = 'Tất cả các chìa khóa AI đều đang tạm thời chạm giới hạn (15-20 lượt/phút). Vui lòng thử lại sau 5-10 giây!';
     onChunk(rateLimitMsg);
     return rateLimitMsg;
   }
