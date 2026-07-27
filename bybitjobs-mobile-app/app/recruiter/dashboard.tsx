@@ -758,7 +758,11 @@ export default function RecruiterDashboardScreen() {
                         style: 'destructive',
                         onPress: () => {
                           logout();
-                          router.dismissAll();
+                          if (router.canGoBack()) {
+                            router.dismissAll();
+                          } else {
+                            router.replace('/(tabs)');
+                          }
                         },
                       },
                     ]
