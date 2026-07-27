@@ -27,26 +27,17 @@ function getGeminiApiKey(): string {
 // Global working model cache for high performance & fast response
 let cachedGeminiModel: string | null = null;
 
-// Helper function to robustly generate content with Gemini models with dynamic fallback and caching
+// Helper function to robustly generate content with Gemini models (Supports AQ.Ab... & AIzaSy... keys)
 async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-
-  // 1. Try cached working model if available
-  if (cachedGeminiModel) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: cachedGeminiModel,
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
-      });
-      const result = await model.generateContent(contents);
-      return result;
-    } catch (err: any) {
-      console.warn(`[Gemini API] Cached model ${cachedGeminiModel} failed (${err.message}). Invalidating cache.`);
-      cachedGeminiModel = null;
-    }
+  let formattedContents = [];
+  if (typeof contents === 'string') {
+    formattedContents = [{ parts: [{ text: contents }] }];
+  } else if (Array.isArray(contents)) {
+    formattedContents = [{ parts: contents.map(c => typeof c === 'string' ? { text: c } : c) }];
+  } else {
+    formattedContents = contents;
   }
-  
-  // 2. Try fast models first
+
   const modelsToTry = [
     'gemini-1.5-flash',
     'gemini-2.0-flash',
@@ -55,83 +46,70 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
     'gemini-1.5-pro'
   ];
 
+  let lastError: any = null;
+
+  // 1. Phân giải gọi trực tiếp REST API bằng Header x-goog-api-key (Hỗ trợ chuẩn mã AQ.Ab... mới của Google)
   for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: formattedContents,
+          generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+        })
       });
-      const result = await model.generateContent(contents);
-      cachedGeminiModel = modelName;
-      console.log(`[Gemini API] Successfully initialized and cached model: ${modelName}`);
-      return result;
+
+      if (res.ok) {
+        const data: any = await res.json();
+        const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (generatedText) {
+          cachedGeminiModel = modelName;
+          return {
+            response: {
+              text: () => generatedText
+            }
+          };
+        }
+      } else {
+        const errJson: any = await res.json().catch(() => null);
+        const msg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
+        console.warn(`[Gemini Direct API] Model ${modelName} returned error: ${msg}`);
+        lastError = new Error(msg);
+      }
     } catch (err: any) {
-      console.warn(`[Gemini API] Model ${modelName} failed: ${err.message}`);
+      console.warn(`[Gemini Direct API] Model ${modelName} fetch error: ${err.message}`);
+      lastError = err;
     }
   }
 
-  // 3. Dynamic discovery if fixed names fail
+  // 2. Dự phòng bằng SDK nếu cần
   try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    if (!listRes.ok) {
-      const errJson: any = await listRes.json().catch(() => null);
-      const msg = errJson?.error?.message || `HTTP ${listRes.status} ${listRes.statusText}`;
-      throw new Error(`Google API Key check failed: ${msg}`);
-    }
-    const data: any = await listRes.json();
-    const availableModels: any[] = data.models || [];
-    const validModels = availableModels.filter(m => 
-      m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
-    );
-
-    let lastModelError: any = null;
-    for (const m of validModels) {
-      const cleanName = m.name.replace('models/', '');
-      try {
-        console.log(`[Gemini API] Dynamic discovery trying model: ${cleanName}`);
-        const model = genAI.getGenerativeModel({ model: cleanName });
-        const result = await model.generateContent(contents);
-        cachedGeminiModel = cleanName;
-        return result;
-      } catch (err: any) {
-        console.warn(`[Gemini API] Dynamic model ${cleanName} failed: ${err.message}`);
-        lastModelError = err;
-      }
-    }
-
-    if (lastModelError) {
-      throw lastModelError;
-    }
-
-    throw new Error(`Khoá API này không có model Gemini nào hoạt động. Các model tìm thấy: ${availableModels.map(m => m.name).join(', ')}`);
-  } catch (fetchErr: any) {
-    console.error('[Gemini API] Dynamic discovery failed:', fetchErr.message);
-    throw new Error(`Gemini API Error: ${fetchErr.message}`);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: cachedGeminiModel || 'gemini-1.5-flash',
+      generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+    });
+    const result = await model.generateContent(contents);
+    return result;
+  } catch (sdkErr: any) {
+    throw lastError || sdkErr;
   }
 }
 
 // Helper function to robustly generate streaming content with Gemini models
 async function generateGeminiStream(apiKey: string, contents: any, onChunk: (text: string) => void): Promise<string> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-
-  if (cachedGeminiModel) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: cachedGeminiModel,
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
-      });
-      const resultStream = await model.generateContentStream(contents);
-      let fullText = '';
-      for await (const chunk of resultStream.stream) {
-        const text = chunk.text();
-        fullText += text;
-        onChunk(text);
-      }
-      return fullText;
-    } catch (err: any) {
-      console.warn(`[Gemini API Stream] Cached model ${cachedGeminiModel} failed (${err.message}). Invalidating cache.`);
-      cachedGeminiModel = null;
-    }
+  let formattedContents = [];
+  if (typeof contents === 'string') {
+    formattedContents = [{ parts: [{ text: contents }] }];
+  } else if (Array.isArray(contents)) {
+    formattedContents = [{ parts: contents.map(c => typeof c === 'string' ? { text: c } : c) }];
+  } else {
+    formattedContents = contents;
   }
 
   const modelsToTry = [
@@ -144,25 +122,71 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: formattedContents,
+          generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+        })
       });
-      const resultStream = await model.generateContentStream(contents);
-      let fullText = '';
-      cachedGeminiModel = modelName;
-      for await (const chunk of resultStream.stream) {
-        const text = chunk.text();
-        fullText += text;
-        onChunk(text);
+
+      if (res.ok && res.body) {
+        let fullText = '';
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.replace('data: ', '').trim();
+              if (dataStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(dataStr);
+                const textChunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (textChunk) {
+                  fullText += textChunk;
+                  onChunk(textChunk);
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        if (fullText) {
+          cachedGeminiModel = modelName;
+          return fullText;
+        }
       }
-      return fullText;
     } catch (err: any) {
-      console.warn(`[Gemini API Stream] Model ${modelName} failed: ${err.message}`);
+      console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
     }
   }
 
-  throw new Error('Không thể khởi tạo dịch vụ Gemini Stream.');
+  // Fallback to SDK stream
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+  });
+  const resultStream = await model.generateContentStream(contents);
+  let fullText = '';
+  for await (const chunk of resultStream.stream) {
+    const text = chunk.text();
+    fullText += text;
+    onChunk(text);
+  }
+  return fullText;
 }
 
 // Helper function to safely extract and parse JSON from LLM markdown output with fallback
