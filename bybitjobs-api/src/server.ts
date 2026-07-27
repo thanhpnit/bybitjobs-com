@@ -34,7 +34,10 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
   // 1. Try cached working model if available
   if (cachedGeminiModel) {
     try {
-      const model = genAI.getGenerativeModel({ model: cachedGeminiModel });
+      const model = genAI.getGenerativeModel({
+        model: cachedGeminiModel,
+        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      });
       const result = await model.generateContent(contents);
       return result;
     } catch (err: any) {
@@ -54,7 +57,10 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      });
       const result = await model.generateContent(contents);
       cachedGeminiModel = modelName;
       console.log(`[Gemini API] Successfully initialized and cached model: ${modelName}`);
@@ -110,7 +116,10 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   if (cachedGeminiModel) {
     try {
-      const model = genAI.getGenerativeModel({ model: cachedGeminiModel });
+      const model = genAI.getGenerativeModel({
+        model: cachedGeminiModel,
+        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      });
       const resultStream = await model.generateContentStream(contents);
       let fullText = '';
       for await (const chunk of resultStream.stream) {
@@ -135,7 +144,10 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   for (const modelName of modelsToTry) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      });
       const resultStream = await model.generateContentStream(contents);
       let fullText = '';
       cachedGeminiModel = modelName;
