@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -338,6 +339,14 @@ function CandidateHomeScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { jobs, userData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole } = useAuth();
+
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const pendingInvites = React.useMemo(() => {
     if (!userData?.uid) return [];
@@ -936,6 +945,9 @@ function CandidateHomeScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0084FF" />
+          }
         >
           {/* Top Bar Header */}
           <View style={styles.headerTopRow}>

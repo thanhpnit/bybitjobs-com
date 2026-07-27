@@ -19,30 +19,47 @@ const payos = new PayOS({
 // Khởi tạo biến môi trường
 dotenv.config();
 
-// Helper function to robustly generate content with Gemini models with dynamic fallback
+// Global working model cache for high performance & fast response
+let cachedGeminiModel: string | null = null;
+
+// Helper function to robustly generate content with Gemini models with dynamic fallback and caching
 async function generateGeminiContent(apiKey: string, contents: any): Promise<any> {
   const genAI = new GoogleGenerativeAI(apiKey);
+
+  // 1. Try cached working model if available
+  if (cachedGeminiModel) {
+    try {
+      const model = genAI.getGenerativeModel({ model: cachedGeminiModel });
+      const result = await model.generateContent(contents);
+      return result;
+    } catch (err: any) {
+      console.warn(`[Gemini API] Cached model ${cachedGeminiModel} failed (${err.message}). Invalidating cache.`);
+      cachedGeminiModel = null;
+    }
+  }
   
+  // 2. Try fast models first
   const modelsToTry = [
+    'gemini-1.5-flash',
     'gemini-2.0-flash',
     'gemini-2.0-flash-lite',
     'gemini-1.5-flash-8b',
-    'gemini-1.5-pro',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash-exp'
+    'gemini-1.5-pro'
   ];
 
   for (const modelName of modelsToTry) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(contents);
+      cachedGeminiModel = modelName;
+      console.log(`[Gemini API] Successfully initialized and cached model: ${modelName}`);
       return result;
     } catch (err: any) {
       console.warn(`[Gemini API] Model ${modelName} failed: ${err.message}`);
     }
   }
 
-  // Nếu tất cả model tên cố định đều không được, gọi API tra cứu danh sách model khả dụng cho API key này
+  // 3. Dynamic discovery if fixed names fail
   try {
     const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (!listRes.ok) {
@@ -63,6 +80,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
         console.log(`[Gemini API] Dynamic discovery trying model: ${cleanName}`);
         const model = genAI.getGenerativeModel({ model: cleanName });
         const result = await model.generateContent(contents);
+        cachedGeminiModel = cleanName;
         return result;
       } catch (err: any) {
         console.warn(`[Gemini API] Dynamic model ${cleanName} failed: ${err.message}`);
@@ -1422,10 +1440,6 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
       return res.status(200).json({ message: 'No candidates found to match' });
     }
 
-    // Call Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
     const prompt = `
     Nhà tuyển dụng vừa đăng một công việc:
     Tiêu đề: ${jobData.title}
@@ -1440,7 +1454,8 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
     Ví dụ: ["uid1", "uid2"]
     `;
 
-    const result = await model.generateContent(prompt);
+    // Call Gemini with optimized helper
+    const result = await generateGeminiContent(apiKey, prompt);
     let text = result.response.text().trim();
     if (text.startsWith('\`\`\`json')) {
       text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
@@ -1489,9 +1504,6 @@ app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<a
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
     const prompt = `
     Tìm tối đa 5 công ty/doanh nghiệp có thật tại Việt Nam khớp với từ khóa '${q}'.
     Chỉ trả về ĐÚNG MỘT MẢNG JSON với định dạng: [{"id": "1", "name": "Tên công ty", "description": "Địa chỉ trụ sở chính"}].
@@ -1499,7 +1511,7 @@ app.get('/api/companies/suggest', async (req: Request, res: Response): Promise<a
     Tuyệt đối không kèm theo bất kỳ đoạn text nào khác ngoài mảng JSON.
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateGeminiContent(apiKey, prompt);
     let text = result.response.text().trim();
     if (text.startsWith('\`\`\`json')) {
       text = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
