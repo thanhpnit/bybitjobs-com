@@ -63,7 +63,7 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
         headers: buildGeminiHeaders(apiKey),
         body: JSON.stringify({
           contents: formattedContents,
-          generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+          generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
         })
       });
 
@@ -125,7 +125,7 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
         headers: buildGeminiHeaders(apiKey),
         body: JSON.stringify({
           contents: formattedContents,
-          generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+          generationConfig: { maxOutputTokens: 2500, temperature: 0.7 }
         })
       });
 
@@ -1776,8 +1776,8 @@ CHUYÊN MÔN DÀNH CHO ỨNG VIÊN:
 - Gợi ý câu trả lời và tư vấn định hướng phát triển sự nghiệp.
 `}
 
-[QUY TẮC PHẢN HỒI NGẮN GỌN - ĐÚNG TRỌNG TÂM - KHÔNG KÝ TỰ RÁC]
-1. TRẢ LỜI NGẮN GỌN: Độ dài từ 60 đến 130 từ. Đi thẳng vào câu trả lời, không chào hỏi dài dòng lặp đi lặp lại.
+[NGUYÊN TẮC TRẢ LỜI TRỌN VẸN VÀ TRỌNG TÂM]
+1. TRẢ LỜI TRỌN VẸN CÂU: Phải trả lời trọn vẹn toàn bộ ý, tuyệt đối KHÔNG được dừng lại giữa chừng hay bỏ dở câu. Khi đặt câu hỏi phỏng vấn hay liệt kê nhóm kiến thức, phải viết rõ ràng đầy đủ câu hỏi và các nhóm kiến thức đó ra.
 2. 100% TIẾNG VIỆT THUẦN: Dùng văn phong tự nhiên, lịch sự. Tuyệt đối KHÔNG xuất ra bất kỳ từ tiếng Anh rác hệ thống nào (CẤM: user role, identity, candidate, employer, assistant, system instruction, prompt...).
 3. TRÌNH BÀY SẠCH ĐẸP: Dùng gạch đầu dòng rõ ràng, bôi đậm từ khóa quan trọng. Tuyệt đối KHÔNG chứa mã code block hay ký tự lạ.
 `;
