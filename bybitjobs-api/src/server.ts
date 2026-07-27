@@ -48,11 +48,9 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
 
   const modelsToTry = [
     'gemini-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
+    'gemini-1.5-flash-latest',
+    'gemini-2.0-flash-exp',
+    'gemini-2.5-flash'
   ];
 
   let lastError: any = null;
@@ -92,6 +90,10 @@ async function generateGeminiContent(apiKey: string, contents: any): Promise<any
     }
   }
 
+  if (lastError && (lastError.message.includes('Quota exceeded') || lastError.message.includes('rate-limit') || lastError.message.includes('429'))) {
+    throw new Error('Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (15 lượt/phút). Vui lòng thử lại sau 5 giây!');
+  }
+
   throw lastError || new Error('Không thể kết nối đến dịch vụ Google Gemini API.');
 }
 
@@ -108,11 +110,9 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
 
   const modelsToTry = [
     'gemini-flash-latest',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
+    'gemini-1.5-flash-latest',
+    'gemini-2.0-flash-exp',
+    'gemini-2.5-flash'
   ];
 
   let lastStreamError: any = null;
@@ -171,6 +171,12 @@ async function generateGeminiStream(apiKey: string, contents: any, onChunk: (tex
       console.warn(`[Gemini Direct Stream] Model ${modelName} error: ${err.message}`);
       lastStreamError = err;
     }
+  }
+
+  if (lastStreamError && (lastStreamError.message.includes('Quota exceeded') || lastStreamError.message.includes('rate-limit') || lastStreamError.message.includes('429'))) {
+    const rateLimitMsg = 'Hệ thống AI đang chạm giới hạn tần suất lượt truy cập miễn phí từ Google (15 lượt/phút). Vui lòng thử lại sau 5 giây!';
+    onChunk(rateLimitMsg);
+    return rateLimitMsg;
   }
 
   throw lastStreamError || new Error('Không thể khởi tạo dịch vụ Gemini Stream.');
