@@ -703,6 +703,7 @@ export function useAuth() {
                 time: getRelativeTimeLabel(date),
                 isRead: false,
                 target: data.target || 'ALL',
+                role: data.role || (data.target === 'RECRUITER' ? 'employer' : data.target === 'USER' ? 'candidate' : undefined),
               };
             })
             .filter((item) => ['ALL', 'RECRUITER', 'USER'].includes(item.target) || item.target === user.uid);
@@ -1952,13 +1953,30 @@ export function useAuth() {
             return item.role === userRole;
           }
 
+          const title = (item.title || '').toLowerCase();
+          const desc = (item.description || '').toLowerCase();
+          const isJobApprovalNotif = title.includes('bài đăng') || title.includes('phê duyệt') || title.includes('từ chối') || desc.includes('bài đăng');
+
+          if (userRole === 'candidate') {
+            // Candidates MUST NOT see job approval notifications from admin
+            if (isJobApprovalNotif || item.target === 'RECRUITER') return false;
+          }
+
+          if (userRole === 'employer') {
+            if (item.target === 'USER') return false;
+            if (isJobApprovalNotif) return true;
+          }
+
           // Target check
           if (item.target === 'ALL') return true;
           if (item.target === 'RECRUITER') return userRole === 'employer';
           if (item.target === 'USER') return userRole === 'candidate';
 
           // Direct target match to user UID
-          if (item.target === firebaseUser.uid) return true;
+          if (item.target === firebaseUser.uid) {
+            if (isJobApprovalNotif) return userRole === 'employer';
+            return true;
+          }
 
           if (userRole === 'employer') {
             return false;
