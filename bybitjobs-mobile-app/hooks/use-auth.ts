@@ -666,7 +666,17 @@ export function useAuth() {
           const dbItems = snapshot.docs
             .map((doc) => {
               const data = doc.data();
-              const date = data.createdAt ? data.createdAt.toDate() : new Date();
+              let date: Date;
+              if (data.createdAt) {
+                if (typeof data.createdAt.toDate === 'function') {
+                  date = data.createdAt.toDate();
+                } else {
+                  date = new Date(data.createdAt);
+                  if (isNaN(date.getTime())) date = new Date();
+                }
+              } else {
+                date = new Date();
+              }
               return {
                 id: doc.id,
                 category: data.category || (['ALL', 'RECRUITER', 'USER'].includes(data.target) ? 'system' : 'security') as any,
