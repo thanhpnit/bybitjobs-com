@@ -73,7 +73,12 @@ export const Reviews: React.FC = () => {
           };
         })
         .filter((item) => item.rating > 0 || item.comment.trim().length > 0)
-        .sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+        .sort((a, b) => {
+          const aPending = a.status === 'Chờ duyệt' ? 1 : 0;
+          const bPending = b.status === 'Chờ duyệt' ? 1 : 0;
+          if (aPending !== bPending) return bPending - aPending;
+          return new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime();
+        });
 
       setData(reviews);
       setIsLoading(false);

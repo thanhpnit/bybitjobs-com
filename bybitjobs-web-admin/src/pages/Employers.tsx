@@ -145,7 +145,12 @@ export const Employers: React.FC = () => {
     (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (emp.phone || '').includes(searchQuery) ||
     (emp.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => getItemTime(b) - getItemTime(a));
+  ).sort((a, b) => {
+    const aPending = (a.status === 'Chờ duyệt' || a.status === 'pending') ? 1 : 0;
+    const bPending = (b.status === 'Chờ duyệt' || b.status === 'pending') ? 1 : 0;
+    if (aPending !== bPending) return bPending - aPending;
+    return getItemTime(b) - getItemTime(a);
+  });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

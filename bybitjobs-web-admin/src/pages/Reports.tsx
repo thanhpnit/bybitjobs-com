@@ -95,8 +95,15 @@ export const Reports: React.FC = () => {
   }, []);
 
   const filteredReports = useMemo(() => {
-    if (reportFilter === 'all') return allReports;
-    return allReports.filter((r) => r.status === reportFilter);
+    let list = allReports;
+    if (reportFilter !== 'all') {
+      list = allReports.filter((r) => r.status === reportFilter);
+    }
+    return list.slice().sort((a, b) => {
+      const aPending = (a.status === 'pending' || a.status === 'Chờ duyệt') ? 1 : 0;
+      const bPending = (b.status === 'pending' || b.status === 'Chờ duyệt') ? 1 : 0;
+      return bPending - aPending;
+    });
   }, [allReports, reportFilter]);
 
   const pendingCount = useMemo(() => allReports.filter(r => r.status === 'pending').length, [allReports]);

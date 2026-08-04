@@ -122,7 +122,12 @@ export const JobPosts: React.FC = () => {
   const filteredData = jobPosts.filter(job => 
     job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     job.company.toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => getItemTime(b) - getItemTime(a));
+  ).sort((a, b) => {
+    const aPending = a.status === 'Chờ duyệt' ? 1 : 0;
+    const bPending = b.status === 'Chờ duyệt' ? 1 : 0;
+    if (aPending !== bPending) return bPending - aPending;
+    return getItemTime(b) - getItemTime(a);
+  });
 
   const openEmployerDetail = (job: any) => {
     const employer = employers.find((item) => item.id === job.employerId || item.uid === job.employerId);
