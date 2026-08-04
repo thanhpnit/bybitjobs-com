@@ -2366,8 +2366,25 @@ function CandidateProfileScreen() {
         visible={isChangePasswordModalVisible}
         onRequestClose={() => setIsChangePasswordModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.appliedJobsModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', padding: 20, borderRadius: 16, maxWidth: 440, width: '90%' }]}>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 20,
+        }}>
+          <View style={{
+            backgroundColor: isDark ? '#1C1C1E' : '#FFF',
+            padding: 24,
+            borderRadius: 20,
+            maxWidth: 440,
+            width: '100%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.25,
+            shadowRadius: 15,
+            elevation: 10,
+          }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="key" size={22} color="#0084FF" />
