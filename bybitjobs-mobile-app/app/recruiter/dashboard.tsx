@@ -15,7 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth, checkIsJobExpired } from '@/hooks/use-auth';
+import { useAuth, checkIsJobExpired, formatDeadlineDisplay } from '@/hooks/use-auth';
 
 interface MarketJobItem {
   id: string;
@@ -301,7 +301,7 @@ export default function RecruiterDashboardScreen() {
         avatar: getPosterAvatar(posterName),
       },
       location: job.location,
-      timeLeft: job.isOpen ? `Hạn chót: ${job.deadline}` : 'Đã đóng',
+      timeLeft: job.isOpen ? `Hạn chót: ${formatDeadlineDisplay(job.deadline)}` : 'Đã đóng',
       tags: [
         { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category' as const, icon: 'briefcase-outline' as const }
       ],

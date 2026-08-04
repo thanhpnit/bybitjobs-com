@@ -175,6 +175,50 @@ let globalEmployerUnsubscribe: (() => void) | null = null;
 const listeners = new Set<() => void>();
 const notifyAll = () => listeners.forEach((l) => l());
 
+export const formatDeadlineDisplay = (deadlineStr?: string): string => {
+  if (!deadlineStr) return 'Đang cập nhật';
+
+  if (deadlineStr.includes('/')) {
+    const parts = deadlineStr.split('/');
+    if (parts.length === 3) {
+      let p1 = parseInt(parts[0], 10);
+      let p2 = parseInt(parts[1], 10);
+      let y = parseInt(parts[2], 10);
+
+      if (!isNaN(p1) && !isNaN(p2) && !isNaN(y)) {
+        let day = p1;
+        let month = p2;
+
+        // If p1 > 12 -> p1 is Day, p2 is Month (DD/MM/YYYY)
+        if (p1 > 12) {
+          day = p1;
+          month = p2;
+        } 
+        // If p2 > 12 -> p1 is Month, p2 is Day (MM/DD/YYYY -> convert to DD/MM/YYYY)
+        else if (p2 > 12) {
+          day = p2;
+          month = p1;
+        }
+
+        const dStr = String(day).padStart(2, '0');
+        const mStr = String(month).padStart(2, '0');
+        return `${dStr}/${mStr}/${y}`;
+      }
+    }
+  }
+
+  try {
+    const parsed = new Date(deadlineStr);
+    if (!isNaN(parsed.getTime())) {
+      const dStr = String(parsed.getDate()).padStart(2, '0');
+      const mStr = String(parsed.getMonth() + 1).padStart(2, '0');
+      return `${dStr}/${mStr}/${parsed.getFullYear()}`;
+    }
+  } catch (e) {}
+
+  return deadlineStr;
+};
+
 export const checkIsJobExpired = (deadlineStr?: string): boolean => {
   if (!deadlineStr) return false;
   try {
@@ -185,11 +229,18 @@ export const checkIsJobExpired = (deadlineStr?: string): boolean => {
       let p2 = parseInt(parts[1], 10);
       let y = parseInt(parts[2], 10);
       if (!isNaN(p1) && !isNaN(p2) && !isNaN(y)) {
+        let day = p1;
+        let month = p2;
+
         if (p1 > 12) {
-          deadlineDate = new Date(y, p2 - 1, p1, 23, 59, 59, 999);
-        } else {
-          deadlineDate = new Date(y, p1 - 1, p2, 23, 59, 59, 999);
+          day = p1;
+          month = p2;
+        } else if (p2 > 12) {
+          day = p2;
+          month = p1;
         }
+
+        deadlineDate = new Date(y, month - 1, day, 23, 59, 59, 999);
       }
     } else {
       const parsed = new Date(deadlineStr);

@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, formatDeadlineDisplay } from '@/hooks/use-auth';
 import { db } from '../src/config/firebase';
 import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -369,7 +369,7 @@ export default function JobDetailsScreen() {
               currentJob?.industry || 'Tuyển dụng',
               (currentJob as any)?.type || 'Bán thời gian',
               (currentJob as any)?.isPremium ? 'Tin tuyển dụng HOT' : 'Tin tuyển dụng mới',
-              currentJob?.deadline ? `Hạn ứng tuyển ${currentJob.deadline}` : 'Đang tuyển',
+              currentJob?.deadline ? `Hạn ứng tuyển ${formatDeadlineDisplay(currentJob.deadline)}` : 'Đang tuyển',
             ].map(renderInfoChip)}
           </View>
 
@@ -508,7 +508,7 @@ export default function JobDetailsScreen() {
               <View style={styles.metaTextCol}>
                 <Text style={[styles.metaLabel, { color: isDark ? '#9BA1A6' : '#687076' }]}>Hạn ứng tuyển</Text>
                 <Text style={[styles.metaValue, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  {currentJob?.deadline || 'Liên hệ nhà tuyển dụng'}
+                  {currentJob?.deadline ? formatDeadlineDisplay(currentJob.deadline) : 'Liên hệ nhà tuyển dụng'}
                 </Text>
               </View>
             </View>
