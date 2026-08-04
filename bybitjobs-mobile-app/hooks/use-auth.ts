@@ -175,6 +175,38 @@ let globalEmployerUnsubscribe: (() => void) | null = null;
 const listeners = new Set<() => void>();
 const notifyAll = () => listeners.forEach((l) => l());
 
+export const checkIsJobExpired = (deadlineStr?: string): boolean => {
+  if (!deadlineStr) return false;
+  try {
+    const parts = deadlineStr.split('/');
+    let deadlineDate: Date | null = null;
+    if (parts.length === 3) {
+      let p1 = parseInt(parts[0], 10);
+      let p2 = parseInt(parts[1], 10);
+      let y = parseInt(parts[2], 10);
+      if (!isNaN(p1) && !isNaN(p2) && !isNaN(y)) {
+        if (p1 > 12) {
+          deadlineDate = new Date(y, p2 - 1, p1, 23, 59, 59, 999);
+        } else {
+          deadlineDate = new Date(y, p1 - 1, p2, 23, 59, 59, 999);
+        }
+      }
+    } else {
+      const parsed = new Date(deadlineStr);
+      if (!isNaN(parsed.getTime())) {
+        deadlineDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999);
+      }
+    }
+
+    if (deadlineDate) {
+      return new Date() > deadlineDate;
+    }
+  } catch (err) {
+    console.warn('Lỗi kiểm tra hạn ứng tuyển:', err);
+  }
+  return false;
+};
+
 let globalJobs: JobItem[] = [];
 let globalJobsUnsubscribe: (() => void) | null = null;
 
@@ -182,10 +214,24 @@ const initJobsListener = () => {
   if (globalJobsUnsubscribe) return;
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
   globalJobsUnsubscribe = onSnapshot(q, (snapshot) => {
-    globalJobs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as JobItem[];
+    globalJobs = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      const expired = checkIsJobExpired(data.deadline);
+      const rawIsOpen = data.isOpen !== undefined ? data.isOpen : true;
+      const isOpen = expired ? false : rawIsOpen;
+
+      // Auto update Firestore when an approved/open job reaches its deadline
+      if (expired && rawIsOpen) {
+        updateDoc(doc(db, 'jobs', docSnap.id), { isOpen: false, status: 'Đã đóng' })
+          .catch(e => console.log('Lỗi tự động đóng bài đăng hết hạn:', e));
+      }
+
+      return {
+        id: docSnap.id,
+        ...data,
+        isOpen,
+      } as JobItem;
+    });
     notifyAll();
   }, (error) => {
     console.error('Lỗi tải danh sách việc làm:', error);

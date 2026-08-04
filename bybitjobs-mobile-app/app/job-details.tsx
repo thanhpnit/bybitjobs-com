@@ -544,10 +544,16 @@ export default function JobDetailsScreen() {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={0.85} onPress={handleApply} style={styles.applyButton}>
-            <Text style={styles.applyButtonText}>Ứng tuyển ngay</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFF" style={styles.applyIcon} />
-          </TouchableOpacity>
+          {currentJob?.isOpen === false ? (
+            <View style={[styles.applyButton, { backgroundColor: isDark ? '#3A3A3C' : '#C7C7CC' }]}>
+              <Text style={styles.applyButtonText}>Bài đăng đã hết hạn / Đã đóng</Text>
+            </View>
+          ) : (
+            <TouchableOpacity activeOpacity={0.85} onPress={handleApply} style={styles.applyButton}>
+              <Text style={styles.applyButtonText}>Ứng tuyển ngay</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFF" style={styles.applyIcon} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
