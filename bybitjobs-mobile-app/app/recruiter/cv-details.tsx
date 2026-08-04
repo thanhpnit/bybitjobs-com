@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '../../src/config/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import CvPdfViewerModal from '../../components/cv-pdf-viewer-modal';
 
 export default function RecruiterCvDetailsScreen() {
@@ -82,6 +84,14 @@ export default function RecruiterCvDetailsScreen() {
   React.useEffect(() => {
     if (!application) return;
 
+    // Check if application already has saved matchScore & matchReason in Firestore
+    if ((application as any).matchScore && ((application as any).matchReason || (application as any).matchSummary)) {
+      setMatchScore((application as any).matchScore);
+      setMatchSummary((application as any).matchReason || (application as any).matchSummary);
+      setIsLoadingMatch(false);
+      return;
+    }
+
     let isMounted = true;
     const fetchAIMatchScore = async () => {
       setIsLoadingMatch(true);
@@ -102,8 +112,22 @@ export default function RecruiterCvDetailsScreen() {
         if (response.ok) {
           const result = await response.json();
           if (result.success && isMounted) {
-            setMatchScore(result.matchScore || 86);
-            setMatchSummary(result.reason || result.matchSummary || 'Ứng viên có kỹ năng và hồ sơ phù hợp tốt với các yêu cầu vị trí tuyển dụng.');
+            const finalScore = result.matchScore || 84;
+            const finalSummary = result.reason || result.matchSummary || 'Ứng viên có kỹ năng và hồ sơ đáp ứng tiêu chí vị trí tuyển dụng.';
+            setMatchScore(finalScore);
+            setMatchSummary(finalSummary);
+
+            // Save permanently to Firestore so score is persisted forever
+            try {
+              await updateDoc(doc(db, 'applications', application.id), {
+                matchScore: finalScore,
+                matchReason: finalSummary,
+                matchSummary: finalSummary,
+                scoredAt: new Date().toISOString(),
+              });
+            } catch (saveErr) {
+              console.warn('Lỗi lưu điểm AI vào Firestore:', saveErr);
+            }
             return;
           }
         }
@@ -112,17 +136,13 @@ export default function RecruiterCvDetailsScreen() {
       } finally {
         if (isMounted) {
           setIsLoadingMatch(false);
-          if (!matchScore) {
-            setMatchScore(85);
-            setMatchSummary('Ứng viên sở hữu các kỹ năng chuyên môn phù hợp với yêu cầu vị trí tuyển dụng.');
-          }
         }
       }
     };
 
     fetchAIMatchScore();
     return () => { isMounted = false; };
-  }, [appId]);
+  }, [appId, application]);
 
   const handleApprove = () => {
     updateApplicationStatus(application.id, 'Approved');

@@ -1745,22 +1745,30 @@ app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): P
     const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
 
     const prompt = `
-Bạn là Chuyên gia Tuyển dụng AI. Hãy đánh giá độ phù hợp của Ứng viên so với Yêu cầu tuyển dụng:
+Bạn là Chuyên gia Tuyển dụng AI cao cấp. Hãy đánh giá độ phù hợp của Ứng viên so với Vị trí tuyển dụng dựa theo 4 TIÊU CHUẨN ĐÁNH GIÁ (Tổng 100 điểm):
+
+1. Kỹ năng chuyên môn (Tối đa 40 điểm): Độ tương thích kỹ năng (${skillsText}) với vị trí (${jobTitle}).
+2. Kinh nghiệm làm việc (Tối đa 30 điểm): Lịch sử công việc (${expText}) so với yêu cầu bài đăng.
+3. Độ phù hợp & Thư ứng tuyển (Tối đa 20 điểm): Lời nhắn (${message || 'Không có'}).
+4. Hoàn thiện hồ sơ (Tối đa 10 điểm): Sự chuẩn bị hồ sơ ứng viên.
+
 [TIN TUYỂN DỤNG]
-- Tiêu đề: ${jobTitle || 'Công việc'}
-- Mô tả: ${jobDescription || 'Yêu cầu kỹ năng chuyên môn'}
+- Vị trí: ${jobTitle || 'Công việc'}
+- Mô tả / Yêu cầu: ${jobDescription || 'Yêu cầu năng lực chuyên môn phù hợp với công việc.'}
 
 [ỨNG VIÊN]
 - Tên: ${applicantName || 'Ứng viên'}
 - Kỹ năng: ${skillsText}
 - Kinh nghiệm: ${expText}
-- Thư xin việc: ${message || 'Không có'}
+- Thư ứng tuyển: ${message || 'Không có'}
+
+Hãy tính toán tổng điểm số thực tế từ 55 đến 98 điểm dựa vào 4 tiêu chí trên.
 
 [YÊU CẦU ĐẦU RA STRICT JSON]
-Trả về CHÍNH XÁC 1 Object JSON không bọc markdown:
+Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown):
 {
-  "matchScore": 88,
-  "reason": "Ứng viên có kỹ năng ${skillsText} rất phù hợp với vị trí ${jobTitle}, kinh nghiệm thực tế tốt."
+  "matchScore": 84,
+  "reason": "Ứng viên đạt 84%: Kỹ năng chuyên môn 34/40, Kinh nghiệm 26/30, Thư ứng tuyển 16/20, Hồ sơ 8/10. Phù hợp tốt với vị trí ${jobTitle || 'tuyển dụng'}."
 }
     `;
 
@@ -1768,8 +1776,8 @@ Trả về CHÍNH XÁC 1 Object JSON không bọc markdown:
     let text = result.response.text().trim();
     const parsed = extractJsonFromText(text);
 
-    const matchScore = typeof parsed.matchScore === 'number' ? parsed.matchScore : 85;
-    const matchSummary = parsed.reason || parsed.matchSummary || `Ứng viên có kỹ năng (${skillsText}) đáp ứng tốt yêu cầu vị trí ${jobTitle || 'tuyển dụng'}.`;
+    const matchScore = typeof parsed.matchScore === 'number' ? Math.max(50, Math.min(99, parsed.matchScore)) : 85;
+    const matchSummary = parsed.reason || parsed.matchSummary || `Ứng viên đáp ứng tốt các tiêu chí yêu cầu vị trí ${jobTitle || 'tuyển dụng'}.`;
 
     return res.status(200).json({
       success: true,
