@@ -124,9 +124,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchRealEmployers();
   }, []);
 
-  // Listen to Firestore packages, jobs, reports, applications (reviews)
-  useEffect(() => {
-    // 1. Packages
+    // 1. Employers (Real-time sync from Firestore)
+    const unsubEmployers = onSnapshot(collection(db, 'employers'), (snapshot) => {
+      const data: any[] = [];
+      snapshot.forEach(docSnap => {
+        const item = docSnap.data();
+        data.push({
+          id: docSnap.id,
+          user_id: docSnap.id,
+          company: item.companyName || item.company_name || item.company || 'Doanh nghiệp',
+          company_name: item.companyName || item.company_name || item.company || 'Doanh nghiệp',
+          email: item.email || '',
+          phone: item.phoneNumber || item.phone || '',
+          address: item.address || '',
+          industry: item.industry || 'Khác',
+          status: item.status || 'Chờ duyệt',
+          logo: item.logo_url || item.logo || '',
+          createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now())
+        });
+      });
+      if (data.length > 0) {
+        setEmployersState(sortNewestFirst(data));
+      }
+    });
+
+    // 2. Packages
     const unsubPackages = onSnapshot(collection(db, 'packages'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(d => data.push(d.data()));

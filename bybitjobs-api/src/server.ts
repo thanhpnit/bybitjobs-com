@@ -1311,6 +1311,22 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
+
+    const updatedCompanyName = data.company || data.company_name || data.companyName;
+    if (updatedCompanyName) {
+      try {
+        const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
+        if (!jobsSnap.empty) {
+          const batch = db.batch();
+          jobsSnap.docs.forEach((jDoc) => {
+            batch.update(jDoc.ref, { companyName: updatedCompanyName, posterName: updatedCompanyName });
+          });
+          await batch.commit();
+        }
+      } catch (e) {
+        console.error('Lỗi đồng bộ tên công ty sang các bài tuyển dụng:', e);
+      }
+    }
     
     const updatedDoc = await docRef.get();
     return res.status(200).json({ success: true, employer: { id: updatedDoc.id, ...updatedDoc.data() } });
