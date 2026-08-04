@@ -93,11 +93,11 @@ const buildFeaturedCompany = (employerData: any, employerId: string, fallbackNam
     id: employerId,
     employerId,
     name: safeCompanyName,
-    logo: typeof employerData?.logo === 'string' && employerData.logo.startsWith('http')
-      ? employerData.logo
+    logo: (employerData?.logoUrl || employerData?.logo_url || employerData?.logo || '').length > 5
+      ? (employerData.logoUrl || employerData.logo_url || employerData.logo)
       : DEFAULT_COMPANY_LOGO,
-    coverImage: typeof employerData?.coverImage === 'string' && employerData.coverImage.startsWith('http')
-      ? employerData.coverImage
+    coverImage: (employerData?.coverImage || employerData?.cover_image || '').length > 5
+      ? (employerData.coverImage || employerData.cover_image)
       : DEFAULT_COMPANY_COVER,
     industry: employerData?.industry || employerData?.businessField || 'Đang cập nhật lĩnh vực',
     scale: employerData?.scale || employerData?.companySize || 'Đang cập nhật quy mô',

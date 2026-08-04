@@ -1295,12 +1295,11 @@ export function useAuth() {
         const user = auth.currentUser;
         if (!user) throw new Error('Chưa đăng nhập');
 
-        const payload: any = {};
-        if (data.companyName) payload.company = data.companyName;
         if (data.industry) payload.industry = data.industry;
         if (data.address) payload.address = data.address;
         if (data.taxId) payload.taxId = data.taxId;
         if (data.phoneNumber) payload.phone = data.phoneNumber;
+        if (data.logoUrl || data.logo) payload.logo_url = data.logoUrl || data.logo;
 
         const response = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`, {
           method: 'POST',
@@ -1310,6 +1309,14 @@ export function useAuth() {
 
         if (response.ok) {
           globalEmployerData = { ...globalEmployerData, ...data };
+          try {
+            await setDoc(doc(db, 'employers', user.uid), {
+              companyName: data.companyName || globalEmployerData.companyName,
+              logo_url: data.logoUrl || data.logo,
+              logo: data.logoUrl || data.logo,
+              ...payload
+            }, { merge: true });
+          } catch (fsErr) {}
           notifyAll();
         }
       } catch (error) {
