@@ -38,14 +38,117 @@ interface MarketJobItem {
   originalIndustry: string;
 }
 
+const FEATURED_RECRUITER_BRANDS = [
+  {
+    id: 'brand-1',
+    name: 'Tập đoàn VinFast',
+    logo: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=120&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=60',
+    rating: 4.9,
+    scale: '10.000+ nhân sự',
+    location: 'Hà Nội & TP.HCM',
+    jobsCount: 12,
+  },
+  {
+    id: 'brand-2',
+    name: 'Tập đoàn FPT',
+    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
+    rating: 4.8,
+    scale: '5.000+ nhân sự',
+    location: 'Quận 9, TP.HCM',
+    jobsCount: 8,
+  },
+  {
+    id: 'brand-3',
+    name: 'Tập đoàn Viettel',
+    logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=120&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop&q=60',
+    rating: 4.9,
+    scale: '20.000+ nhân sự',
+    location: 'Cầu Giấy, Hà Nội',
+    jobsCount: 15,
+  },
+  {
+    id: 'brand-4',
+    name: 'Shopee Vietnam',
+    logo: 'https://images.unsplash.com/photo-1556742049-0a67417537b0?w=120&auto=format&fit=crop&q=60',
+    coverImage: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500&auto=format&fit=crop&q=60',
+    rating: 4.7,
+    scale: '3.000+ nhân sự',
+    location: 'Quận 7, TP.HCM',
+    jobsCount: 6,
+  },
+];
+
 export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, logout, unreadNotificationsCount } = useAuth();
+  const { jobs, applications, candidates, viewedJobs, userData, logout, unreadNotificationsCount } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
+
+  const employerJobIds = React.useMemo(() => {
+    if (!userData?.uid) return new Set<string>();
+    return new Set(
+      jobs
+        .filter((job) => job.employerId === userData.uid)
+        .map((job) => job.id)
+    );
+  }, [jobs, userData?.uid]);
+
+  const employerApplications = React.useMemo(() => {
+    if (!applications) return [];
+    if (!userData?.uid) return applications;
+    return applications.filter((app) => employerJobIds.has(app.jobId));
+  }, [applications, employerJobIds, userData?.uid]);
+
+  const receivedAppsCount = employerApplications.length;
+
+  const highMatchAppsCount = React.useMemo(() => {
+    return employerApplications.filter((app) => app.status !== 'Rejected').length;
+  }, [employerApplications]);
+
+  const totalViewsCount = React.useMemo(() => {
+    if (!viewedJobs || viewedJobs.length === 0) return 0;
+    if (!userData?.uid) return viewedJobs.length;
+    return viewedJobs.filter((item) => employerJobIds.has(item.jobId)).length;
+  }, [viewedJobs, employerJobIds, userData?.uid]);
+
+  const [realFeaturedCompanies, setRealFeaturedCompanies] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    let isActive = true;
+    const fetchRealEmployers = async () => {
+      try {
+        const response = await fetch('http://160.250.246.119:4000/api/employers');
+        if (!response.ok) return;
+        const data = await response.json();
+        const employers = Array.isArray(data) ? data : data?.employers;
+        if (Array.isArray(employers) && employers.length > 0 && isActive) {
+          const formatted = employers.map((emp: any) => ({
+            id: String(emp.id || emp.uid || Math.random()),
+            name: emp.companyName || emp.company_name || emp.name || 'Doanh nghiệp BybitJobs',
+            logo: emp.logo && String(emp.logo).startsWith('http') ? emp.logo : 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
+            coverImage: emp.coverImage && String(emp.coverImage).startsWith('http') ? emp.coverImage : 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
+            rating: Number(emp.rating || 5.0),
+            scale: emp.companySize || emp.scale || 'Dưới 500 nhân sự',
+            location: emp.address || emp.location || 'TP. Hồ Chí Minh',
+            jobsCount: jobs.filter(j => j.employerId === emp.id).length || 5,
+          }));
+          setRealFeaturedCompanies(formatted);
+        }
+      } catch (err) {
+        console.error('Lỗi lấy doanh nghiệp thật:', err);
+      }
+    };
+    fetchRealEmployers();
+    return () => { isActive = false; };
+  }, [jobs]);
+
+  const displayFeaturedBrands = realFeaturedCompanies.length > 0 ? realFeaturedCompanies : FEATURED_RECRUITER_BRANDS;
 
   const [isMenuVisible, setIsMenuVisible] = React.useState(false);
   const handleCloseMenu = () => setIsMenuVisible(false);
@@ -395,7 +498,11 @@ export default function RecruiterDashboardScreen() {
         {/* Recruiter Quick Analytics Stat Grid */}
         <View style={{ paddingHorizontal: 16, marginVertical: 6 }}>
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => router.push('/recruiter/jobs')}
+              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#EBF5FF', justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="briefcase-outline" size={18} color="#0084FF" />
               </View>
@@ -403,39 +510,51 @@ export default function RecruiterDashboardScreen() {
                 <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{openJobs.length}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Tin tuyển dụng</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => router.push('/recruiter/candidates')}
+              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="people-outline" size={18} color="#2E7D32" />
               </View>
               <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>18</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{receivedAppsCount}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Hồ sơ đã nhận</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => router.push('/recruiter/search-candidates')}
+              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="sparkles-outline" size={18} color="#7C3AED" />
               </View>
               <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#7C3AED' }}>7</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#7C3AED' }}>{highMatchAppsCount}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Match Cao (&gt;80%)</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            <View style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              onPress={() => router.push('/recruiter/jobs')}
+              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            >
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="eye-outline" size={18} color="#E65100" />
               </View>
               <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>340</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{totalViewsCount}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Lượt xem tin</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -493,6 +612,61 @@ export default function RecruiterDashboardScreen() {
               resizeMode="cover"
             />
           </View>
+        </View>
+
+        {/* Featured Recruiter Brands Section (Thương hiệu tuyển dụng nổi bật) */}
+        <View style={styles.featuredCompaniesSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="business" size={18} color="#FF9500" />
+            <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
+              Thương hiệu tuyển dụng nổi bật
+            </Text>
+            <View style={styles.premiumBadge}>
+              <Text style={styles.premiumBadgeText}>Premium</Text>
+            </View>
+          </View>
+          <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+            Các thương hiệu tuyển dụng uy tín hàng đầu trên BybitJobs.
+          </Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.companiesScrollList}
+          >
+            {displayFeaturedBrands.map((company) => (
+              <TouchableOpacity
+                key={company.id}
+                activeOpacity={0.85}
+                onPress={() => router.push('/recruiter/search-candidates')}
+                style={[
+                  styles.companyCard,
+                  {
+                    backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                    borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                  },
+                ]}
+              >
+                <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
+                <View style={styles.companyCardContent}>
+                  <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
+                  <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                    {company.name}
+                  </Text>
+                  <Text style={styles.companyCardMeta} numberOfLines={1}>
+                    ⭐ {company.rating} • {company.scale}
+                  </Text>
+                  <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                    📍 {company.location}
+                  </Text>
+                  <View style={styles.companyCardBottom}>
+                    <Text style={styles.jobCountText}>{company.jobsCount} vị trí đang tuyển</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#0084FF" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <ScrollView
@@ -1400,5 +1574,104 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  featuredCompaniesSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionTitleText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  premiumBadge: {
+    backgroundColor: '#FFEFE6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  premiumBadgeText: {
+    color: '#FF8A00',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  sectionDescText: {
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 12,
+  },
+  companiesScrollList: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  companyCard: {
+    width: 200,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  companyCardCover: {
+    height: 70,
+    width: '100%',
+  },
+  companyCardContent: {
+    padding: 10,
+    alignItems: 'center',
+    position: 'relative',
+    paddingTop: 24,
+  },
+  companyCardLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#FFF',
+    backgroundColor: '#FFF',
+    position: 'absolute',
+    top: -22,
+  },
+  companyCardName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
+  },
+  companyCardMeta: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  companyCardLocation: {
+    fontSize: 9,
+    marginTop: 2,
+    textAlign: 'center',
+    width: '100%',
+  },
+  companyCardBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F2F7',
+  },
+  jobCountText: {
+    fontSize: 10,
+    color: '#0084FF',
+    fontWeight: '600',
   },
 });
