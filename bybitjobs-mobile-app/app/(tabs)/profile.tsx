@@ -52,8 +52,19 @@ function CandidateProfileScreen() {
     switchRole,
     invitations,
     respondToInvitation,
-    disableAccount
+    disableAccount,
+    changePassword
   } = useAuth();
+
+  // Change Password State
+  const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = React.useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = React.useState('');
+  const [newPasswordInput, setNewPasswordInput] = React.useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = React.useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [isChangingPassword, setIsChangingPassword] = React.useState(false);
 
   // Job seeking switch states
   const [isJobSeeking, setIsJobSeeking] = React.useState(true);
@@ -1887,7 +1898,12 @@ function CandidateProfileScreen() {
             </View>
             <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-            {renderSettingRow('key-outline', 'Đổi mật khẩu', () => handleFeaturePress('Đổi mật khẩu', () => triggerFeatureMock('Đổi mật khẩu')))}
+            {renderSettingRow('key-outline', 'Đổi mật khẩu', () => handleFeaturePress('Đổi mật khẩu', () => {
+              setCurrentPasswordInput('');
+              setNewPasswordInput('');
+              setConfirmPasswordInput('');
+              setIsChangePasswordModalVisible(true);
+            }))}
 
             {/* 2-Step Verification with dynamic badge */}
             {renderSettingRow(
@@ -2342,6 +2358,169 @@ function CandidateProfileScreen() {
           email={userData?.emailOrPhone || 'Chưa cập nhật'}
         />
       )}
+
+      {/* Modal Đổi Mật Khẩu */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isChangePasswordModalVisible}
+        onRequestClose={() => setIsChangePasswordModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.appliedJobsModalContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', padding: 20, borderRadius: 16, maxWidth: 440, width: '90%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="key" size={22} color="#0084FF" />
+                <Text style={{ color: isDark ? '#FFF' : '#11181C', fontSize: 18, fontWeight: 'bold' }}>
+                  Đổi mật khẩu
+                </Text>
+              </View>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setIsChangePasswordModalVisible(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#AAA' : '#666'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 20, lineHeight: 18 }}>
+              Vui lòng nhập mật khẩu hiện tại và mật khẩu mới để bảo mật tài khoản của bạn.
+            </Text>
+
+            {/* Mật khẩu hiện tại */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 6 }}>
+              Mật khẩu hiện tại
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDark ? '#2C2C2E' : '#F5F7FA',
+              borderWidth: 1,
+              borderColor: isDark ? '#3E3E42' : '#E5E7EB',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              marginBottom: 16,
+              height: 48
+            }}>
+              <TextInput
+                secureTextEntry={!showCurrentPassword}
+                placeholder="Nhập mật khẩu hiện tại"
+                placeholderTextColor={isDark ? '#687076' : '#9BA1A6'}
+                value={currentPasswordInput}
+                onChangeText={setCurrentPasswordInput}
+                style={{ flex: 1, color: isDark ? '#FFF' : '#11181C', fontSize: 14 }}
+              />
+              <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)} style={{ padding: 4 }}>
+                <Ionicons name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={isDark ? '#AAA' : '#8E8E93'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Mật khẩu mới */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 6 }}>
+              Mật khẩu mới
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDark ? '#2C2C2E' : '#F5F7FA',
+              borderWidth: 1,
+              borderColor: isDark ? '#3E3E42' : '#E5E7EB',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              marginBottom: 16,
+              height: 48
+            }}>
+              <TextInput
+                secureTextEntry={!showNewPassword}
+                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                placeholderTextColor={isDark ? '#687076' : '#9BA1A6'}
+                value={newPasswordInput}
+                onChangeText={setNewPasswordInput}
+                style={{ flex: 1, color: isDark ? '#FFF' : '#11181C', fontSize: 14 }}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} style={{ padding: 4 }}>
+                <Ionicons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={isDark ? '#AAA' : '#8E8E93'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Xác nhận mật khẩu mới */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: isDark ? '#FFF' : '#11181C', marginBottom: 6 }}>
+              Xác nhận mật khẩu mới
+            </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDark ? '#2C2C2E' : '#F5F7FA',
+              borderWidth: 1,
+              borderColor: isDark ? '#3E3E42' : '#E5E7EB',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              marginBottom: 24,
+              height: 48
+            }}>
+              <TextInput
+                secureTextEntry={!showConfirmPassword}
+                placeholder="Nhập lại mật khẩu mới"
+                placeholderTextColor={isDark ? '#687076' : '#9BA1A6'}
+                value={confirmPasswordInput}
+                onChangeText={setConfirmPasswordInput}
+                style={{ flex: 1, color: isDark ? '#FFF' : '#11181C', fontSize: 14 }}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={{ padding: 4 }}>
+                <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={isDark ? '#AAA' : '#8E8E93'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={isChangingPassword}
+              onPress={async () => {
+                if (!currentPasswordInput.trim()) {
+                  Alert.alert('Thông báo', 'Vui lòng nhập mật khẩu hiện tại.');
+                  return;
+                }
+                if (!newPasswordInput.trim()) {
+                  Alert.alert('Thông báo', 'Vui lòng nhập mật khẩu mới.');
+                  return;
+                }
+                if (newPasswordInput.length < 6) {
+                  Alert.alert('Thông báo', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+                  return;
+                }
+                if (newPasswordInput !== confirmPasswordInput) {
+                  Alert.alert('Thông báo', 'Mật khẩu mới và mật khẩu xác nhận không khớp.');
+                  return;
+                }
+
+                setIsChangingPassword(true);
+                const res = await changePassword(currentPasswordInput, newPasswordInput);
+                setIsChangingPassword(false);
+
+                if (res.success) {
+                  Alert.alert('Thành công', res.message);
+                  setIsChangePasswordModalVisible(false);
+                  setCurrentPasswordInput('');
+                  setNewPasswordInput('');
+                  setConfirmPasswordInput('');
+                } else {
+                  Alert.alert('Thất bại', res.message);
+                }
+              }}
+              style={{
+                backgroundColor: '#0084FF',
+                paddingVertical: 14,
+                borderRadius: 10,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isChangingPassword ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={{ color: '#FFF', fontSize: 15, fontWeight: 'bold' }}>Xác nhận đổi mật khẩu</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         animationType="slide"

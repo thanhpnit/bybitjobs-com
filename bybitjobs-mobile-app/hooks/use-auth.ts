@@ -9,6 +9,9 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   reload,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where, getDocs, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -1013,6 +1016,32 @@ export function useAuth() {
     }
   };
 
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+        return { success: false, message: 'Vui lòng đăng nhập lại để đổi mật khẩu.' };
+      }
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      return { success: true, message: 'Đổi mật khẩu thành công!' };
+    } catch (error: any) {
+      console.error('Lỗi đổi mật khẩu:', error);
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        return { success: false, message: 'Mật khẩu hiện tại không chính xác.' };
+      } else if (error.code === 'auth/weak-password') {
+        return { success: false, message: 'Mật khẩu mới quá yếu. Vui lòng nhập tối thiểu 6 ký tự.' };
+      } else if (error.code === 'auth/requires-recent-login') {
+        return { success: false, message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng xuất và đăng nhập lại.' };
+      }
+      return { success: false, message: error.message || 'Đổi mật khẩu thất bại. Vui lòng thử lại.' };
+    }
+  };
+
   const signup = async (emailOrPhone: string, fullName: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
@@ -1938,6 +1967,7 @@ export function useAuth() {
     },
     login,
     signup,
+    changePassword,
     resetPassword,
     confirmResetPassword,
     sendOtp,
