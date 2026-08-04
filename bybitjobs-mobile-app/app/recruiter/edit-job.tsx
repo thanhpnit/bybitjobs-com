@@ -51,7 +51,24 @@ export default function RecruiterEditJobScreen() {
   const [location, setLocation] = React.useState(existingJob?.location || '');
   const [description, setDescription] = React.useState(existingJob?.description || '');
   const [requirements, setRequirements] = React.useState(existingJob?.requirements || '');
-  const [deadline, setDeadline] = React.useState(existingJob?.deadline || '11/30/2026');
+  const getThirtyDaysFromNow = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 30);
+    return date;
+  };
+
+  const formatDeadlineDate = (date: Date) => {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
+  const [deadline, setDeadline] = React.useState(() => {
+    if (existingJob?.deadline) return existingJob.deadline;
+    return formatDeadlineDate(getThirtyDaysFromNow());
+  });
+
   const [isOpen, setIsOpen] = React.useState(existingJob ? existingJob.isOpen : true);
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
   const [selectedIndustries, setSelectedIndustries] = React.useState<string[]>(() => {
@@ -103,25 +120,25 @@ export default function RecruiterEditJobScreen() {
     if (existingJob?.deadline && existingJob.deadline.includes('/')) {
       const parts = existingJob.deadline.split('/');
       if (parts.length === 3) {
-        const m = parseInt(parts[0], 10) - 1;
-        const d = parseInt(parts[1], 10);
-        const y = parseInt(parts[2], 10);
-        if (!isNaN(m) && !isNaN(d) && !isNaN(y)) {
-          return new Date(y, m, d);
+        let p1 = parseInt(parts[0], 10);
+        let p2 = parseInt(parts[1], 10);
+        let y = parseInt(parts[2], 10);
+        if (!isNaN(p1) && !isNaN(p2) && !isNaN(y)) {
+          if (p1 > 12) {
+            return new Date(y, p2 - 1, p1);
+          }
+          return new Date(y, p1 - 1, p2);
         }
       }
     }
-    return new Date();
+    return getThirtyDaysFromNow();
   });
   
   const [activeMonth, setActiveMonth] = React.useState(() => pickerDate.getMonth());
   const [activeYear, setActiveYear] = React.useState(() => pickerDate.getFullYear());
 
   const selectDate = (date: Date) => {
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const y = date.getFullYear();
-    setDeadline(`${m}/${d}/${y}`);
+    setDeadline(formatDeadlineDate(date));
     setPickerDate(date);
     setIsDatePickerVisible(false);
   };
