@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/src/config/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 interface BranchItem {
   id: string;
@@ -58,6 +60,30 @@ export default function RecruiterProfileScreen() {
   const [phone, setPhone] = React.useState(employerData?.phoneNumber || '0123 456 789');
   const [address, setAddress] = React.useState(employerData?.address || 'Quận 7, TP. Hồ Chí Minh');
   const [industry, setIndustry] = React.useState(employerData?.industry || 'Sản xuất / Vận tải');
+  
+  const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+  const [industryOptions, setIndustryOptions] = React.useState<string[]>(['Công nghệ thông tin', 'Khác']);
+
+  React.useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'industries'));
+        const options: string[] = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          if (data.status === 'Active') {
+            options.push(data.name);
+          }
+        });
+        if (options.length > 0) {
+          setIndustryOptions(options);
+        }
+      } catch (e) {
+        console.error('Error fetching industries', e);
+      }
+    };
+    fetchIndustries();
+  }, []);
   const [scale, setScale] = React.useState(employerData?.scale || '51-200 nhân viên');
   const [description, setDescription] = React.useState(
     employerData?.description || 'Chúng tôi cam kết mang lại giải pháp giao hàng nhanh chóng, hiệu quả và tin cậy cho hàng triệu khách hàng trên toàn quốc.'
@@ -108,17 +134,7 @@ export default function RecruiterProfileScreen() {
   };
 
   const handleSelectIndustry = () => {
-    Alert.alert(
-      'Chọn Lĩnh vực',
-      'Chọn lĩnh vực hoạt động chính của công ty:',
-      [
-        { text: 'Công nghệ', onPress: () => setIndustry('Công nghệ') },
-        { text: 'Tài chính / Ngân hàng', onPress: () => setIndustry('Tài chính / Ngân hàng') },
-        { text: 'Sản xuất / Vận tải', onPress: () => setIndustry('Sản xuất / Vận tải') },
-        { text: 'Dịch vụ / Bán lẻ', onPress: () => setIndustry('Dịch vụ / Bán lẻ') },
-        { text: 'Khác', onPress: () => setIndustry('Lĩnh vực khác') },
-      ]
-    );
+    setIsIndustryModalVisible(true);
   };
 
   const handleSelectScale = () => {
@@ -691,6 +707,75 @@ export default function RecruiterProfileScreen() {
                   <Text style={styles.saveBranchBtnText}>Lưu thông tin</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Chọn Lĩnh Vực */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isIndustryModalVisible}
+          onRequestClose={() => setIsIndustryModalVisible(false)}
+        >
+          <View style={styles.bottomSheetOverlay}>
+            <View style={[styles.industrySheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.industrySheetHeader}>
+                <View style={styles.industrySheetTitleWrap}>
+                  <Text style={[styles.industrySheetTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Chọn lĩnh vực
+                  </Text>
+                  <Text style={styles.industrySheetSubtitle}>
+                    Chọn lĩnh vực hoạt động chính của công ty.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setIsIndustryModalVisible(false)}
+                  style={[styles.sheetCloseBtn, { backgroundColor: isDark ? '#2C2C2E' : '#F2F4F7' }]}
+                >
+                  <Ionicons name="close" size={20} color={isDark ? '#FFF' : '#11181C'} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.industryOptionsContent}>
+                {industryOptions.map((item) => {
+                  const checked = industry === item;
+                  return (
+                    <TouchableOpacity
+                      key={item}
+                      activeOpacity={0.75}
+                      onPress={() => {
+                        setIndustry(item);
+                        setIsIndustryModalVisible(false);
+                      }}
+                      style={[
+                        styles.industryOption,
+                        {
+                          backgroundColor: checked
+                            ? (isDark ? '#0B2C4D' : '#E6F4FE')
+                            : (isDark ? '#151718' : '#F8FAFC'),
+                          borderColor: checked ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E7EB'),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.industryOptionText,
+                          { color: checked ? '#0084FF' : (isDark ? '#FFF' : '#11181C') },
+                        ]}
+                      >
+                        {item}
+                      </Text>
+                      {checked && (
+                        <Ionicons name="checkmark-circle" size={24} color="#0084FF" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -2148,5 +2233,78 @@ const styles = StyleSheet.create({
   modalTitleText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  industrySheet: {
+    maxHeight: '82%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  industrySheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  industrySheetTitleWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  industrySheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  industrySheetSubtitle: {
+    color: '#8E8E93',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  sheetCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  industryOptionsContent: {
+    paddingBottom: 12,
+    gap: 10,
+  },
+  industryOption: {
+    minHeight: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  industryOptionText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
   },
 });

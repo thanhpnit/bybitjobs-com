@@ -18,21 +18,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/src/config/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
-const INDUSTRY_OPTIONS = [
-  'Công nghệ thông tin',
-  'Kinh doanh / Bán hàng',
-  'Marketing / Truyền thông',
-  'Thiết kế đồ họa',
-  'Kế toán / Tài chính',
-  'Nhân sự',
-  'Chăm sóc khách hàng',
-  'Vận chuyển',
-  'Dịch vụ gia đình',
-  'Nhà hàng / Khách sạn',
-  'Giáo dục / Đào tạo',
-  'Khác',
-];
+
 
 export default function RecruiterEditJobScreen() {
   const colorScheme = useColorScheme();
@@ -43,6 +32,28 @@ export default function RecruiterEditJobScreen() {
 
   const isNew = id === 'new';
   const existingJob = jobs.find((j) => j.id === id);
+  const [industryOptions, setIndustryOptions] = React.useState<string[]>(['Công nghệ thông tin', 'Khác']);
+
+  React.useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'industries'));
+        const options: string[] = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          if (data.status === 'Active') {
+            options.push(data.name);
+          }
+        });
+        if (options.length > 0) {
+          setIndustryOptions(options);
+        }
+      } catch (e) {
+        console.error('Error fetching industries', e);
+      }
+    };
+    fetchIndustries();
+  }, []);
 
   // States
   const [title, setTitle] = React.useState(existingJob?.title || '');
@@ -563,7 +574,7 @@ export default function RecruiterEditJobScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.industryOptionsContent}>
-              {INDUSTRY_OPTIONS.map((item) => {
+              {industryOptions.map((item) => {
                 const checked = selectedIndustries.includes(item);
                 return (
                   <TouchableOpacity
