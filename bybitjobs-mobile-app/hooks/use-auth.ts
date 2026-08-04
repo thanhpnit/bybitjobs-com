@@ -501,6 +501,8 @@ const appStartTime = new Date();
 const mockNotifications = [
   {
     id: 'mock-1',
+    role: 'candidate',
+    target: 'USER',
     category: 'job',
     title: 'Nhà tuyển dụng đã xem hồ sơ',
     description: 'Công ty Bybit Việt Nam đã xem CV_Web_Developer_VN.pdf của bạn.',
@@ -509,6 +511,8 @@ const mockNotifications = [
   },
   {
     id: 'mock-3',
+    role: 'candidate',
+    target: 'USER',
     category: 'job',
     title: 'Tin tuyển dụng phù hợp mới',
     description: 'Việc làm "Senior React Native Developer - Bybit" đang tìm ứng viên phù hợp với bạn.',
@@ -517,6 +521,8 @@ const mockNotifications = [
   },
   {
     id: 'mock-4',
+    role: 'candidate',
+    target: 'USER',
     category: 'community',
     title: 'Lượt tương tác mới trong Cộng đồng',
     description: 'Nguyễn Văn A và 5 người khác đã thích bài viết chia sẻ kinh nghiệm phỏng vấn của bạn.',
@@ -525,12 +531,24 @@ const mockNotifications = [
   },
   {
     id: 'mock-5',
+    role: 'candidate',
+    target: 'USER',
     category: 'system',
     title: 'Chào mừng bạn đến với BybitJobs',
     description: 'Khám phá ngay hàng ngàn công việc chất lượng và tạo CV chuyên nghiệp miễn phí.',
     time: '2 ngày trước',
     isRead: true,
   },
+  {
+    id: 'mock-emp-1',
+    role: 'employer',
+    target: 'RECRUITER',
+    category: 'job',
+    title: 'Chào mừng Nhà tuyển dụng',
+    description: 'Chào mừng bạn đến với hệ thống quản lý tuyển dụng BybitJobs. Đăng tin và tìm kiếm ứng viên ngay!',
+    time: '1 giờ trước',
+    isRead: false,
+  }
 ];
 
 const getRelativeTimeLabel = (date: Date) => {
@@ -1929,26 +1947,24 @@ export function useAuth() {
   const mergedNotifications = firebaseUser
     ? [...notifications, ...mockNotifications]
         .filter((item) => {
-          // If explicit role is set, it must match the active userRole
-          if (item.role && item.role !== userRole) {
-            return false;
+          // If explicit role is set, it must strictly match current userRole
+          if (item.role) {
+            return item.role === userRole;
           }
 
-          // Candidate status notifications are strictly for candidates.
-          // Hide them from recruiter if they contain candidate keywords or belong to job category
-          if (userRole === 'employer') {
-            const title = (item.title || '').toLowerCase();
-            const desc = (item.description || '').toLowerCase();
-            if (title.includes('hồ sơ') || title.includes('ứng tuyển') || desc.includes('ứng tuyển') || item.category === 'job') {
-              return false;
-            }
-          }
-          
+          // Target check
           if (item.target === 'ALL') return true;
           if (item.target === 'RECRUITER') return userRole === 'employer';
           if (item.target === 'USER') return userRole === 'candidate';
-          if (item.target === undefined) return userRole === 'candidate';
-          return item.target === firebaseUser.uid || item.target === 'candidate-1' || item.target === 'candidate-2' || item.target === 'candidate-3' || item.target === 'candidate-4';
+
+          // Direct target match to user UID
+          if (item.target === firebaseUser.uid) return true;
+
+          if (userRole === 'employer') {
+            return false;
+          }
+
+          return item.target === 'candidate-1' || item.target === 'candidate-2';
         })
         .filter((item) => !deletedNotificationIds.includes(item.id))
         .map((item) => ({
