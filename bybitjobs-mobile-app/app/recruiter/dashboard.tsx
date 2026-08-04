@@ -38,48 +38,6 @@ interface MarketJobItem {
   originalIndustry: string;
 }
 
-const FEATURED_RECRUITER_BRANDS = [
-  {
-    id: 'brand-1',
-    name: 'Tập đoàn VinFast',
-    logo: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=120&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=60',
-    rating: 4.9,
-    scale: '10.000+ nhân sự',
-    location: 'Hà Nội & TP.HCM',
-    jobsCount: 12,
-  },
-  {
-    id: 'brand-2',
-    name: 'Tập đoàn FPT',
-    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
-    rating: 4.8,
-    scale: '5.000+ nhân sự',
-    location: 'Quận 9, TP.HCM',
-    jobsCount: 8,
-  },
-  {
-    id: 'brand-3',
-    name: 'Tập đoàn Viettel',
-    logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=120&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop&q=60',
-    rating: 4.9,
-    scale: '20.000+ nhân sự',
-    location: 'Cầu Giấy, Hà Nội',
-    jobsCount: 15,
-  },
-  {
-    id: 'brand-4',
-    name: 'Shopee Vietnam',
-    logo: 'https://images.unsplash.com/photo-1556742049-0a67417537b0?w=120&auto=format&fit=crop&q=60',
-    coverImage: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500&auto=format&fit=crop&q=60',
-    rating: 4.7,
-    scale: '3.000+ nhân sự',
-    location: 'Quận 7, TP.HCM',
-    jobsCount: 6,
-  },
-];
 
 export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
@@ -116,39 +74,6 @@ export default function RecruiterDashboardScreen() {
     if (!userData?.uid) return viewedJobs.length;
     return viewedJobs.filter((item) => employerJobIds.has(item.jobId)).length;
   }, [viewedJobs, employerJobIds, userData?.uid]);
-
-  const [realFeaturedCompanies, setRealFeaturedCompanies] = React.useState<any[]>([]);
-
-  React.useEffect(() => {
-    let isActive = true;
-    const fetchRealEmployers = async () => {
-      try {
-        const response = await fetch('http://160.250.246.119:4000/api/employers');
-        if (!response.ok) return;
-        const data = await response.json();
-        const employers = Array.isArray(data) ? data : data?.employers;
-        if (Array.isArray(employers) && employers.length > 0 && isActive) {
-          const formatted = employers.map((emp: any) => ({
-            id: String(emp.id || emp.uid || Math.random()),
-            name: emp.companyName || emp.company_name || emp.name || 'Doanh nghiệp BybitJobs',
-            logo: emp.logo && String(emp.logo).startsWith('http') ? emp.logo : 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
-            coverImage: emp.coverImage && String(emp.coverImage).startsWith('http') ? emp.coverImage : 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60',
-            rating: Number(emp.rating || 5.0),
-            scale: emp.companySize || emp.scale || 'Dưới 500 nhân sự',
-            location: emp.address || emp.location || 'TP. Hồ Chí Minh',
-            jobsCount: jobs.filter(j => j.employerId === emp.id).length || 5,
-          }));
-          setRealFeaturedCompanies(formatted);
-        }
-      } catch (err) {
-        console.error('Lỗi lấy doanh nghiệp thật:', err);
-      }
-    };
-    fetchRealEmployers();
-    return () => { isActive = false; };
-  }, [jobs]);
-
-  const displayFeaturedBrands = realFeaturedCompanies.length > 0 ? realFeaturedCompanies : FEATURED_RECRUITER_BRANDS;
 
   const [isMenuVisible, setIsMenuVisible] = React.useState(false);
   const handleCloseMenu = () => setIsMenuVisible(false);
@@ -612,61 +537,6 @@ export default function RecruiterDashboardScreen() {
               resizeMode="cover"
             />
           </View>
-        </View>
-
-        {/* Featured Recruiter Brands Section (Thương hiệu tuyển dụng nổi bật) */}
-        <View style={styles.featuredCompaniesSection}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="business" size={18} color="#FF9500" />
-            <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-              Thương hiệu tuyển dụng nổi bật
-            </Text>
-            <View style={styles.premiumBadge}>
-              <Text style={styles.premiumBadgeText}>Premium</Text>
-            </View>
-          </View>
-          <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-            Các thương hiệu tuyển dụng uy tín hàng đầu trên BybitJobs.
-          </Text>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.companiesScrollList}
-          >
-            {displayFeaturedBrands.map((company) => (
-              <TouchableOpacity
-                key={company.id}
-                activeOpacity={0.85}
-                onPress={() => router.push('/recruiter/search-candidates')}
-                style={[
-                  styles.companyCard,
-                  {
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                    borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
-                  },
-                ]}
-              >
-                <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
-                <View style={styles.companyCardContent}>
-                  <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
-                  <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                    {company.name}
-                  </Text>
-                  <Text style={styles.companyCardMeta} numberOfLines={1}>
-                    ⭐ {company.rating} • {company.scale}
-                  </Text>
-                  <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
-                    📍 {company.location}
-                  </Text>
-                  <View style={styles.companyCardBottom}>
-                    <Text style={styles.jobCountText}>{company.jobsCount} vị trí đang tuyển</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#0084FF" />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
         </View>
 
         <ScrollView
