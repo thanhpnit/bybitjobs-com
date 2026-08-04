@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -222,10 +223,26 @@ export default function RecruiterCvDetailsScreen() {
           {/* Contact Details List */}
           <View style={[styles.detailsDivider, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]} />
           
-          <View style={styles.contactRow}>
-            <Ionicons name="mail-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
-            <Text style={[styles.contactValueText, { color: isDark ? '#FFF' : '#11181C' }]}>{candidateEmail}</Text>
-          </View>
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => {
+              if (candidateEmail && candidateEmail !== 'Chưa cập nhật email') {
+                Linking.openURL(`mailto:${candidateEmail}?subject=${encodeURIComponent(`Thư mời phỏng vấn - Vị trí ${candidateRole}`)}`).catch(() => {
+                  Alert.alert('Thông báo', 'Không thể mở ứng dụng Email trên thiết bị của bạn.');
+                });
+              } else {
+                Alert.alert('Thông báo', 'Ứng viên chưa cập nhật địa chỉ Email.');
+              }
+            }}
+            style={styles.contactRow}
+          >
+            <Ionicons name="mail-outline" size={16} color="#0084FF" style={styles.contactIcon} />
+            <Text style={[styles.contactValueText, { color: '#0084FF', textDecorationLine: 'underline', fontWeight: '600' }]}>{candidateEmail}</Text>
+            <View style={{ backgroundColor: '#E6F4FE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="paper-plane" size={12} color="#0084FF" />
+              <Text style={{ color: '#0084FF', fontSize: 11, fontWeight: '700' }}>Gửi Email</Text>
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.contactRow}>
             <Ionicons name="call-outline" size={16} color="#8E8E93" style={styles.contactIcon} />
@@ -452,6 +469,24 @@ export default function RecruiterCvDetailsScreen() {
           <Text style={styles.rejectActionBtnText}>Từ chối</Text>
         </TouchableOpacity>
 
+        {/* Email Send Button */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => {
+            if (candidateEmail && candidateEmail !== 'Chưa cập nhật email') {
+              Linking.openURL(`mailto:${candidateEmail}?subject=${encodeURIComponent(`Thư mời phỏng vấn - Vị trí ${candidateRole}`)}`).catch(() => {
+                Alert.alert('Thông báo', 'Không thể mở ứng dụng Email trên thiết bị của bạn.');
+              });
+            } else {
+              Alert.alert('Thông báo', 'Ứng viên chưa cập nhật địa chỉ Email.');
+            }
+          }}
+          style={[styles.bottomBtn, { backgroundColor: '#FF9500', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
+        >
+          <Ionicons name="mail" size={18} color="#FFF" style={{ marginRight: 6 }} />
+          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Gửi Email</Text>
+        </TouchableOpacity>
+
         {/* Blue / White Approve Button */}
         <TouchableOpacity
           activeOpacity={0.85}
@@ -460,7 +495,7 @@ export default function RecruiterCvDetailsScreen() {
         >
           <Ionicons name={isApproved ? "checkmark-done-circle" : "checkmark-circle-outline"} size={20} color="#FFF" style={{ marginRight: 6 }} />
           <Text style={styles.approveActionBtnText}>
-            {isApproved ? 'Đã duyệt • Mở SĐT' : 'Duyệt ứng viên'}
+            {isApproved ? 'Đã duyệt • Mở SĐT' : 'Duyệt hồ sơ'}
           </Text>
         </TouchableOpacity>
 
