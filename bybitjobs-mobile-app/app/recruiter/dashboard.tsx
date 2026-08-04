@@ -15,7 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, checkIsJobExpired } from '@/hooks/use-auth';
 
 interface MarketJobItem {
   id: string;
@@ -278,7 +278,15 @@ export default function RecruiterDashboardScreen() {
     return Number.isNaN(time) ? 0 : time;
   };
 
-  const openJobs = jobs.filter(job => job.isOpen !== false && job.status === 'Hoạt động');
+  const openJobs = jobs.filter(job => {
+    if (job.isOpen === false) return false;
+    if (checkIsJobExpired(job.deadline)) return false;
+    const status = (job.status || '').toLowerCase();
+    if (status.includes('chờ') || status.includes('từ chối') || status.includes('đóng') || status === 'rejected' || status === 'pending') {
+      return false;
+    }
+    return true;
+  });
   const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;

@@ -12,7 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth, JobItem, getRelativeTime } from '@/hooks/use-auth';
+import { useAuth, JobItem, getRelativeTime, checkIsJobExpired } from '@/hooks/use-auth';
 
 export default function RecruiterJobsScreen() {
   const colorScheme = useColorScheme();
@@ -86,13 +86,13 @@ export default function RecruiterJobsScreen() {
     if (job.status === 'Bị từ chối') {
       return { label: 'BỊ TỪ CHỐI', bg: '#FFEBEE', color: '#FF3B30' };
     }
-    if (!job.isOpen) {
+    if (!job.isOpen || checkIsJobExpired(job.deadline)) {
       return { label: 'ĐÃ ĐÓNG', bg: '#E5E7EB', color: '#687076' };
     }
     return { label: 'HOẠT ĐỘNG', bg: '#0084FF', color: '#FFF' };
   };
 
-  const activeJobsCount = recruiterJobs.filter((j) => j.isOpen).length;
+  const activeJobsCount = recruiterJobs.filter((j) => j.isOpen && !checkIsJobExpired(j.deadline)).length;
   const closedJobsCount = recruiterJobs.length - activeJobsCount;
 
   return (

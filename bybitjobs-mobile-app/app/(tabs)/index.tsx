@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, checkIsJobExpired } from '@/hooks/use-auth';
 
 
 
@@ -651,7 +651,15 @@ function CandidateHomeScreen() {
       .toUpperCase() || 'NT';
   };
 
-  const openJobs = jobs.filter(job => job.isOpen !== false && job.status === 'Hoạt động');
+  const openJobs = jobs.filter(job => {
+    if (job.isOpen === false) return false;
+    if (checkIsJobExpired(job.deadline)) return false;
+    const status = (job.status || '').toLowerCase();
+    if (status.includes('chờ') || status.includes('từ chối') || status.includes('đóng') || status === 'rejected' || status === 'pending') {
+      return false;
+    }
+    return true;
+  });
   const jobListings: JobItem[] = openJobs.map(job => {
     const posterName = getPosterName(job);
 
