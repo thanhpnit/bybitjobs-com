@@ -708,7 +708,6 @@ export default function RecruiterProfileScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-            </View>
           </View>
         </Modal>
 
