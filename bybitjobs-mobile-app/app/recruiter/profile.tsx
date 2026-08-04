@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,10 +33,23 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
+
+  // Change password modal states
+  const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = React.useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = React.useState('');
+  const [newPasswordInput, setNewPasswordInput] = React.useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = React.useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = React.useState(false);
+
+  // Guide modal state
+  const [isGuideModalVisible, setIsGuideModalVisible] = React.useState(false);
 
   // Form Field states (prefilled with mock values or context states)
   const [companyName, setCompanyName] = React.useState(employerData?.companyName || 'Công ty TNHH Giao Hàng Nhanh');
@@ -1032,7 +1046,32 @@ export default function RecruiterProfileScreen() {
                   <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
                   {renderSettingRow('business-outline', 'Thông tin công ty', () => setIsEditing(true))}
+                  {renderSettingRow('key-outline', 'Đổi mật khẩu tài khoản', () => setIsChangePasswordModalVisible(true))}
                   {renderSettingRow('receipt-outline', 'Lịch sử giao dịch', () => router.push('/recruiter/transactions' as any))}
+                  {renderSettingRow('notifications-outline', 'Cài đặt thông báo', () => {
+                    Alert.alert('Cài đặt thông báo', 'Thông báo đẩy (Push Notifications) và Email thông báo ứng viên mới hiện đang được BẬT.', [{ text: 'Đóng' }]);
+                  })}
+                  {renderSettingRow('call-outline', 'Tổng đài Hỗ trợ CSKH 24/7 (1900 6888)', () => {
+                    Alert.alert(
+                      'Tổng đài CSKH VIP',
+                      'Bạn có muốn gọi trực tiếp tới Tổng đài hỗ trợ tuyển dụng 1900 6888 không?',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Gọi ngay', onPress: () => Linking.openURL('tel:19006888') }
+                      ]
+                    );
+                  })}
+                  {renderSettingRow('chatbubbles-outline', 'Hỗ trợ trực tuyến / Zalo OA', () => {
+                    Alert.alert(
+                      'Hỗ trợ trực tuyến',
+                      'Gửi email hỗ trợ trực tiếp đến bộ phận Chăm sóc khách hàng BybitJobs:',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        { text: 'Gửi Mail CSKH', onPress: () => Linking.openURL('mailto:support@bybitjobs.com?subject=Ho%20tro%20Nha%20tuyen%20dung') }
+                      ]
+                    );
+                  })}
+                  {renderSettingRow('book-outline', 'Hướng dẫn đăng tin & Mẹo tuyển dụng', () => setIsGuideModalVisible(true))}
                 </View>
 
                 <TouchableOpacity
@@ -1113,6 +1152,178 @@ export default function RecruiterProfileScreen() {
                 </View>
               )
             }
+        {/* Modal Đổi mật khẩu cho Nhà tuyển dụng */}
+        <Modal
+          visible={isChangePasswordModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsChangePasswordModalVisible(false)}
+        >
+          <View style={styles.modalOverlayCenter}>
+            <View style={[styles.passwordModalCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={[styles.modalTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>Đổi mật khẩu tài khoản</Text>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setIsChangePasswordModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#AAA' : '#687076'} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 16 }}>
+                Vui lòng nhập mật khẩu hiện tại và mật khẩu mới để bảo mật tài khoản doanh nghiệp.
+              </Text>
+
+              {/* Input 1: Mật khẩu hiện tại */}
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 6 }]}>Mật khẩu hiện tại</Text>
+              <View style={[styles.inputBox, { backgroundColor: isDark ? '#151718' : '#F8F9FA', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]}
+                  placeholder="Nhập mật khẩu hiện tại"
+                  placeholderTextColor={isDark ? '#666' : '#999'}
+                  secureTextEntry={!showCurrentPassword}
+                  value={currentPasswordInput}
+                  onChangeText={setCurrentPasswordInput}
+                />
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                  <Ionicons name={showCurrentPassword ? "eye-off" : "eye"} size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Input 2: Mật khẩu mới */}
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginTop: 12, marginBottom: 6 }]}>Mật khẩu mới</Text>
+              <View style={[styles.inputBox, { backgroundColor: isDark ? '#151718' : '#F8F9FA', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]}
+                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                  placeholderTextColor={isDark ? '#666' : '#999'}
+                  secureTextEntry={!showNewPassword}
+                  value={newPasswordInput}
+                  onChangeText={setNewPasswordInput}
+                />
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setShowNewPassword(!showNewPassword)}>
+                  <Ionicons name={showNewPassword ? "eye-off" : "eye"} size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Input 3: Xác nhận mật khẩu mới */}
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginTop: 12, marginBottom: 6 }]}>Xác nhận mật khẩu mới</Text>
+              <View style={[styles.inputBox, { backgroundColor: isDark ? '#151718' : '#F8F9FA', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]}
+                  placeholder="Nhập lại mật khẩu mới"
+                  placeholderTextColor={isDark ? '#666' : '#999'}
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPasswordInput}
+                  onChangeText={setConfirmPasswordInput}
+                />
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setIsChangePasswordModalVisible(false)}
+                  style={{ flex: 1, height: 46, borderRadius: 10, borderWidth: 1, borderColor: isDark ? '#444' : '#CCC', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: isDark ? '#AAA' : '#666', fontWeight: '600' }}>Hủy</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  disabled={isSubmittingPassword}
+                  onPress={async () => {
+                    if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+                      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ các thông tin.');
+                      return;
+                    }
+                    if (newPasswordInput.length < 6) {
+                      Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự.');
+                      return;
+                    }
+                    if (newPasswordInput !== confirmPasswordInput) {
+                      Alert.alert('Lỗi', 'Mật khẩu xác nhận không trùng khớp.');
+                      return;
+                    }
+                    setIsSubmittingPassword(true);
+                    try {
+                      const res = await changePassword(currentPasswordInput, newPasswordInput);
+                      if (res.success) {
+                        Alert.alert('Thành công', 'Đổi mật khẩu thành công!');
+                        setIsChangePasswordModalVisible(false);
+                        setCurrentPasswordInput('');
+                        setNewPasswordInput('');
+                        setConfirmPasswordInput('');
+                      } else {
+                        Alert.alert('Thất bại', res.message || 'Không thể đổi mật khẩu.');
+                      }
+                    } catch (e: any) {
+                      Alert.alert('Lỗi', e.message || 'Đã xảy ra lỗi.');
+                    } finally {
+                      setIsSubmittingPassword(false);
+                    }
+                  }}
+                  style={{ flex: 1.5, height: 46, borderRadius: 10, backgroundColor: '#0084FF', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700' }}>
+                    {isSubmittingPassword ? 'Đang xử lý...' : 'Đổi mật khẩu'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Hướng dẫn tuyển dụng */}
+        <Modal
+          visible={isGuideModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsGuideModalVisible(false)}
+        >
+          <View style={styles.modalOverlayCenter}>
+            <View style={[styles.passwordModalCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', maxHeight: '80%' }]}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={[styles.modalTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>💡 Mẹo tuyển dụng hiệu quả</Text>
+                <TouchableOpacity activeOpacity={0.7} onPress={() => setIsGuideModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={isDark ? '#AAA' : '#687076'} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0084FF', marginBottom: 4 }}>1. Viết tiêu đề rõ ràng, cụ thể</Text>
+                <Text style={{ fontSize: 13, color: isDark ? '#CCC' : '#444', lineHeight: 20, marginBottom: 12 }}>
+                  Nên bao gồm tên vị trí + cấp bậc + địa điểm. Ví dụ: "Lập trình viên React Native (Junior / Senior) - Q.7, TP.HCM".
+                </Text>
+
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0084FF', marginBottom: 4 }}>2. Mức lương minh bạch</Text>
+                <Text style={{ fontSize: 13, color: isDark ? '#CCC' : '#444', lineHeight: 20, marginBottom: 12 }}>
+                  Các tin tuyển dụng có khoảng lương rõ ràng (Ví dụ: 15 - 25 triệu) nhận được nhiều hơn 60% lượt ứng tuyển so với "Thỏa thuận".
+                </Text>
+
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0084FF', marginBottom: 4 }}>3. Yêu cầu & Mô tả công việc chi tiết</Text>
+                <Text style={{ fontSize: 13, color: isDark ? '#CCC' : '#444', lineHeight: 20, marginBottom: 12 }}>
+                  Liệt kê từ 3-5 trách nhiệm chính và 3-5 kỹ năng bắt buộc giúp con AI chấm điểm Match Score ứng viên đạt độ chính xác cao nhất.
+                </Text>
+
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0084FF', marginBottom: 4 }}>4. Phản hồi ứng viên nhanh chóng</Text>
+                <Text style={{ fontSize: 13, color: isDark ? '#CCC' : '#444', lineHeight: 20, marginBottom: 12 }}>
+                  Phê duyệt hoặc gửi Email cho ứng viên trong vòng 48h để giữ chân các ứng viên tài năng.
+                </Text>
+              </ScrollView>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsGuideModalVisible(false)}
+                style={{ height: 44, borderRadius: 10, backgroundColor: '#0084FF', justifyContent: 'center', alignItems: 'center', marginTop: 16 }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '700' }}>Đã hiểu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </SafeAreaView>
     );
   };
@@ -1908,6 +2119,34 @@ const styles = StyleSheet.create({
   saveBranchBtnText: {
     color: '#FFF',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  modalOverlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  passwordModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitleText: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
