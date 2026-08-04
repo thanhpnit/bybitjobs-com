@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 import { db } from '../config/firebase';
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { Modal } from '../components/ui/Modal';
 
 const getItemTime = (item: any) => {
@@ -50,25 +50,59 @@ export const JobPosts: React.FC = () => {
   const [confirmProps, setConfirmProps] = useState({ visible: false, title: '', message: '', onConfirm: () => {} });
   
   const requestApprove = (id: string) => {
+    const job = jobPosts.find(i => i.id === id);
     setConfirmProps({
       visible: true,
       title: 'Duyệt bài đăng',
       message: 'Bạn có chắc chắn muốn duyệt bài đăng này không? Bài đăng sẽ hiển thị ngay lập tức.',
       onConfirm: async () => {
-        await updateDoc(doc(db, 'jobs', id), { status: 'Hoạt động' });
-        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Hoạt động' } : i));
+        await updateDoc(doc(db, 'jobs', id), { status: 'Hoạt động', isOpen: true });
+        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Hoạt động', isOpen: true } : i));
+
+        const employerId = job?.employerId || job?.userId;
+        if (employerId) {
+          try {
+            await addDoc(collection(db, 'notifications'), {
+              title: '🎉 Bài đăng đã được phê duyệt',
+              body: `Bài đăng tuyển dụng "${job?.title || 'Công việc'}" của bạn đã được Admin phê duyệt thành công và đang hoạt động trên hệ thống.`,
+              category: 'job',
+              target: employerId,
+              role: 'employer',
+              createdAt: new Date().toISOString(),
+            });
+          } catch (notifErr) {
+            console.error('Lỗi gửi thông báo duyệt bài:', notifErr);
+          }
+        }
       }
     });
   };
 
   const requestReject = (id: string) => {
+    const job = jobPosts.find(i => i.id === id);
     setConfirmProps({
       visible: true,
       title: 'Từ chối bài đăng',
       message: 'Bạn có chắc chắn muốn từ chối bài đăng này không?',
       onConfirm: async () => {
-        await updateDoc(doc(db, 'jobs', id), { status: 'Bị từ chối' });
-        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Bị từ chối' } : i));
+        await updateDoc(doc(db, 'jobs', id), { status: 'Bị từ chối', isOpen: false });
+        setJobPosts(jobPosts.map(i => i.id === id ? { ...i, status: 'Bị từ chối', isOpen: false } : i));
+
+        const employerId = job?.employerId || job?.userId;
+        if (employerId) {
+          try {
+            await addDoc(collection(db, 'notifications'), {
+              title: '⚠️ Bài đăng bị từ chối',
+              body: `Bài đăng tuyển dụng "${job?.title || 'Công việc'}" của bạn đã bị từ chối phê duyệt. Vui lòng kiểm tra lại thông tin.`,
+              category: 'job',
+              target: employerId,
+              role: 'employer',
+              createdAt: new Date().toISOString(),
+            });
+          } catch (notifErr) {
+            console.error('Lỗi gửi thông báo từ chối bài:', notifErr);
+          }
+        }
       }
     });
   };
