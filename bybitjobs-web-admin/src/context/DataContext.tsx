@@ -124,6 +124,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchRealEmployers();
   }, []);
 
+  // Listen to Firestore packages, jobs, reports, applications (reviews), employers
+  useEffect(() => {
     // 1. Employers (Real-time sync from Firestore)
     const unsubEmployers = onSnapshot(collection(db, 'employers'), (snapshot) => {
       const data: any[] = [];
@@ -162,7 +164,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    // 2. Job Posts (Jobs collection in Firestore)
+    // 3. Job Posts (Jobs collection in Firestore)
     const unsubJobs = onSnapshot(collection(db, 'jobs'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
@@ -196,7 +198,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setJobPostsState(sortNewestFirst(data));
     });
 
-    // 3. Reports
+    // 4. Reports
     const unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
@@ -213,12 +215,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setReportsState(data);
     });
 
-    // 4. Reviews (applications collection with feedback)
+    // 5. Reviews (applications collection with feedback)
     const unsubReviews = onSnapshot(collection(db, 'applications'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
         const item = docSnap.data();
-        // Lọc các application có feedback/review thật
         if (Number(item.companyRating || 0) > 0 || (item.companyComment && item.companyComment.trim().length > 0)) {
           data.push({
             id: docSnap.id,
@@ -235,6 +236,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => {
+      unsubEmployers();
       unsubPackages();
       unsubJobs();
       unsubReports();

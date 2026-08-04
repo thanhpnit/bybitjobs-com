@@ -284,9 +284,12 @@ export const Employers: React.FC = () => {
               <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
             </View>
 
-            {paginatedData.map((item, index) => (
-              <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                <Typography variant="subtitle2" color="brand" style={styles.colId} numberOfLines={2}>{item.id}</Typography>
+            {paginatedData.map((item, index) => {
+              const stt = (currentPage - 1) * itemsPerPage + index + 1;
+              const displayId = item.id?.startsWith('#EMP-') ? item.id : `#NTD-${String(stt).padStart(3, '0')}`;
+              return (
+                <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                  <Typography variant="subtitle2" color="brand" style={styles.colId} numberOfLines={1}>{displayId}</Typography>
                 <View style={[styles.colName, styles.flexRow]}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
                   <View style={{ flex: 1, minWidth: 0 }}>
@@ -325,7 +328,8 @@ export const Employers: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               </View>
-            ))}
+            );
+          })}
           </View>
         </ScrollView>
 

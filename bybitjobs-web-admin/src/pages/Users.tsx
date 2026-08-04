@@ -198,11 +198,14 @@ export const Users: React.FC = () => {
               <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
             </View>
 
-            {paginatedData.map((item) => (
-              <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                <Typography variant="subtitle2" color="brand" style={styles.colId}>
-                  {item.id.startsWith('#US-') ? item.id : `#${item.id}`}
-                </Typography>
+            {paginatedData.map((item, index) => {
+              const stt = (currentPage - 1) * itemsPerPage + index + 1;
+              const displayId = item.id.startsWith('#US-') ? item.id : `#ND-${String(stt).padStart(3, '0')}`;
+              return (
+                <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                  <Typography variant="subtitle2" color="brand" style={styles.colId}>
+                    {displayId}
+                  </Typography>
                 <View style={[styles.colName, styles.flexRow]}>
                   <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
                   <View>
@@ -231,10 +234,10 @@ export const Users: React.FC = () => {
                       <Ban size={18} color={colors.warningText || '#F59E0B'} />
                     )}
                   </TouchableOpacity>
-
                 </View>
               </View>
-            ))}
+            );
+          })}
           </View>
         </ScrollView>
 
