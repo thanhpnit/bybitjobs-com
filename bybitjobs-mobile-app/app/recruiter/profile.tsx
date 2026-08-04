@@ -1,4 +1,5 @@
 import React from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   StyleSheet,
   View,
@@ -11,6 +12,7 @@ import {
   Modal,
   Platform,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,7 +37,7 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -151,28 +153,40 @@ export default function RecruiterProfileScreen() {
     );
   };
 
-  const handleSelectLogo = () => {
-    Alert.alert(
-      'Tải lên Logo',
-      'Chọn phương thức tải ảnh đại diện công ty:',
-      [
-        {
-          text: 'Chụp ảnh mới', onPress: () => {
-            Alert.alert('Thành công', 'Đã chụp ảnh và cập nhật Logo công ty mới.');
-            setLogoColor('#34C759'); // Green color indicates success
-            setLogoUploaded(true);
-          }
-        },
-        {
-          text: 'Chọn từ Thư viện', onPress: () => {
-            Alert.alert('Thành công', 'Đã chọn ảnh từ thư viện và cập nhật Logo.');
-            setLogoColor('#FF9500'); // Orange color indicates success
-            setLogoUploaded(true);
-          }
-        },
-        { text: 'Hủy', style: 'cancel' }
-      ]
-    );
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+
+  const handleUploadLogo = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập thư viện ảnh để tải lên logo.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+        setIsUploadingLogo(true);
+        const res = await updateAvatar(result.assets[0].base64, true);
+        setIsUploadingLogo(false);
+        if (res.success) {
+          Alert.alert('Thành công', 'Đã cập nhật logo công ty mới!');
+          setLogoUploaded(true);
+        } else {
+          Alert.alert('Lỗi', res.message || 'Không thể cập nhật logo công ty.');
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setIsUploadingLogo(false);
+      Alert.alert('Lỗi', 'Đã có lỗi xảy ra khi chọn ảnh.');
+    }
   };
 
   const handleSelectBanner = () => {
@@ -467,15 +481,25 @@ export default function RecruiterProfileScreen() {
             {/* Overlapping company logo */}
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleSelectLogo}
+              onPress={handleUploadLogo}
               style={[styles.logoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}
             >
-              <View style={[styles.logoCircle, { backgroundColor: logoUploaded ? '#EBF5FF' : '#E6F4FE' }]}>
-                <Ionicons name="stats-chart" size={32} color={logoColor} />
+              <View style={[styles.logoCircle, { backgroundColor: '#E6F4FE', overflow: 'hidden' }]}>
+                {employerData?.logo ? (
+                  <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
+                    {getInitial(companyName)}
+                  </Text>
+                )}
               </View>
               {/* Edit overlay icon on logo */}
-              <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0084FF', padding: 3, borderRadius: 10, borderWidth: 1.5, borderColor: '#FFF' }}>
-                <Ionicons name="pencil" size={10} color="#FFF" />
+              <View style={{ position: 'absolute', bottom: -2, right: -2, backgroundColor: '#0084FF', padding: 5, borderRadius: 12, borderWidth: 1.5, borderColor: '#FFF' }}>
+                {isUploadingLogo ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Ionicons name="camera" size={10} color="#FFF" />
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -818,9 +842,9 @@ export default function RecruiterProfileScreen() {
                 resizeMode="cover"
               />
               <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-                  {logoUploaded ? (
-                    <Ionicons name="stats-chart" size={32} color={logoColor} />
+                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
+                  {employerData?.logo ? (
+                    <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
                   ) : (
                     <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
                       {getInitial(companyName)}

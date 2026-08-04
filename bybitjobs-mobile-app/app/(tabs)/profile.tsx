@@ -1,5 +1,6 @@
 import React from 'react';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import {
   StyleSheet,
   View,
@@ -53,7 +54,8 @@ function CandidateProfileScreen() {
     invitations,
     respondToInvitation,
     disableAccount,
-    changePassword
+    changePassword,
+    updateAvatar
   } = useAuth();
 
   // Change Password State
@@ -65,6 +67,41 @@ function CandidateProfileScreen() {
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isChangingPassword, setIsChangingPassword] = React.useState(false);
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+
+  const handleUploadAvatar = async (isEmployer: boolean = false) => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập thư viện ảnh để tải lên avatar.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+        setIsUploadingAvatar(true);
+        const res = await updateAvatar(result.assets[0].base64, isEmployer);
+        setIsUploadingAvatar(false);
+        if (res.success) {
+          Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện mới!');
+        } else {
+          Alert.alert('Lỗi', res.message || 'Không thể cập nhật ảnh đại diện.');
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setIsUploadingAvatar(false);
+      Alert.alert('Lỗi', 'Đã có lỗi xảy ra khi chọn ảnh.');
+    }
+  };
 
   // Job seeking switch states
   const [isJobSeeking, setIsJobSeeking] = React.useState(true);
@@ -1014,17 +1051,24 @@ function CandidateProfileScreen() {
                 style={styles.empBannerImage}
                 resizeMode="cover"
               />
-              <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}>
-                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
+              <TouchableOpacity activeOpacity={0.8} onPress={() => handleUploadAvatar(true)} style={[styles.empLogoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}>
+                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
                   {employerData?.logo ? (
+                    <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
+                  ) : (
                     <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
                       {getInitial(employerData?.companyName || 'Công ty TNHH Giao Hàng Nhanh')}
                     </Text>
-                  ) : (
-                    <Ionicons name="business" size={36} color="#0084FF" />
                   )}
                 </View>
-              </View>
+                <View style={[styles.pencilOverlay, { bottom: 0, right: -5, backgroundColor: '#0084FF' }]}>
+                  {isUploadingAvatar ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Ionicons name="camera" size={12} color="#FFF" />
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
 
             {/* 2. Company Info Details */}
@@ -1365,13 +1409,22 @@ function CandidateProfileScreen() {
                         {
                           backgroundColor: '#0084FF',
                           borderColor: isDark ? '#3C3C3E' : '#FFF',
+                          overflow: 'hidden'
                         },
                       ]}
                     >
-                      <Text style={styles.avatarInitialText}>{initialLetter}</Text>
+                      {userData?.avatar ? (
+                        <Image source={{ uri: userData.avatar }} style={{ width: '100%', height: '100%' }} />
+                      ) : (
+                        <Text style={styles.avatarInitialText}>{initialLetter}</Text>
+                      )}
                     </View>
-                    <TouchableOpacity activeOpacity={0.8} onPress={() => triggerFeatureMock('Thay ảnh đại diện')} style={styles.pencilOverlay}>
-                      <Ionicons name="camera" size={12} color="#FFF" />
+                    <TouchableOpacity activeOpacity={0.8} onPress={() => handleUploadAvatar(false)} style={styles.pencilOverlay}>
+                      {isUploadingAvatar ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Ionicons name="camera" size={12} color="#FFF" />
+                      )}
                     </TouchableOpacity>
                   </View>
 

@@ -57,6 +57,7 @@ export interface UserData {
   cvSize?: string;
   cvUploadTime?: string;
   cvUrl?: string;
+  avatar?: string;
 }
 
 export interface JobItem {
@@ -1930,6 +1931,55 @@ export function useAuth() {
     }
   };
 
+  const updateAvatar = async (base64Image: string, isEmployer: boolean): Promise<{ success: boolean; url?: string; message?: string }> => {
+    if (!firebaseUser) return { success: false, message: 'Chưa đăng nhập' };
+    try {
+      // 1. Upload ảnh lên backend Node.js
+      const uploadRes = await fetch('http://160.250.246.119:4000/api/upload-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: `avatar_${firebaseUser.uid}.jpg`, base64Data: base64Image })
+      });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        console.error('Lỗi upload avatar server response:', uploadRes.status, errText);
+        throw new Error(`Lỗi upload ảnh lên server: ${errText}`);
+      }
+      const uploadData = await uploadRes.json();
+      const imageUrl = uploadData.url;
+
+      // 2. Lưu URL vào API
+      if (isEmployer) {
+        const res = await fetch(`http://160.250.246.119:4000/api/employers/${firebaseUser.uid}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo: imageUrl })
+        });
+        if (!res.ok) throw new Error('Lỗi lưu logo');
+        
+        if (globalEmployerData) {
+          globalEmployerData = { ...globalEmployerData, logo: imageUrl };
+          setEmployerData(globalEmployerData);
+        }
+      } else {
+        const res = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/avatar`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar: imageUrl })
+        });
+        if (!res.ok) throw new Error('Lỗi lưu avatar');
+        
+        globalUserDataExtra = { ...globalUserDataExtra, avatar: imageUrl };
+        setUserDataExtra(globalUserDataExtra);
+      }
+      notifyAll();
+      return { success: true, url: imageUrl };
+    } catch (error: any) {
+      console.error('Lỗi updateAvatar:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const disableAccount = async (): Promise<{ success: boolean; message: string }> => {
     if (!firebaseUser) {
       return { success: false, message: 'Bạn chưa đăng nhập.' };
@@ -2077,7 +2127,8 @@ export function useAuth() {
       cvName: userDataExtra.cvName,
       cvSize: userDataExtra.cvSize,
       cvUploadTime: userDataExtra.cvUploadTime,
-      cvUrl: userDataExtra.cvUrl
+      cvUrl: userDataExtra.cvUrl,
+      avatar: userDataExtra.avatar || firebaseUser.photoURL || undefined
     } : null,
     userDataExtra,
     employerData,
@@ -2103,6 +2154,7 @@ export function useAuth() {
     updateDesiredJob,
     updateUserPhone,
     updateCandidateCV,
+    updateAvatar,
     notifications: mergedNotifications,
     unreadNotificationsCount,
     markAllNotificationsAsRead,

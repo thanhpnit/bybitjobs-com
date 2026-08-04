@@ -259,7 +259,8 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
-app.use(express.json({ limit: '15mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Khởi tạo Firebase Admin SDK
@@ -416,6 +417,61 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
   }
 });
 
+// API cập nhật Avatar người dùng
+app.put('/api/users/:uid/avatar', async (req: Request, res: Response): Promise<any> => {
+  const uid = req.params.uid as string;
+  const { avatar } = req.body;
+  if (!uid) {
+    return res.status(400).json({ error: 'Thiếu thông tin uid' });
+  }
+
+  try {
+    const db = admin.firestore();
+    await db.collection('users').doc(uid).set({ avatar }, { merge: true });
+    
+    // Cập nhật photoURL bên Firebase Auth luôn cho đồng bộ
+    try {
+      await admin.auth().updateUser(uid, { photoURL: avatar });
+    } catch (authErr) {
+      console.log('Không thể cập nhật photoURL trên Auth:', authErr);
+    }
+    
+    return res.status(200).json({ success: true, message: 'Cập nhật Avatar thành công' });
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật Avatar:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu dữ liệu', details: error.message });
+  }
+});
+
+app.post('/api/upload-avatar', async (req: Request, res: Response): Promise<any> => {
+  const { fileName, base64Data } = req.body;
+  if (!fileName || !base64Data) {
+    return res.status(400).json({ error: 'Thiếu thông tin fileName hoặc dữ liệu base64Data' });
+  }
+
+  try {
+    const uploadsDir = path.join(__dirname, '../uploads/avatars');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Loại bỏ header base64 nếu có
+    const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, "");
+    const fileBuffer = Buffer.from(base64Content, 'base64');
+    const safeFileName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const filePath = path.join(uploadsDir, safeFileName);
+
+    fs.writeFileSync(filePath, fileBuffer);
+
+    // Trả về đường dẫn công khai của ảnh trên máy chủ
+    const fileUrl = `http://160.250.246.119:4000/uploads/avatars/${safeFileName}`;
+    return res.status(200).json({ success: true, url: fileUrl });
+  } catch (error: any) {
+    console.error('Lỗi khi lưu file Avatar lên máy chủ:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lưu file', details: error.message });
+  }
+});
+
 // API lấy thông tin chi tiết một người dùng (bao gồm job, phone và cv)
 app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;
@@ -429,6 +485,7 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const cvSize = doc.exists ? doc.data()?.cvSize : undefined;
     const cvUploadTime = doc.exists ? doc.data()?.cvUploadTime : undefined;
     const cvUrl = doc.exists ? doc.data()?.cvUrl : undefined;
+    const avatar = doc.exists ? doc.data()?.avatar : userRecord.photoURL;
     
     return res.status(200).json({
       uid: userRecord.uid,
@@ -439,7 +496,8 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
       cvName: cvName,
       cvSize: cvSize,
       cvUploadTime: cvUploadTime,
-      cvUrl: cvUrl
+      cvUrl: cvUrl,
+      avatar: avatar
     });
   } catch (error: any) {
     return res.status(500).json({ error: 'Lỗi server', details: error.message });

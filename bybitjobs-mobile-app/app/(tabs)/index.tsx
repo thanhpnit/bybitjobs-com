@@ -800,6 +800,58 @@ function CandidateHomeScreen() {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
 
+  const getCreatedTime = (dateString: string) => {
+    const time = new Date(dateString).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  const filteredJobs = React.useMemo(() => {
+    return jobListings.filter(job => {
+      // Filter by Location
+      let matchLocation = true;
+      if (selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm') {
+        if (selectedLocation === 'TP. Hồ Chí Minh') {
+          matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh') || job.location.includes('Bình Thạnh') || job.location.includes('Quận 7') || job.location.includes('Quận 3');
+        } else if (selectedLocation === 'Hà Nội') {
+          matchLocation = job.location.includes('Hà Nội') || job.location.includes('Hoàn Kiếm');
+        } else {
+          matchLocation = job.location.includes(selectedLocation);
+        }
+      }
+
+      // Filter by Industry
+      let matchIndustry = true;
+      if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
+        matchIndustry = job.originalIndustry === selectedIndustry;
+      }
+
+      // Filter by active category chip
+      let matchCategory = true;
+      if (activeChip === 'Tuyển gấp') {
+        const isUrgent = job.isPremium || 
+                         job.title.toLowerCase().includes('gấp') || 
+                         job.title.toLowerCase().includes('tuyển gấp') || 
+                         job.title.toLowerCase().includes('urgent');
+        matchCategory = isUrgent;
+      } else if (activeChip === 'Thực tập sinh') {
+        const title = job.title.toLowerCase();
+        const isIntern = title.includes('thực tập') || 
+                         title.includes('intern') || 
+                         title.includes('trainee') || 
+                         title.includes('fresher') || 
+                         title.includes('tts');
+        matchCategory = isIntern;
+      }
+
+      return matchLocation && matchIndustry && matchCategory;
+    }).sort((a, b) => {
+      if (activeChip === 'Nổi bật' && a.isPremium !== b.isPremium) {
+        return a.isPremium ? -1 : 1;
+      }
+      return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
+    });
+  }, [jobListings, selectedLocation, selectedIndustry, activeChip]);
+
   const searchSuggestions = React.useMemo(() => {
     const keyword = normalizeText(searchQuery.trim());
     
@@ -809,7 +861,7 @@ function CandidateHomeScreen() {
     
     if (!keyword && !isFilterActive) return [];
 
-    return jobListings
+    return filteredJobs
       .filter((job) => {
         // 1. Text keyword search
         let matchKeyword = true;
@@ -837,16 +889,31 @@ function CandidateHomeScreen() {
           let parsedMax = 0;
           let parsedMin = 0;
           
-          const matchNum = salaryStr.match(/\d+/g);
-          if (matchNum) {
-            const numbers = matchNum.map(Number);
-            if (numbers.length === 1) {
-              parsedMax = numbers[0];
-              parsedMin = numbers[0];
-            } else if (numbers.length >= 2) {
-              parsedMin = numbers[0];
-              parsedMax = numbers[1];
+          const regex = /(\d+)\s*(k|tr|triệu|ngàn|nghìn)?/gi;
+          let match;
+          const numbers: number[] = [];
+          const cleanStr = salaryStr.replace(/[,\.]/g, '');
+          
+          while ((match = regex.exec(cleanStr)) !== null) {
+            let val = parseFloat(match[1]);
+            const unit = (match[2] || '').toLowerCase();
+            if (unit === 'k' || unit === 'ngàn' || unit === 'nghìn') {
+              val = val / 1000;
+            } else if (unit === 'tr' || unit === 'triệu') {
+              val = val;
+            } else {
+              if (val >= 100000) val = val / 1000000;
+              else if (val >= 100) val = val / 1000;
             }
+            numbers.push(val);
+          }
+
+          if (numbers.length === 1) {
+            parsedMax = numbers[0];
+            parsedMin = numbers[0];
+          } else if (numbers.length >= 2) {
+            parsedMin = numbers[0];
+            parsedMax = numbers[1];
           }
 
           if (searchSalaryFilter === 'Dưới 10 triệu') {
@@ -874,7 +941,7 @@ function CandidateHomeScreen() {
         return matchKeyword && matchLoc && matchSal && matchType;
       })
       .slice(0, 8);
-  }, [jobListings, searchQuery, searchLocationFilter, searchSalaryFilter, searchTypeFilter]);
+  }, [filteredJobs, searchQuery, searchLocationFilter, searchSalaryFilter, searchTypeFilter]);
 
   const openJobDetails = (job: JobItem) => {
     setIsSearchModalVisible(false);
@@ -894,55 +961,7 @@ function CandidateHomeScreen() {
     });
   };
 
-  const getCreatedTime = (dateString: string) => {
-    const time = new Date(dateString).getTime();
-    return Number.isNaN(time) ? 0 : time;
-  };
 
-  const filteredJobs = jobListings.filter(job => {
-    // Filter by Location
-    let matchLocation = true;
-    if (selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm') {
-      if (selectedLocation === 'TP. Hồ Chí Minh') {
-        matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh') || job.location.includes('Bình Thạnh') || job.location.includes('Quận 7') || job.location.includes('Quận 3');
-      } else if (selectedLocation === 'Hà Nội') {
-        matchLocation = job.location.includes('Hà Nội') || job.location.includes('Hoàn Kiếm');
-      } else {
-        matchLocation = job.location.includes(selectedLocation);
-      }
-    }
-
-    // Filter by Industry
-    let matchIndustry = true;
-    if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
-      matchIndustry = job.originalIndustry === selectedIndustry;
-    }
-
-    // Filter by active category chip
-    let matchCategory = true;
-    if (activeChip === 'Tuyển gấp') {
-      const isUrgent = job.isPremium || 
-                       job.title.toLowerCase().includes('gấp') || 
-                       job.title.toLowerCase().includes('tuyển gấp') || 
-                       job.title.toLowerCase().includes('urgent');
-      matchCategory = isUrgent;
-    } else if (activeChip === 'Thực tập sinh') {
-      const title = job.title.toLowerCase();
-      const isIntern = title.includes('thực tập') || 
-                       title.includes('intern') || 
-                       title.includes('trainee') || 
-                       title.includes('fresher') || 
-                       title.includes('tts');
-      matchCategory = isIntern;
-    }
-
-    return matchLocation && matchIndustry && matchCategory;
-  }).sort((a, b) => {
-    if (activeChip === 'Nổi bật' && a.isPremium !== b.isPremium) {
-      return a.isPremium ? -1 : 1;
-    }
-    return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
-  });
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
