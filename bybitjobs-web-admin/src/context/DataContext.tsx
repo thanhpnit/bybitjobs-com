@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '../config/firebase';
-import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { 
   initialUsers, 
   initialEmployers, 
@@ -164,6 +164,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
+    // 2.5 Industries
+    const unsubIndustries = onSnapshot(collection(db, 'industries'), (snapshot) => {
+      const data: any[] = [];
+      snapshot.forEach(d => data.push(d.data()));
+      if (data.length === 0) {
+        initialIndustries.forEach(async (ind) => {
+          await setDoc(doc(db, 'industries', ind.id), ind);
+        });
+        setIndustriesState(initialIndustries);
+      } else {
+        setIndustriesState(data);
+      }
+    });
+
     // 3. Job Posts (Jobs collection in Firestore)
     const unsubJobs = onSnapshot(collection(db, 'jobs'), (snapshot) => {
       const data: any[] = [];
@@ -238,6 +252,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       unsubEmployers();
       unsubPackages();
+      unsubIndustries();
       unsubJobs();
       unsubReports();
       unsubReviews();
@@ -259,7 +274,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const setIndustries = (data: any[]) => { setIndustriesState(data); localStorage.setItem('bybitjobs_industries', JSON.stringify(data)); };
+  const setIndustries = async (data: any[]) => {
+    const oldIds = industries.map((i: any) => i.id);
+    const newIds = data.map((i: any) => i.id);
+    const deletedIds = oldIds.filter(id => !newIds.includes(id));
+    
+    setIndustriesState(data);
+    try {
+      const batch = data.map(async (ind) => {
+        await setDoc(doc(db, 'industries', ind.id), ind);
+      });
+      const deletes = deletedIds.map(async (id) => {
+        await deleteDoc(doc(db, 'industries', id));
+      });
+      await Promise.all([...batch, ...deletes]);
+    } catch (e) {
+      console.error('Error syncing industries to Firestore', e);
+    }
+  };
   const setReports = (data: any[]) => { setReportsState(data); };
   const setReviews = (data: any[]) => { setReviewsState(data); };
   const setPaymentMethods = (data: any[]) => { setPaymentMethodsState(data); localStorage.setItem('bybitjobs_paymentMethods', JSON.stringify(data)); };
