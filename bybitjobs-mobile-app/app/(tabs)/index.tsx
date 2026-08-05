@@ -783,6 +783,7 @@ function CandidateHomeScreen() {
   const [searchLocationFilter, setSearchLocationFilter] = React.useState('Tất cả');
   const [searchSalaryFilter, setSearchSalaryFilter] = React.useState('Tất cả');
   const [searchTypeFilter, setSearchTypeFilter] = React.useState('Tất cả');
+  const [activeCandidateFilterModalType, setActiveCandidateFilterModalType] = React.useState<'location' | 'salary' | 'type' | null>(null);
 
   const normalizeText = (value: string) =>
     value
@@ -1753,19 +1754,7 @@ function CandidateHomeScreen() {
               {/* Location Filter */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => {
-                  Alert.alert(
-                    'Chọn địa điểm',
-                    'Lọc tin tuyển dụng theo địa chỉ thành phố',
-                    [
-                      { text: 'Tất cả địa điểm', onPress: () => setSearchLocationFilter('Tất cả') },
-                      { text: 'TP. Hồ Chí Minh', onPress: () => setSearchLocationFilter('Hồ Chí Minh') },
-                      { text: 'Hà Nội', onPress: () => setSearchLocationFilter('Hà Nội') },
-                      { text: 'Đà Nẵng', onPress: () => setSearchLocationFilter('Đà Nẵng') },
-                      { text: 'Hủy', style: 'cancel' }
-                    ]
-                  );
-                }}
+                onPress={() => setActiveCandidateFilterModalType('location')}
                 style={{
                   flex: 1,
                   flexDirection: 'row',
@@ -1788,19 +1777,7 @@ function CandidateHomeScreen() {
               {/* Salary Filter */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => {
-                  Alert.alert(
-                    'Chọn khoảng lương',
-                    'Lọc tin tuyển dụng theo ngân sách mong muốn',
-                    [
-                      { text: 'Tất cả mức lương', onPress: () => setSearchSalaryFilter('Tất cả') },
-                      { text: 'Dưới 10 triệu', onPress: () => setSearchSalaryFilter('Dưới 10 triệu') },
-                      { text: '10 - 20 triệu', onPress: () => setSearchSalaryFilter('10 - 20 triệu') },
-                      { text: 'Trên 20 triệu', onPress: () => setSearchSalaryFilter('Trên 20 triệu') },
-                      { text: 'Hủy', style: 'cancel' }
-                    ]
-                  );
-                }}
+                onPress={() => setActiveCandidateFilterModalType('salary')}
                 style={{
                   flex: 1,
                   flexDirection: 'row',
@@ -1823,19 +1800,7 @@ function CandidateHomeScreen() {
               {/* Job Type Filter */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => {
-                  Alert.alert(
-                    'Chọn hình thức',
-                    'Lọc tin tuyển dụng theo thời gian làm việc',
-                    [
-                      { text: 'Tất cả hình thức', onPress: () => setSearchTypeFilter('Tất cả') },
-                      { text: 'Toàn thời gian', onPress: () => setSearchTypeFilter('Toàn thời gian') },
-                      { text: 'Bán thời gian', onPress: () => setSearchTypeFilter('Bán thời gian') },
-                      { text: 'Thực tập', onPress: () => setSearchTypeFilter('Thực tập') },
-                      { text: 'Hủy', style: 'cancel' }
-                    ]
-                  );
-                }}
+                onPress={() => setActiveCandidateFilterModalType('type')}
                 style={{
                   flex: 1,
                   flexDirection: 'row',
@@ -2044,6 +2009,229 @@ function CandidateHomeScreen() {
               })}
             </ScrollView>
           </View>
+        </TouchableOpacity>
+      {/* Modal Dạng Danh Sách Bộ Lọc Tìm Kiếm Cho Ứng Viên (Candidate Search Filter List Modal) */}
+      <Modal
+        visible={activeCandidateFilterModalType !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setActiveCandidateFilterModalType(null)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setActiveCandidateFilterModalType(null)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              maxHeight: '80%',
+            }}
+          >
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F1F5F9', paddingBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="options-outline" size={20} color="#0084FF" />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                  {activeCandidateFilterModalType === 'location' && 'Danh sách Lọc Địa điểm Thành phố'}
+                  {activeCandidateFilterModalType === 'salary' && 'Danh sách Lọc Khoảng Mức lương'}
+                  {activeCandidateFilterModalType === 'type' && 'Danh sách Lọc Hình thức Làm việc'}
+                </Text>
+              </View>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setActiveCandidateFilterModalType(null)}>
+                <Ionicons name="close" size={22} color={isDark ? '#FFF' : '#64748B'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* List Selection Items */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {activeCandidateFilterModalType === 'location' && [
+                { id: 'Tất cả', label: 'Tất cả địa điểm', sub: 'Hiển thị bài đăng tuyển dụng trên toàn quốc', icon: 'globe-outline' },
+                { id: 'Hồ Chí Minh', label: 'TP. Hồ Chí Minh', sub: 'Tuyển dụng khu vực HCM, Thủ Đức, Tân Bình...', icon: 'location-outline' },
+                { id: 'Hà Nội', label: 'Hà Nội', sub: 'Tuyển dụng khu vực Cầu Giấy, Hoàn Kiếm, Từ Liêm...', icon: 'location-outline' },
+                { id: 'Đà Nẵng', label: 'Đà Nẵng & Miền Trung', sub: 'Tuyển dụng khu vực Đà Nẵng, Huế, Quảng Nam...', icon: 'location-outline' },
+                { id: 'Cần Thơ', label: 'Cần Thơ & Miền Tây', sub: 'Khu vực Cần Thơ, Long An, Tiền Giang...', icon: 'location-outline' },
+                { id: 'Bình Dương', label: 'Bình Dương & Đồng Nai', sub: 'Khu vực Đông Nam Bộ, khu công nghiệp...', icon: 'business-outline' },
+              ].map((item) => {
+                const isSelected = searchLocationFilter === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSearchLocationFilter(item.id);
+                      setActiveCandidateFilterModalType(null);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: isSelected ? (isDark ? '#1E293B' : '#EFF6FF') : (isDark ? '#2C2C2E' : '#F8FAFC'),
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Ionicons name={item.icon as any} size={18} color={isSelected ? '#FFF' : (isDark ? '#CBD5E1' : '#475569')} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13.5, fontWeight: isSelected ? '700' : '600', color: isSelected ? '#0084FF' : (isDark ? '#FFF' : '#0F172A') }}>
+                          {item.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{item.sub}</Text>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name={isSelected ? "checkmark-circle" : "radio-button-off"}
+                      size={20}
+                      color={isSelected ? "#0084FF" : "#94A3B8"}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+
+              {activeCandidateFilterModalType === 'salary' && [
+                { id: 'Tất cả', label: 'Tất cả mức lương', sub: 'Xem tin tuyển dụng của mọi mức ngân sách', icon: 'cash-outline' },
+                { id: 'Dưới 10 triệu', label: 'Dưới 10 triệu VNĐ', sub: 'Phù hợp cho vị trí Thực tập sinh, Part-time, Fresher', icon: 'wallet-outline' },
+                { id: '10 - 20 triệu', label: '10 - 20 triệu VNĐ', sub: 'Mức lương phổ biến cho nhân sự 1-3 năm kinh nghiệm', icon: 'wallet-outline' },
+                { id: 'Trên 20 triệu', label: 'Trên 20 triệu VNĐ / Thỏa thuận', sub: 'Thu nhập hấp dẫn cho Senior, Manager & Chuyên gia', icon: 'trophy-outline' },
+              ].map((item) => {
+                const isSelected = searchSalaryFilter === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSearchSalaryFilter(item.id);
+                      setActiveCandidateFilterModalType(null);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: isSelected ? (isDark ? '#1E293B' : '#EFF6FF') : (isDark ? '#2C2C2E' : '#F8FAFC'),
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Ionicons name={item.icon as any} size={18} color={isSelected ? '#FFF' : (isDark ? '#CBD5E1' : '#475569')} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13.5, fontWeight: isSelected ? '700' : '600', color: isSelected ? '#0084FF' : (isDark ? '#FFF' : '#0F172A') }}>
+                          {item.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{item.sub}</Text>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name={isSelected ? "checkmark-circle" : "radio-button-off"}
+                      size={20}
+                      color={isSelected ? "#0084FF" : "#94A3B8"}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+
+              {activeCandidateFilterModalType === 'type' && [
+                { id: 'Tất cả', label: 'Tất cả hình thức', sub: 'Không giới hạn thời gian làm việc', icon: 'briefcase-outline' },
+                { id: 'Toàn thời gian', label: 'Toàn thời gian (Full-time)', sub: 'Làm việc chính thức 8 tiếng/ngày', icon: 'time-outline' },
+                { id: 'Bán thời gian', label: 'Bán thời gian (Part-time / Ca)', sub: 'Làm theo ca, linh hoạt thời gian cho sinh viên', icon: 'calendar-outline' },
+                { id: 'Thực tập', label: 'Thực tập sinh (Internship)', sub: 'Vị trí thực tập học hỏi tích lũy kinh nghiệm', icon: 'school-outline' },
+              ].map((item) => {
+                const isSelected = searchTypeFilter === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSearchTypeFilter(item.id);
+                      setActiveCandidateFilterModalType(null);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: isSelected ? (isDark ? '#1E293B' : '#EFF6FF') : (isDark ? '#2C2C2E' : '#F8FAFC'),
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                      <View style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: isSelected ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Ionicons name={item.icon as any} size={18} color={isSelected ? '#FFF' : (isDark ? '#CBD5E1' : '#475569')} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13.5, fontWeight: isSelected ? '700' : '600', color: isSelected ? '#0084FF' : (isDark ? '#FFF' : '#0F172A') }}>
+                          {item.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{item.sub}</Text>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name={isSelected ? "checkmark-circle" : "radio-button-off"}
+                      size={20}
+                      color={isSelected ? "#0084FF" : "#94A3B8"}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Clear button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                if (activeCandidateFilterModalType === 'location') setSearchLocationFilter('Tất cả');
+                if (activeCandidateFilterModalType === 'salary') setSearchSalaryFilter('Tất cả');
+                if (activeCandidateFilterModalType === 'type') setSearchTypeFilter('Tất cả');
+                setActiveCandidateFilterModalType(null);
+              }}
+              style={{
+                marginTop: 14,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: '#F1F5F9',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>Đặt lại về "Tất cả"</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
