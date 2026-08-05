@@ -266,6 +266,10 @@ export default function RecruiterDashboardScreen() {
     'Bán hàng / Tư vấn',
     'Gia sư / Giáo dục',
     'Hành chính / Văn phòng',
+    'Kỹ thuật / Cơ khí',
+    'Dịch vụ làm đẹp'
+  ];
+
   const salaryRanges = [
     'Tất cả mức lương',
     'Dưới 5 triệu',
