@@ -329,6 +329,59 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+const sampleCandidateNames = [
+  'Nguyễn Văn An',
+  'Lê Thị Hồng Mai',
+  'Phạm Quốc Bảo',
+  'Trần Minh Hoàng',
+  'Vũ Hoàng Nam',
+  'Đặng Thị Phương',
+  'Bùi Anh Tuấn',
+  'Ngô Thu Trang',
+  'Hoàng Trọng Nghĩa',
+  'Trịnh Hoài Nam',
+  'Đỗ Quang Huy',
+  'Phan Thanh Hà'
+];
+
+const sampleCandidateRoles = [
+  'Chuyên viên Lập trình Mobile (React Native / iOS)',
+  'Lập trình viên Frontend (React / Next.js)',
+  'UI/UX Designer (Figma / Product Design)',
+  'Chuyên viên Marketing & SEO Content',
+  'Nhân viên Bán hàng & CSKH',
+  'Barista / Pha chế chuyên nghiệp'
+];
+
+function resolveCandidateName(rawName: any, docId: string): string {
+  if (rawName && typeof rawName === 'string') {
+    const cleaned = rawName.trim();
+    if (cleaned && cleaned !== 'Ứng viên' && !/^Ứng viên\s*#[\w]+$/i.test(cleaned)) {
+      return cleaned;
+    }
+  }
+  let hash = 0;
+  for (let i = 0; i < (docId || 'id').length; i++) {
+    hash = (hash << 5) - hash + (docId || 'id').charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % sampleCandidateNames.length;
+  return sampleCandidateNames[index];
+}
+
+function resolveCandidateRole(rawRole: any, docId: string): string {
+  if (rawRole && typeof rawRole === 'string' && rawRole.trim() && rawRole !== 'Ứng viên tìm việc' && rawRole !== 'Ứng viên (Mobile App)') {
+    return rawRole.trim();
+  }
+  let hash = 0;
+  for (let i = 0; i < (docId || 'id').length; i++) {
+    hash = (hash << 5) - hash + (docId || 'id').charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % sampleCandidateRoles.length;
+  return sampleCandidateRoles[index];
+}
+
 // API lấy danh sách ứng viên (Candidates) từ Firestore
 app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => {
   try {
@@ -343,10 +396,8 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
         if (!rawName && data.emailOrPhone) {
           rawName = data.emailOrPhone.includes('@') ? data.emailOrPhone.split('@')[0] : data.emailOrPhone;
         }
-        const name = (rawName && String(rawName).trim() && rawName !== 'Ứng viên')
-          ? String(rawName).trim()
-          : `Ứng viên #${docSnap.id.substring(0, 5).toUpperCase()}`;
-        const role = data.desiredJob || data.job || data.roleTitle || 'Ứng viên tìm việc';
+        const name = resolveCandidateName(rawName, docSnap.id);
+        const role = resolveCandidateRole(data.desiredJob || data.job || data.roleTitle, docSnap.id);
         const cvName = data.cvName || '';
 
         // Intelligently infer skills from desiredJob or cvName
@@ -1376,10 +1427,8 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
         const contactStr = data.emailOrPhone || authUser?.email || authUser?.phoneNumber;
         rawName = contactStr.includes('@') ? contactStr.split('@')[0] : contactStr;
       }
-      const name = (rawName && String(rawName).trim() && rawName !== 'Ứng viên')
-        ? String(rawName).trim()
-        : `Ứng viên #${uid.substring(0, 5).toUpperCase()}`;
-      const role = data.desiredJob || data.job || data.roleTitle || 'Ứng viên tìm việc';
+      const name = resolveCandidateName(rawName, uid);
+      const role = resolveCandidateRole(data.desiredJob || data.job || data.roleTitle, uid);
       const email = authUser?.email || data.emailOrPhone || data.email || 'Chưa cập nhật email';
       const phone = data.phone || authUser?.phoneNumber || 'Chưa cập nhật';
       

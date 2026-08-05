@@ -20,7 +20,7 @@ export default function RecruiterSearchCandidatesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { candidates, jobs, sendInvitation, userData } = useAuth();
+  const { candidates, jobs, sendInvitation, userData, employerData } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;

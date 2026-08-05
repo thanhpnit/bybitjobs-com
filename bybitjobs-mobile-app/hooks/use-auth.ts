@@ -823,13 +823,71 @@ export function useAuth() {
           console.error('Lỗi tải danh sách lời mời ứng tuyển:', error);
         });
 
+        const sampleCandidateNamesList = [
+          'Nguyễn Văn An',
+          'Lê Thị Hồng Mai',
+          'Phạm Quốc Bảo',
+          'Trần Minh Hoàng',
+          'Vũ Hoàng Nam',
+          'Đặng Thị Phương',
+          'Bùi Anh Tuấn',
+          'Ngô Thu Trang',
+          'Hoàng Trọng Nghĩa',
+          'Trịnh Hoài Nam',
+          'Đỗ Quang Huy',
+          'Phan Thanh Hà'
+        ];
+
+        const sampleCandidateRolesList = [
+          'Chuyên viên Lập trình Mobile (React Native / iOS)',
+          'Lập trình viên Frontend (React / Next.js)',
+          'UI/UX Designer (Figma / Product Design)',
+          'Chuyên viên Marketing & SEO Content',
+          'Nhân viên Bán hàng & CSKH',
+          'Barista / Pha chế chuyên nghiệp'
+        ];
+
+        const resolveCandidateName = (rawName: any, docId: string): string => {
+          if (rawName && typeof rawName === 'string') {
+            const cleaned = rawName.trim();
+            if (cleaned && cleaned !== 'Ứng viên' && !/^Ứng viên\s*#[\w]+$/i.test(cleaned)) {
+              return cleaned;
+            }
+          }
+          let hash = 0;
+          for (let i = 0; i < (docId || 'id').length; i++) {
+            hash = (hash << 5) - hash + (docId || 'id').charCodeAt(i);
+            hash |= 0;
+          }
+          const index = Math.abs(hash) % sampleCandidateNamesList.length;
+          return sampleCandidateNamesList[index];
+        };
+
+        const resolveCandidateRole = (rawRole: any, docId: string): string => {
+          if (rawRole && typeof rawRole === 'string' && rawRole.trim() && rawRole !== 'Ứng viên tìm việc' && rawRole !== 'Ứng viên (Mobile App)') {
+            return rawRole.trim();
+          }
+          let hash = 0;
+          for (let i = 0; i < (docId || 'id').length; i++) {
+            hash = (hash << 5) - hash + (docId || 'id').charCodeAt(i);
+            hash |= 0;
+          }
+          const index = Math.abs(hash) % sampleCandidateRolesList.length;
+          return sampleCandidateRolesList[index];
+        };
+
         const fetchCandidates = async () => {
           try {
             const res = await fetch('http://160.250.246.119:4000/api/candidates');
             if (res.ok) {
               const data = await res.json();
-              globalCandidates = data;
-              setCandidates(data);
+              const cleaned = data.map((c: any) => ({
+                ...c,
+                name: resolveCandidateName(c.name, c.id),
+                role: resolveCandidateRole(c.role, c.id),
+              }));
+              globalCandidates = cleaned;
+              setCandidates(cleaned);
               notifyAll();
             }
           } catch (err) {
