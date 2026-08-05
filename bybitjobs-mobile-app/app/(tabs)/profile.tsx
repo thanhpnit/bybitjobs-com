@@ -263,6 +263,11 @@ function CandidateProfileScreen() {
   ];
 
   const pickDocument = async () => {
+    let extractedJobTitle: string | undefined;
+    let extractedSkills: string[] | undefined;
+    let extractedIntro: string | undefined;
+    let extractedEducation: string | undefined;
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
@@ -300,18 +305,11 @@ function CandidateProfileScreen() {
             }
           };
           reader.readAsDataURL(blob);
-        });
-
         const uploadResponse = await fetch('http://160.250.246.119:4000/api/upload-cv', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileName: asset.name, base64Data })
         });
-
-        let extractedJobTitle: string | undefined;
-        let extractedSkills: string[] | undefined;
-        let extractedIntro: string | undefined;
-        let extractedEducation: string | undefined;
 
         if (uploadResponse.ok) {
           const data = await uploadResponse.json();
