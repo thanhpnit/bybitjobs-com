@@ -5398,6 +5398,9 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 15,
+  },
+});
+
 import RecruiterProfileScreen from '../recruiter/profile';
 
 export default function ProfileScreen() {
