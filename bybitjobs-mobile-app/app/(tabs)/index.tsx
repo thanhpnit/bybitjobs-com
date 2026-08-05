@@ -702,18 +702,25 @@ function CandidateHomeScreen() {
     const cvName = (userData?.cvName || '').toLowerCase().trim();
     const userLocation = (userData?.location || userData?.address || '').toLowerCase().trim();
 
-    // Extract search keywords without removing 2-letter technical terms (UI, UX, IT, QA, HR, Ca, Web)
+    // Comprehensive list of generic Vietnamese stop words to prevent accidental keyword collisions (e.g. "viên" in "Nhân viên" vs "Lập trình viên")
+    const STOP_WORDS = new Set([
+      'nhân', 'viên', 'chuyên', 'cấp', 'ngành', 'bộ', 'phận', 'vị', 'trí', 'người',
+      'và', 'hoặc', 'cho', 'của', 'với', 'tại', 'trong', 'theo', 'làm', 'việc', 'tạo',
+      'cần', 'tuyển', 'tìm', 'ứng', 'dụng', 'tại', 'ở', 'được', 'các', 'những', 'một',
+      'chính', 'thức', 'theo', 'giờ', 'ca', 'nhiệm', 'vụ'
+    ]);
+
     const extractKeywords = (str: string) => {
       return str
         .replace(/[\.\,\-\_\/\(\)]/g, ' ')
         .split(/\s+/)
         .map((w) => w.trim().toLowerCase())
-        .filter((w) => w.length >= 2 && !['và', 'hoặc', 'cho', 'của', 'với', 'tại', 'trong', 'theo'].includes(w));
+        .filter((w) => w.length >= 2 && !STOP_WORDS.has(w));
     };
 
     const desiredKws = extractKeywords(desired);
     const roleKws = extractKeywords(userRoleText);
-    const cvKws = extractKeywords(cvName.replace('.pdf', '').replace('.docx', ''));
+    const cvKws = extractKeywords(cvName.replace(/\.pdf|\.docx|\.doc/gi, ''));
     const savedTitles = (savedJobs || []).map((s: any) => (s.jobTitle || s.title || '').toLowerCase());
     const viewedTitles = (viewedJobs || []).map((v: any) => (v.jobTitle || v.title || '').toLowerCase());
 
@@ -721,19 +728,19 @@ function CandidateHomeScreen() {
       desiredKws.length > 0 || roleKws.length > 0 || cvKws.length > 0 || savedTitles.length > 0 || viewedTitles.length > 0;
 
     const scored = jobListings.map((job) => {
-      let score = 0;
+      let domainScore = 0;
       let reason = 'Được TOPPY AI gợi ý phù hợp cho bạn';
       const title = job.title.toLowerCase();
       const industry = (job.originalIndustry || '').toLowerCase();
       const jobLoc = job.location.toLowerCase();
 
       if (hasProfileContext) {
-        // 1. Match Desired Job / Goal (Up to 45 pts)
+        // 1. Match Desired Job / Goal (Up to 50 pts)
         if (desiredKws.length > 0) {
           const matchCount = desiredKws.filter((kw) => title.includes(kw) || industry.includes(kw)).length;
           if (matchCount > 0) {
-            score += 35 + Math.min(matchCount * 5, 15);
-            reason = `Khớp mong muốn "${userData.desiredJob}"`;
+            domainScore += 40 + Math.min(matchCount * 10, 20);
+            reason = `Khớp mong muốn "${userData?.desiredJob}"`;
           }
         }
 
@@ -741,7 +748,7 @@ function CandidateHomeScreen() {
         if (roleKws.length > 0) {
           const roleMatch = roleKws.filter((kw) => title.includes(kw) || industry.includes(kw)).length;
           if (roleMatch > 0) {
-            score += 25;
+            domainScore += 30;
             if (!reason.includes('mong muốn')) reason = 'Phù hợp với chuyên môn của bạn';
           }
         }
@@ -750,57 +757,58 @@ function CandidateHomeScreen() {
         if (cvKws.length > 0) {
           const cvMatch = cvKws.filter((kw) => title.includes(kw) || industry.includes(kw)).length;
           if (cvMatch > 0) {
-            score += 20;
+            domainScore += 25;
             if (!reason.includes('mong muốn') && !reason.includes('chuyên môn')) reason = 'Khớp chuyên môn trong CV của bạn';
           }
         }
 
-        // 4. Location Match (Up to 15 pts)
-        if (userLocation.length > 0 && jobLoc.length > 0) {
-          if (userLocation.includes('hồ chí minh') || userLocation.includes('hcm')) {
-            if (jobLoc.includes('hồ chí minh') || jobLoc.includes('hcm') || jobLoc.includes('quận') || jobLoc.includes('thủ đức')) score += 15;
-          } else if (userLocation.includes('hà nội') || userLocation.includes('hn')) {
-            if (jobLoc.includes('hà nội') || jobLoc.includes('cầu giấy')) score += 15;
-          }
-        }
-
-        // 5. Activity context: Saved or Viewed (Up to 20 pts)
-        if (savedTitles.some((st) => title.includes(st) || st.includes(title))) {
-          score += 20;
+        // 4. Activity context: Saved or Viewed (Up to 20 pts)
+        if (savedTitles.some((st) => st.length > 2 && (title.includes(st) || st.includes(title)))) {
+          domainScore += 20;
           reason = 'Tương tự các việc làm bạn đã lưu';
-        } else if (viewedTitles.some((vt) => title.includes(vt) || vt.includes(title))) {
-          score += 15;
+        } else if (viewedTitles.some((vt) => vt.length > 2 && (title.includes(vt) || vt.includes(title)))) {
+          domainScore += 15;
           if (!reason.includes('lưu')) reason = 'Phù hợp lịch sử xem gần đây';
         }
 
-        // Base bonus for premium/featured jobs
-        if (job.isPremium) score += 10;
-        if (score === 0) {
-          score = 65;
-          reason = 'Việc làm hot đang tuyển gấp';
+        // 5. Location Match bonus
+        if (userLocation.length > 0 && jobLoc.length > 0) {
+          if (userLocation.includes('hồ chí minh') || userLocation.includes('hcm')) {
+            if (jobLoc.includes('hồ chí minh') || jobLoc.includes('hcm') || jobLoc.includes('quận') || jobLoc.includes('thủ đức')) domainScore += 10;
+          } else if (userLocation.includes('hà nội') || userLocation.includes('hn')) {
+            if (jobLoc.includes('hà nội') || jobLoc.includes('cầu giấy')) domainScore += 10;
+          }
         }
+
+        if (job.isPremium) domainScore += 5;
       } else {
-        // Intelligent recommendation for new candidates
-        score = 75;
-        if (job.isPremium) {
-          score += 15;
-          reason = 'Nhà tuyển dụng Premium hàng đầu';
-        } else {
-          reason = 'Công việc nổi bật đang được quan tâm';
-        }
+        // Intelligent fallback for brand new candidates with no profile info
+        domainScore = 70;
+        reason = job.isPremium ? 'Nhà tuyển dụng Premium hàng đầu' : 'Công việc nổi bật đang được quan tâm';
       }
 
-      // Dynamic match percentage clamp (82% - 98%)
-      const matchPercentage = Math.min(Math.max(score, 82), 98);
+      // Calculate final match percentage based on domainScore:
+      // If there is domainScore > 0 (real domain match), match percentage is high (85% - 98%)
+      // If domainScore is 0 (no domain match), assign low percentage (60% - 68%) so non-matching jobs never claim high AI accuracy
+      let matchPercentage = 65;
+      if (domainScore > 0) {
+        matchPercentage = Math.min(Math.max(domainScore, 85), 98);
+      } else if (!hasProfileContext) {
+        matchPercentage = 80;
+      } else {
+        reason = 'Công việc đang tuyển gấp khác';
+        matchPercentage = 62;
+      }
 
       return {
         ...job,
-        score,
+        score: domainScore,
         matchPercentage,
         reason,
       };
     });
 
+    // Prioritize real domain matching jobs first, then higher match scores
     return scored.sort((a, b) => b.score - a.score).slice(0, 5);
   }, [
     jobListings,
