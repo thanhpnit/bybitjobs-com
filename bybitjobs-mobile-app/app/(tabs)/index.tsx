@@ -2010,6 +2010,8 @@ function CandidateHomeScreen() {
             </ScrollView>
           </View>
         </TouchableOpacity>
+      </Modal>
+
       {/* Modal Dạng Danh Sách Bộ Lọc Tìm Kiếm Cho Ứng Viên (Candidate Search Filter List Modal) */}
       <Modal
         visible={activeCandidateFilterModalType !== null}
