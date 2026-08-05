@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -223,6 +225,14 @@ export default function CvPdfViewerModal({
 }: CvPdfViewerModalProps) {
   const [loadError, setLoadError] = React.useState(false);
   const [key, setKey] = React.useState(0);
+  const [viewMode, setViewMode] = React.useState<'pdf' | 'html'>(cvUrl && cvUrl.startsWith('http') ? 'pdf' : 'html');
+
+  React.useEffect(() => {
+    if (visible) {
+      setLoadError(false);
+      setViewMode(cvUrl && cvUrl.startsWith('http') ? 'pdf' : 'html');
+    }
+  }, [visible, cvUrl]);
 
   // Kiểm tra xem có nên render dạng HTML CV mẫu hay không
   const shouldRenderHtml = () => {
@@ -405,19 +415,16 @@ export default function CvPdfViewerModal({
     `;
   };
 
-  // Trả về URI kết xuất
-  const getPreparedUrl = () => {
-    let finalUrl = cvUrl;
-    if (Platform.OS === 'android') {
-      return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(finalUrl)}`;
+  // Trả về dữ liệu WebView nguồn
+  const webViewSource = React.useMemo(() => {
+    if (viewMode === 'pdf' && cvUrl) {
+      if (Platform.OS === 'android') {
+        return { uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(cvUrl)}` };
+      }
+      return { uri: cvUrl };
     }
-    return finalUrl;
-  };
-
-  const handleRetry = () => {
-    setLoadError(false);
-    setKey((prev) => prev + 1);
-  };
+    return { html: getHtmlContent() };
+  }, [viewMode, cvUrl, cvName, fullName, desiredJob, phone, email]);
 
   return (
     <Modal
@@ -435,37 +442,50 @@ export default function CvPdfViewerModal({
           <Text style={[styles.title, { flex: 1, marginHorizontal: 8 }]} numberOfLines={1}>
             {cvName || 'Hồ sơ CV Ứng viên'}
           </Text>
-          {cvUrl && cvUrl.startsWith('http') ? (
+          <View style={styles.headerRightPlaceholder} />
+        </View>
+
+        {/* In-App Tab Switcher */}
+        {cvUrl ? (
+          <View style={{ flexDirection: 'row', backgroundColor: '#0066CC', padding: 3, marginHorizontal: 16, marginBottom: 8, borderRadius: 10 }}>
             <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                Linking.openURL(cvUrl).catch(() => {
-                  Alert.alert('Thông báo', 'Không thể mở liên kết tệp PDF.');
-                });
-              }}
+              activeOpacity={0.85}
+              onPress={() => setViewMode('pdf')}
               style={{
-                flexDirection: 'row',
+                flex: 1,
+                paddingVertical: 7,
                 alignItems: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                borderRadius: 14,
-                gap: 4
+                borderRadius: 8,
+                backgroundColor: viewMode === 'pdf' ? '#FFFFFF' : 'transparent',
               }}
             >
-              <Ionicons name="open-outline" size={14} color="#FFF" />
-              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Tệp PDF gốc</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: viewMode === 'pdf' ? '#0084FF' : '#E0F2FE' }}>
+                📑 Xem Tệp PDF Trực Tiếp
+              </Text>
             </TouchableOpacity>
-          ) : (
-            <View style={styles.headerRightPlaceholder} />
-          )}
-        </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setViewMode('html')}
+              style={{
+                flex: 1,
+                paddingVertical: 7,
+                alignItems: 'center',
+                borderRadius: 8,
+                backgroundColor: viewMode === 'html' ? '#FFFFFF' : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: viewMode === 'html' ? '#0084FF' : '#E0F2FE' }}>
+                📄 Xem Bản Hồ Sơ Chuẩn
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* WebView Container */}
         <View style={styles.container}>
           <WebView
-            key={key}
-            source={{ html: getHtmlContent() }}
+            key={`${key}-${viewMode}`}
+            source={webViewSource}
             style={styles.webview}
             scalesPageToFit={true}
             javaScriptEnabled={true}
@@ -475,7 +495,7 @@ export default function CvPdfViewerModal({
             renderLoading={() => (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#0084FF" />
-                <Text style={styles.loadingText}>Đang chuẩn bị hồ sơ CV...</Text>
+                <Text style={styles.loadingText}>Đang tải tài liệu CV trực tiếp...</Text>
               </View>
             )}
           />

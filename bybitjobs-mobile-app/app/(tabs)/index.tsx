@@ -1495,10 +1495,10 @@ function CandidateHomeScreen() {
                         
                         {/* Job details */}
                         <View style={styles.aiJobTextWrapper}>
-                          <Text style={[styles.aiJobTitle, { color: '#0F172A' }]}>
+                          <Text style={[styles.aiJobTitle, { color: '#0F172A' }]} numberOfLines={1} ellipsizeMode="tail">
                             {job.title}
                           </Text>
-                          <Text style={styles.aiCompanyName}>
+                          <Text style={styles.aiCompanyName} numberOfLines={1} ellipsizeMode="tail">
                             {job.author.name}
                           </Text>
                         </View>
@@ -1507,7 +1507,7 @@ function CandidateHomeScreen() {
                       {/* Fit percentage indicator */}
                       <View style={styles.fitProgressContainer}>
                         <View style={styles.fitProgressHeader}>
-                          <Text style={styles.fitReasonText}>🎯 {job.reason}</Text>
+                          <Text style={styles.fitReasonText} numberOfLines={1} ellipsizeMode="tail">🎯 {job.reason}</Text>
                           <Text style={styles.fitPercentageText}>Độ khớp {job.matchPercentage}%</Text>
                         </View>
                         <View style={[styles.fitProgressBarBg, { backgroundColor: '#F1F5F9' }]}>
@@ -1525,10 +1525,10 @@ function CandidateHomeScreen() {
 
                       {/* Metadata (Salary, Location) */}
                       <View style={styles.aiCardMeta}>
-                        <Text style={[styles.aiMetaText, { color: '#64748B' }]}>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1} ellipsizeMode="tail">
                           💰 {job.price}
                         </Text>
-                        <Text style={[styles.aiMetaText, { color: '#64748B' }]}>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1} ellipsizeMode="tail">
                           📍 {job.location}
                         </Text>
                       </View>

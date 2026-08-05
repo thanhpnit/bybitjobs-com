@@ -533,7 +533,8 @@ app.post('/api/upload-cv', async (req: Request, res: Response): Promise<any> => 
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const fileBuffer = Buffer.from(base64Data, 'base64');
+    const cleanBase64 = base64Data.replace(/^data:.*?;base64,/, '').trim();
+    const fileBuffer = Buffer.from(cleanBase64, 'base64');
     const safeFileName = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const filePath = path.join(uploadsDir, safeFileName);
 
@@ -1675,18 +1676,30 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
     }
 
     const updatedCompanyName = data.company || data.company_name || data.companyName;
-    if (updatedCompanyName) {
+    const updatedLogo = data.logo || data.logoUrl || data.logo_url;
+
+    if (updatedCompanyName || updatedLogo) {
       try {
         const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
         if (!jobsSnap.empty) {
           const batch = db.batch();
           jobsSnap.docs.forEach((jDoc) => {
-            batch.update(jDoc.ref, { companyName: updatedCompanyName, posterName: updatedCompanyName });
+            const updatePayload: any = {};
+            if (updatedCompanyName) {
+              updatePayload.companyName = updatedCompanyName;
+              updatePayload.posterName = updatedCompanyName;
+            }
+            if (updatedLogo) {
+              updatePayload.companyLogo = updatedLogo;
+              updatePayload.logo = updatedLogo;
+              updatePayload.logo_url = updatedLogo;
+            }
+            batch.update(jDoc.ref, updatePayload);
           });
           await batch.commit();
         }
       } catch (e) {
-        console.error('Lỗi đồng bộ tên công ty sang các bài tuyển dụng:', e);
+        console.error('Lỗi đồng bộ thông tin công ty sang các bài tuyển dụng:', e);
       }
     }
     
