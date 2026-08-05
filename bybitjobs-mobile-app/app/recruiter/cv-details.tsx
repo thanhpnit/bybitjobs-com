@@ -9,6 +9,10 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +28,14 @@ export default function RecruiterCvDetailsScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { appId } = useLocalSearchParams<{ appId: string }>();
-  const { applications, candidates, updateApplicationStatus } = useAuth();
+  const { applications, candidates, updateApplicationStatus, employerData } = useAuth();
   const [isCVPreviewVisible, setIsCVPreviewVisible] = React.useState(false);
+
+  // Email Sending States
+  const [isEmailModalVisible, setIsEmailModalVisible] = React.useState(false);
+  const [emailSubject, setEmailSubject] = React.useState('');
+  const [emailContent, setEmailContent] = React.useState('');
+  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
 
   // AI Match Score & Summary States
   const [matchScore, setMatchScore] = React.useState<number | null>(null);
@@ -167,6 +177,129 @@ export default function RecruiterCvDetailsScreen() {
         },
       ]
     );
+  };
+
+  const handleOpenEmailModal = () => {
+    if (!candidateEmail || candidateEmail === 'Chưa cập nhật email') {
+      Alert.alert('Thông báo', 'Ứng viên chưa cập nhật địa chỉ email trong hồ sơ.');
+      return;
+    }
+    const defaultSubject = `[BybitJobs] Thư mời phỏng vấn - Vị trí ${application.jobTitle}`;
+    const defaultBody = `Kính gửi ${candidateName},
+
+Bộ phận Tuyển dụng ${employerData?.companyName || ''} đã xem qua hồ sơ ứng tuyển của bạn cho vị trí "${application.jobTitle}" và rất ấn tượng với kinh nghiệm của bạn.
+
+Chúng tôi trân trọng kính mời bạn tham gia buổi phỏng vấn:
+• Vị trí: ${application.jobTitle}
+• Hình thức: Phỏng vấn Online / Trực tiếp tại Văn phòng
+• Thời gian dự kiến: [Nhập ngày & giờ]
+
+Bạn vui lòng phản hồi lại email này để xác nhận sự tham gia của bạn.
+
+Trân trọng,
+${employerData?.companyName || 'Bộ phận Tuyển dụng'}`;
+
+    setEmailSubject(defaultSubject);
+    setEmailContent(defaultBody);
+    setIsEmailModalVisible(true);
+  };
+
+  const applyEmailTemplate = (type: 'interview' | 'additional' | 'offer') => {
+    if (type === 'interview') {
+      setEmailSubject(`[BybitJobs] Thư mời phỏng vấn - Vị trí ${application.jobTitle}`);
+      setEmailContent(`Kính gửi ${candidateName},
+
+Bộ phận Tuyển dụng ${employerData?.companyName || ''} đã xem qua hồ sơ ứng tuyển của bạn cho vị trí "${application.jobTitle}" và rất ấn tượng với kinh nghiệm của bạn.
+
+Chúng tôi trân trọng kính mời bạn tham gia buổi phỏng vấn:
+• Vị trí: ${application.jobTitle}
+• Hình thức: Phỏng vấn Online / Trực tiếp tại Văn phòng
+• Thời gian dự kiến: [Nhập ngày & giờ]
+
+Bạn vui lòng phản hồi lại email này để xác nhận sự tham gia của bạn.
+
+Trân trọng,
+${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
+    } else if (type === 'additional') {
+      setEmailSubject(`[BybitJobs] Yêu cầu bổ sung hồ sơ - Vị trí ${application.jobTitle}`);
+      setEmailContent(`Kính gửi ${candidateName},
+
+Cảm ơn bạn đã quan tâm và nộp hồ sơ ứng tuyển vị trí "${application.jobTitle}" tại công ty chúng tôi.
+
+Để có thêm cơ sở đánh giá trong vòng hồ sơ, bạn vui lòng gửi bổ sung cho chúng tôi [Kinh nghiệm / Bằng cấp / Portfolio công việc] bằng cách phản hồi trực tiếp email này.
+
+Trân trọng,
+${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
+    } else if (type === 'offer') {
+      setEmailSubject(`[BybitJobs] Thư mời nhận việc (Offer Letter) - Vị trí ${application.jobTitle}`);
+      setEmailContent(`Kính gửi ${candidateName},
+
+Sau quá trình phỏng vấn và đánh giá năng lực, chúng tôi rất vui mừng thông báo bạn đã xuất sắc trúng tuyển vị trí "${application.jobTitle}".
+
+Thông tin nhận việc dự kiến:
+• Vị trí làm việc: ${application.jobTitle}
+• Ngày bắt đầu: [Nhập ngày nhận việc]
+
+Rất mong được làm việc và đồng hành cùng bạn!
+
+Trân trọng,
+${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
+    }
+  };
+
+  const handleSendEmailSubmit = async () => {
+    if (!emailSubject.trim() || !emailContent.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ tiêu đề và nội dung email.');
+      return;
+    }
+
+    try {
+      setIsSendingEmail(true);
+      const response = await fetch('http://160.250.246.119:4000/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: candidateEmail,
+          subject: emailSubject.trim(),
+          text: emailContent.trim(),
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+              <div style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+                <h2 style="color: #0f172a; margin: 0; font-size: 22px;">${employerData?.companyName || 'Nhà tuyển dụng BybitJobs'}</h2>
+                <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Thông báo về hồ sơ ứng tuyển vị trí ${application.jobTitle}</p>
+              </div>
+              <div style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-line;">
+                ${emailContent.trim()}
+              </div>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">Email này được gửi từ Nhà tuyển dụng thông qua hệ thống BybitJobs.</p>
+            </div>
+          `
+        })
+      });
+
+      const responseText = await response.text();
+      let data: any = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.warn('Phản hồi từ server không đúng dạng JSON:', responseText);
+      }
+
+      setIsSendingEmail(false);
+
+      if (response.ok && data.success) {
+        Alert.alert('Thành công 🎉', `Đã gửi email trực tiếp qua Nodemailer tới ${candidateEmail}!`);
+        setIsEmailModalVisible(false);
+      } else {
+        const errorMsg = data.error || data.details || data.message || 'API Server VPS chưa cập nhật route /api/send-email. Vui lòng deploy server VPS.';
+        Alert.alert('Lỗi gửi email', errorMsg);
+      }
+    } catch (error: any) {
+      setIsSendingEmail(false);
+      console.error('Lỗi khi gửi email qua Nodemailer:', error);
+      Alert.alert('Lỗi kết nối', 'Không thể kết nối đến máy chủ gửi email. Chi tiết: ' + error.message);
+    }
   };
 
   return (
@@ -472,16 +605,8 @@ export default function RecruiterCvDetailsScreen() {
         {/* Email Send Button */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => {
-            if (candidateEmail && candidateEmail !== 'Chưa cập nhật email') {
-              Linking.openURL(`mailto:${candidateEmail}?subject=${encodeURIComponent(`Thư mời phỏng vấn - Vị trí ${candidateRole}`)}`).catch(() => {
-                Alert.alert('Thông báo', 'Không thể mở ứng dụng Email trên thiết bị của bạn.');
-              });
-            } else {
-              Alert.alert('Thông báo', 'Ứng viên chưa cập nhật địa chỉ Email.');
-            }
-          }}
-          style={[styles.bottomBtn, { backgroundColor: '#FF9500', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
+          onPress={handleOpenEmailModal}
+          style={[styles.bottomBtn, { backgroundColor: '#0F172A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}
         >
           <Ionicons name="mail" size={18} color="#FFF" style={{ marginRight: 6 }} />
           <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Gửi Email</Text>
@@ -491,7 +616,7 @@ export default function RecruiterCvDetailsScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleApprove}
-          style={[styles.bottomBtn, styles.approveActionBtn, isApproved && { backgroundColor: '#4CAF50' }]}
+          style={[styles.bottomBtn, styles.approveActionBtn, isApproved && { backgroundColor: '#10B981' }]}
         >
           <Ionicons name={isApproved ? "checkmark-done-circle" : "checkmark-circle-outline"} size={20} color="#FFF" style={{ marginRight: 6 }} />
           <Text style={styles.approveActionBtnText}>
@@ -500,6 +625,180 @@ export default function RecruiterCvDetailsScreen() {
         </TouchableOpacity>
 
       </View>
+
+      {/* Modal Soạn & Gửi Email trực tiếp qua Nodemailer */}
+      <Modal
+        visible={isEmailModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsEmailModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <View style={{
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 20,
+            maxHeight: '90%',
+          }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="mail-open-outline" size={22} color="#0F172A" />
+                <Text style={{ fontSize: 18, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                  Gửi Email tới Ứng viên
+                </Text>
+              </View>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setIsEmailModalVisible(false)}>
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#64748B'} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Recipient info pill */}
+            <View style={{
+              backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9',
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 12,
+              marginBottom: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
+                Người nhận: <Text style={{ color: isDark ? '#FFF' : '#0F172A', fontWeight: '700' }}>{candidateName}</Text>
+              </Text>
+              <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '600' }}>
+                {candidateEmail}
+              </Text>
+            </View>
+
+            {/* Template Selection Chips */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 8 }}>
+              💡 Mẫu email nhanh (Templates):
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => applyEmailTemplate('interview')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }}
+              >
+                <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '600' }}>💡 1. Thư mời phỏng vấn</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => applyEmailTemplate('additional')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }}
+              >
+                <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '600' }}>📄 2. Yêu cầu bổ sung CV</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => applyEmailTemplate('offer')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }}
+              >
+                <Text style={{ fontSize: 12, color: '#0F172A', fontWeight: '600' }}>🎯 3. Offer Letter (Nhận việc)</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Subject Input */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 6 }}>
+              Tiêu đề Email:
+            </Text>
+            <TextInput
+              style={{
+                backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                height: 44,
+                fontSize: 14,
+                fontWeight: '600',
+                color: isDark ? '#FFF' : '#0F172A',
+                borderWidth: 1,
+                borderColor: isDark ? '#2C2C2E' : '#E2E8F0',
+                marginBottom: 14,
+              }}
+              placeholder="Nhập tiêu đề email..."
+              placeholderTextColor="#94A3B8"
+              value={emailSubject}
+              onChangeText={setEmailSubject}
+            />
+
+            {/* Content Input */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 6 }}>
+              Nội dung Email:
+            </Text>
+            <TextInput
+              style={{
+                backgroundColor: isDark ? '#151718' : '#F8FAFC',
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                height: 150,
+                fontSize: 13.5,
+                lineHeight: 20,
+                color: isDark ? '#FFF' : '#0F172A',
+                borderWidth: 1,
+                borderColor: isDark ? '#2C2C2E' : '#E2E8F0',
+                textAlignVertical: 'top',
+                marginBottom: 16,
+              }}
+              placeholder="Nhập nội dung thư gửi đến ứng viên..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              value={emailContent}
+              onChangeText={setEmailContent}
+            />
+
+            {/* Submit & Cancel Buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsEmailModalVisible(false)}
+                disabled={isSendingEmail}
+                style={{
+                  flex: 1,
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: '#F1F5F9',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>Hủy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleSendEmailSubmit}
+                disabled={isSendingEmail}
+                style={{
+                  flex: 2,
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: '#0F172A',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                {isSendingEmail ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="paper-plane-outline" size={18} color="#FFF" />
+                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Gửi Email qua Nodemailer</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -12,13 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
 
 export default function NotificationsScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const router = useRouter();
   
   const { 
@@ -48,13 +45,13 @@ export default function NotificationsScreen() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'job':
-        return { name: 'briefcase', color: '#0084FF', bg: '#E6F4FE' };
+        return { name: 'briefcase', color: '#0F172A', bg: '#F1F5F9' };
       case 'security':
-        return { name: 'shield-checkmark', color: '#4CAF50', bg: '#E8F5E9' };
+        return { name: 'shield-checkmark', color: '#10B981', bg: '#ECFDF5' };
       case 'community':
-        return { name: 'people', color: '#FF2D55', bg: '#FFEBEE' };
+        return { name: 'people', color: '#EC4899', bg: '#FDF2F8' };
       default:
-        return { name: 'notifications', color: '#FF9500', bg: '#FFF3E0' };
+        return { name: 'notifications', color: '#F59E0B', bg: '#FEF3C7' };
     }
   };
 
@@ -82,18 +79,16 @@ export default function NotificationsScreen() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
-      {/* Header Background */}
-      <View style={styles.headerBg} />
+    <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
 
-        {/* Header Bar */}
+        {/* Top Header Bar */}
         <View style={styles.headerBar}>
           <View style={styles.headerBarPlaceholder} />
           <Text style={styles.headerTitle}>Thông báo</Text>
           {notifications.some((n) => !n.isRead) ? (
             <TouchableOpacity activeOpacity={0.7} onPress={handleMarkAllRead} style={styles.iconButton}>
-              <Ionicons name="checkmark-done" size={24} color="#FFF" />
+              <Ionicons name="checkmark-done" size={22} color="#0F172A" />
             </TouchableOpacity>
           ) : (
             <View style={styles.headerBarPlaceholder} />
@@ -102,16 +97,16 @@ export default function NotificationsScreen() {
 
         {/* Filter Segment Row */}
         <View style={styles.segmentContainer}>
-          <View style={[styles.segmentTrack, { backgroundColor: isDark ? '#1C1C1E' : '#E5E5EA' }]}>
+          <View style={styles.segmentTrack}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setActiveSegment('all')}
               style={[
                 styles.segmentItem,
-                activeSegment === 'all' && [styles.segmentItemActive, { backgroundColor: isDark ? '#2C2C2E' : '#FFF' }]
+                activeSegment === 'all' && styles.segmentItemActive
               ]}
             >
-              <Text style={[styles.segmentText, activeSegment === 'all' ? styles.segmentTextActive : { color: isDark ? '#AAA' : '#666' }]}>
+              <Text style={[styles.segmentText, activeSegment === 'all' ? styles.segmentTextActive : styles.segmentTextInactive]}>
                 Tất cả ({notifications.length})
               </Text>
             </TouchableOpacity>
@@ -121,10 +116,10 @@ export default function NotificationsScreen() {
               onPress={() => setActiveSegment('unread')}
               style={[
                 styles.segmentItem,
-                activeSegment === 'unread' && [styles.segmentItemActive, { backgroundColor: isDark ? '#2C2C2E' : '#FFF' }]
+                activeSegment === 'unread' && styles.segmentItemActive
               ]}
             >
-              <Text style={[styles.segmentText, activeSegment === 'unread' ? styles.segmentTextActive : { color: isDark ? '#AAA' : '#666' }]}>
+              <Text style={[styles.segmentText, activeSegment === 'unread' ? styles.segmentTextActive : styles.segmentTextInactive]}>
                 Chưa đọc ({notifications.filter(n => !n.isRead).length})
               </Text>
             </TouchableOpacity>
@@ -135,10 +130,10 @@ export default function NotificationsScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {!userData?.uid ? (
             <View style={styles.emptyContainer}>
-              <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? '#1C1C1E' : '#E6F4FE' }]}>
-                <Ionicons name="lock-closed-outline" size={48} color="#0084FF" />
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="lock-closed-outline" size={44} color="#0F172A" />
               </View>
-              <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+              <Text style={styles.emptyTitle}>
                 Yêu cầu đăng nhập
               </Text>
               <Text style={styles.emptySubtitle}>
@@ -166,28 +161,27 @@ export default function NotificationsScreen() {
                     onPress={() => handleNotificationPress(item.id)}
                     style={[
                       styles.notificationCard,
-                      isDark ? styles.darkCard : styles.lightCard,
-                      !item.isRead && styles.unreadCardBorder
+                      !item.isRead ? styles.unreadCard : styles.readCard
                     ]}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
                       {/* Category Icon Circle */}
-                      <View style={[styles.iconCircle, { backgroundColor: isDark ? '#1C1C1E' : iconData.bg }]}>
+                      <View style={[styles.iconCircle, { backgroundColor: iconData.bg }]}>
                         <Ionicons name={iconData.name as any} size={20} color={iconData.color} />
                       </View>
 
                       {/* Content */}
                       <View style={styles.contentCol}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C', fontWeight: !item.isRead ? 'bold' : '600' }]} numberOfLines={1}>
+                          <Text style={[styles.cardTitle, !item.isRead && styles.cardTitleUnread]} numberOfLines={1}>
                             {item.title}
                           </Text>
                           {!item.isRead && (
                             <View style={styles.unreadDot} />
                           )}
                         </View>
-                        <Text style={[styles.cardDesc, { color: isDark ? '#AAA' : '#5E6E7A' }]} numberOfLines={2}>
+                        <Text style={styles.cardDesc} numberOfLines={2}>
                           {item.description}
                         </Text>
                         <Text style={styles.cardTime}>
@@ -202,10 +196,10 @@ export default function NotificationsScreen() {
             })
           ) : (
             <View style={styles.emptyContainer}>
-              <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? '#1C1C1E' : '#E6F4FE' }]}>
-                <Ionicons name="notifications-off-outline" size={48} color="#0084FF" />
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="notifications-off-outline" size={44} color="#0F172A" />
               </View>
-              <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+              <Text style={styles.emptyTitle}>
                 Không có thông báo mới
               </Text>
               <Text style={styles.emptySubtitle}>
@@ -224,18 +218,18 @@ export default function NotificationsScreen() {
           onRequestClose={() => setSelectedNotification(null)}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={styles.modalContent}>
               {selectedNotification && (() => {
                 const iconData = getCategoryIcon(selectedNotification.category);
                 return (
                   <>
                     {/* Header */}
                     <View style={styles.modalHeader}>
-                      <View style={[styles.modalIconCircle, { backgroundColor: isDark ? '#2C2C2E' : iconData.bg }]}>
-                        <Ionicons name={iconData.name as any} size={28} color={iconData.color} />
+                      <View style={[styles.modalIconCircle, { backgroundColor: iconData.bg }]}>
+                        <Ionicons name={iconData.name as any} size={26} color={iconData.color} />
                       </View>
                       <View style={styles.modalBadgeContainer}>
-                        <Text style={[styles.modalBadgeText, { color: iconData.color, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : iconData.bg }]}>
+                        <Text style={[styles.modalBadgeText, { color: iconData.color, backgroundColor: iconData.bg }]}>
                           {selectedNotification.category.toUpperCase()}
                         </Text>
                       </View>
@@ -243,20 +237,20 @@ export default function NotificationsScreen() {
 
                     {/* Body */}
                     <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                      <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      <Text style={styles.modalTitle}>
                         {selectedNotification.title}
                       </Text>
                       
                       <View style={styles.modalTimeContainer}>
-                        <Ionicons name="time-outline" size={14} color="#8E8E93" style={{ marginRight: 4 }} />
+                        <Ionicons name="time-outline" size={14} color="#94A3B8" style={{ marginRight: 4 }} />
                         <Text style={styles.modalTimeText}>
                           {selectedNotification.time}
                         </Text>
                       </View>
 
-                      <View style={[styles.modalDivider, { backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA' }]} />
+                      <View style={styles.modalDivider} />
 
-                      <Text style={[styles.modalDescription, { color: isDark ? '#E5E5EA' : '#2C2C2E' }]}>
+                      <Text style={styles.modalDescription}>
                         {selectedNotification.description}
                       </Text>
                     </ScrollView>
@@ -283,29 +277,27 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: Platform.OS === 'ios' ? 120 : 100,
-    backgroundColor: '#0084FF',
+    backgroundColor: '#FFFFFF',
   },
   safeArea: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 20,
+    height: 54,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   headerBarPlaceholder: {
     width: 36,
@@ -313,21 +305,24 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 36,
     height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   // Segment bar styles
   segmentContainer: {
-    paddingHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    marginTop: 14,
+    marginBottom: 10,
   },
   segmentTrack: {
     flexDirection: 'row',
-    height: 42,
-    borderRadius: 21,
-    padding: 3,
+    height: 44,
+    borderRadius: 22,
+    padding: 4,
+    backgroundColor: '#F1F5F9',
   },
   segmentItem: {
     flex: 1,
@@ -336,57 +331,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentItemActive: {
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   segmentText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontWeight: '600',
   },
   segmentTextActive: {
-    color: '#0084FF',
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  segmentTextInactive: {
+    color: '#64748B',
   },
 
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 8,
   },
 
   // Notification cards
   notificationCard: {
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1.5,
   },
-  lightCard: {
-    backgroundColor: '#FFF',
-  },
-  darkCard: {
-    backgroundColor: '#1C1C1E',
-  },
-  unreadCardBorder: {
+  unreadCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
     borderLeftWidth: 4,
-    borderLeftColor: '#0084FF',
+    borderLeftColor: '#0F172A',
+  },
+  readCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F1F5F9',
   },
   deleteAction: {
-    width: 82,
+    width: 80,
     minHeight: 76,
     marginBottom: 12,
     borderRadius: 16,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#EF4444',
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteActionText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
@@ -397,30 +400,37 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   contentCol: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
     flex: 1,
+  },
+  cardTitleUnread: {
+    fontWeight: '700',
+    color: '#0F172A',
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     marginLeft: 8,
   },
   cardDesc: {
-    fontSize: 12,
+    fontSize: 13,
+    color: '#475569',
     marginTop: 4,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   cardTime: {
-    fontSize: 10,
-    color: '#8E8E93',
+    fontSize: 11,
+    color: '#94A3B8',
     fontWeight: '500',
     marginTop: 6,
   },
@@ -430,49 +440,56 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: 100,
+    paddingHorizontal: 32,
+    paddingTop: 80,
   },
   emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   loginButton: {
-    backgroundColor: '#0084FF',
-    height: 42,
-    borderRadius: 10,
+    backgroundColor: '#0F172A',
+    height: 46,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 24,
     paddingHorizontal: 24,
     width: '100%',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   loginButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -481,12 +498,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '75%',
     borderRadius: 24,
-    padding: 20,
-    elevation: 10,
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -495,9 +513,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -505,22 +523,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     overflow: 'hidden',
     letterSpacing: 0.5,
   },
   modalBody: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
+    color: '#0F172A',
     lineHeight: 24,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   modalTimeContainer: {
     flexDirection: 'row',
@@ -528,36 +547,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalTimeText: {
-    fontSize: 11,
-    color: '#8E8E93',
+    fontSize: 12,
+    color: '#94A3B8',
     fontWeight: '500',
   },
   modalDivider: {
     height: 1,
     width: '100%',
+    backgroundColor: '#F1F5F9',
     marginVertical: 14,
   },
   modalDescription: {
     fontSize: 14,
     lineHeight: 22,
-    fontWeight: '500',
+    color: '#334155',
+    fontWeight: '400',
   },
   modalCloseButton: {
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     height: 48,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#0084FF',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
   },
   modalCloseButtonText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   },
 });
+

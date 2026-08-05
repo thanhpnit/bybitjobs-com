@@ -504,6 +504,114 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
   }
 });
 
+// Khởi tạo Nodemailer Transporter để gửi Email (Gmail SMTP)
+const mailTransporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'thanhpnvpbq@gmail.com',
+    pass: process.env.EMAIL_PASS || 'uuto vgwt hcms rnif',
+  },
+});
+
+// API gửi Email chung qua Nodemailer
+app.post('/api/send-email', async (req: Request, res: Response): Promise<any> => {
+  const { to, subject, text, html, title, code } = req.body;
+  if (!to) {
+    return res.status(400).json({ error: 'Thiếu email người nhận (to).' });
+  }
+
+  try {
+    const emailSubject = subject || title || 'Thông báo từ BybitJobs';
+    let emailHtml = html;
+
+    // Tự động tạo mẫu email OTP nếu có tham số code
+    if (!emailHtml && code) {
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #0f172a; margin: 0; font-size: 24px;">BybitJobs</h1>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Nền tảng tuyển dụng thông minh</p>
+          </div>
+          <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 15px; color: #334155; margin-bottom: 12px; font-weight: 500;">Mã xác thực OTP của bạn là:</p>
+            <div style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0f172a; background: #ffffff; padding: 14px 28px; border-radius: 10px; display: inline-block; border: 1px solid #cbd5e1;">
+              ${code}
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-top: 14px;">Mã này có hiệu lực trong vòng 5 phút. Vui lòng không tiết lộ cho ai khác.</p>
+          </div>
+          <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0;">Cảm ơn bạn đã sử dụng dịch vụ của BybitJobs!</p>
+        </div>
+      `;
+    }
+
+    const mailOptions = {
+      from: `"BybitJobs System" <${process.env.EMAIL_USER || 'thanhpnvpbq@gmail.com'}>`,
+      to,
+      subject: emailSubject,
+      text: text || 'Nội dung thông báo từ hệ thống BybitJobs.',
+      html: emailHtml || `<p>${text || 'Nội dung thông báo từ hệ thống BybitJobs.'}</p>`,
+    };
+
+    const info = await mailTransporter.sendMail(mailOptions);
+    console.log('[Nodemailer] Email đã được gửi thành công:', info.messageId);
+    return res.status(200).json({
+      success: true,
+      messageId: info.messageId,
+      message: 'Gửi email thành công qua Nodemailer!'
+    });
+  } catch (error: any) {
+    console.error('[Nodemailer] Lỗi khi gửi email:', error);
+    return res.status(500).json({ error: 'Lỗi server khi gửi email', details: error.message });
+  }
+});
+
+// API gửi mã OTP ngẫu nhiên qua Email (Nodemailer)
+app.post('/api/send-otp', async (req: Request, res: Response): Promise<any> => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Thiếu địa chỉ email.' });
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  try {
+    const mailOptions = {
+      from: `"BybitJobs System" <${process.env.EMAIL_USER || 'thanhpnvpbq@gmail.com'}>`,
+      to: email,
+      subject: `[BybitJobs] Mã OTP xác thực tài khoản: ${otpCode}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 560px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #0f172a; margin: 0; font-size: 24px;">BybitJobs</h1>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Xác thực địa chỉ Email</p>
+          </div>
+          <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 15px; color: #334155; margin-bottom: 12px; font-weight: 500;">Mã OTP xác thực của bạn:</p>
+            <div style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0f172a; background: #ffffff; padding: 14px 28px; border-radius: 10px; display: inline-block; border: 1px solid #cbd5e1;">
+              ${otpCode}
+            </div>
+            <p style="font-size: 13px; color: #64748b; margin-top: 14px;">Mã OTP này có giá trị sử dụng trong 5 phút.</p>
+          </div>
+          <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0;">Trân trọng,<br/>Đội ngũ Hỗ trợ BybitJobs</p>
+        </div>
+      `,
+    };
+
+    const info = await mailTransporter.sendMail(mailOptions);
+    console.log('[Nodemailer] Mã OTP đã được gửi:', info.messageId);
+
+    return res.status(200).json({
+      success: true,
+      otp: otpCode,
+      messageId: info.messageId,
+      message: 'Mã OTP đã được gửi thành công đến email của bạn!'
+    });
+  } catch (error: any) {
+    console.error('[Nodemailer] Lỗi khi gửi OTP:', error);
+    return res.status(500).json({ error: 'Lỗi khi gửi mã OTP qua email', details: error.message });
+  }
+});
+
 // API xóa người dùng khỏi Firebase Auth
 app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {

@@ -248,9 +248,9 @@ export default function JobDetailsScreen() {
   };
 
   const renderEmployerInfoRow = (icon: keyof typeof Ionicons.glyphMap, label: string, value?: string) => (
-    <View style={[styles.employerDetailRow, { backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
-      <View style={[styles.employerDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE' }]}>
-        <Ionicons name={icon} size={17} color="#0084FF" />
+    <View style={[styles.employerDetailRow, { backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC' }]}>
+      <View style={[styles.employerDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#F1F5F9' }]}>
+        <Ionicons name={icon} size={17} color="#0F172A" />
       </View>
       <View style={styles.employerDetailTextCol}>
         <Text style={styles.employerDetailLabel}>{label}</Text>
@@ -269,7 +269,7 @@ export default function JobDetailsScreen() {
   ) => (
     <View style={[styles.heroMetricItem, showDivider && styles.heroMetricDivider]}>
       <View style={styles.heroMetricIconBox}>
-        <Ionicons name={icon} size={24} color="#0084FF" />
+        <Ionicons name={icon} size={22} color="#0F172A" />
       </View>
       <Text style={styles.heroMetricLabel}>{label}</Text>
       <Text style={styles.heroMetricValue} numberOfLines={1}>
@@ -279,7 +279,7 @@ export default function JobDetailsScreen() {
   );
 
   const renderInfoChip = (label: string) => (
-    <View key={label} style={[styles.infoChip, { backgroundColor: isDark ? '#2C2C2E' : '#F1F3F5' }]}>
+    <View key={label} style={[styles.infoChip, { backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9' }]}>
       <Text style={[styles.infoChipText, { color: isDark ? '#ECEDEE' : '#334155' }]} numberOfLines={1}>
         {label}
       </Text>
@@ -288,8 +288,8 @@ export default function JobDetailsScreen() {
 
   const renderCompanyDetailItem = (icon: keyof typeof Ionicons.glyphMap, label: string, value?: string) => (
     <View style={[styles.companyDetailItem, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
-      <View style={[styles.companyDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#EAF5FF' }]}>
-        <Ionicons name={icon} size={18} color="#0084FF" />
+      <View style={[styles.companyDetailIcon, { backgroundColor: isDark ? '#1C2A3A' : '#F1F5F9' }]}>
+        <Ionicons name={icon} size={18} color="#0F172A" />
       </View>
       <View style={styles.companyDetailTextCol}>
         <Text style={styles.companyDetailLabel}>{label}</Text>
@@ -800,6 +800,7 @@ export default function JobDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   headerBg: {
     position: 'absolute',
@@ -807,7 +808,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: Platform.OS === 'ios' ? 260 : 240,
-    backgroundColor: '#0084FF',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   safeArea: {
     flex: 1,
@@ -820,18 +823,18 @@ const styles = StyleSheet.create({
     height: 64,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1009,7 +1012,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   heroMetricValue: {
-    color: '#0084FF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
@@ -1019,6 +1022,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
     marginHorizontal: -16,
     paddingHorizontal: 16,
     marginBottom: 14,
@@ -1027,14 +1031,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginRight: 28,
     borderBottomWidth: 2,
-    borderBottomColor: '#0084FF',
+    borderBottomColor: '#0F172A',
   },
   detailTab: {
     paddingVertical: 12,
     marginRight: 22,
   },
   detailTabActiveText: {
-    color: '#0084FF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -1493,24 +1497,24 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#0084FF',
+    borderColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
   },
   saveJobButtonActive: {
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
   },
   applyButton: {
     flex: 1,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
     elevation: 4,
-    shadowColor: '#0084FF',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -1534,7 +1538,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reportTextLink: {
-    color: '#0084FF',
+    color: '#0F172A',
     fontWeight: 'bold',
   },
   modalOverlay: {

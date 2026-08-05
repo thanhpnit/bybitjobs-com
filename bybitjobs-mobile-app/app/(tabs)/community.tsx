@@ -140,23 +140,23 @@ function CandidateCommunityScreen() {
   const getCategoryBadge = (cat: string) => {
     switch (cat) {
       case 'Review':
-        return { label: '💬 Review Công ty', color: '#FF2D55', bg: '#FFEBEE' };
+        return { label: '💬 Review Công ty', color: '#EF4444', bg: '#FEF2F2' };
       case 'Interview':
-        return { label: '💡 Phỏng vấn', color: '#0084FF', bg: '#E6F4FE' };
+        return { label: '💡 Phỏng vấn', color: '#0F172A', bg: '#F1F5F9' };
       case 'Salary':
-        return { label: '💰 Thảo luận Lương', color: '#2E7D32', bg: '#E8F5E9' };
+        return { label: '💰 Thảo luận Lương', color: '#10B981', bg: '#ECFDF5' };
       default:
-        return { label: '🌐 Thảo luận chung', color: '#7C3AED', bg: '#F3E8FF' };
+        return { label: '🌐 Thảo luận chung', color: '#8B5CF6', bg: '#F5F3FF' };
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
       {/* Header Bar */}
-      <View style={[styles.headerBar, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderBottomColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
+      <View style={[styles.headerBar, { backgroundColor: '#FFFFFF', borderBottomColor: '#F1F5F9' }]}>
         <View style={styles.headerTitleGroup}>
-          <Ionicons name="people" size={22} color="#0084FF" />
-          <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Cộng đồng BybitJobs</Text>
+          <Ionicons name="people" size={22} color="#0F172A" />
+          <Text style={[styles.headerTitle, { color: '#0F172A' }]}>Cộng đồng BybitJobs</Text>
         </View>
         <TouchableOpacity
           activeOpacity={0.8}
@@ -187,12 +187,12 @@ function CandidateCommunityScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 7,
                   borderRadius: 20,
-                  backgroundColor: isActive ? '#0084FF' : (isDark ? '#2C2C2E' : '#FFFFFF'),
+                  backgroundColor: isActive ? '#0F172A' : '#FFFFFF',
                   borderWidth: 1,
-                  borderColor: isActive ? '#0084FF' : (isDark ? '#3A3A3C' : '#E5E7EB'),
+                  borderColor: isActive ? '#0F172A' : '#E2E8F0',
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '500', color: isActive ? '#FFF' : (isDark ? '#D1D5DB' : '#4B5563') }}>
+                <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '500', color: isActive ? '#FFF' : '#475569' }}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -329,14 +329,17 @@ function CandidateCommunityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   headerBar: {
-    height: 56,
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
   },
   headerTitleGroup: {
     flexDirection: 'row',
@@ -346,9 +349,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   createPostBtn: {
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -370,6 +375,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F1F5F9',
   },
   postHeader: {
     flexDirection: 'row',
@@ -381,7 +388,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -474,7 +481,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   submitPostBtn: {
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     height: 46,
     borderRadius: 23,
     justifyContent: 'center',

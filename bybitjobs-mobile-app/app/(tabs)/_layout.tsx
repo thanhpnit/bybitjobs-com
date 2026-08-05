@@ -24,24 +24,24 @@ export default function TabLayout() {
       key={userRole || 'guest'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#0084FF',
-        tabBarInactiveTintColor: isDark ? '#8E8E93' : '#8E8E93',
+        tabBarActiveTintColor: '#0F172A',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
           height: tabBarHeight,
           paddingBottom: paddingBottom,
           paddingTop: paddingTop,
-          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+          backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
-          borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+          borderTopColor: '#F1F5F9',
           elevation: 10,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.08,
+          shadowOpacity: 0.05,
           shadowRadius: 6,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: '600',
         },
       }}
     >
@@ -88,8 +88,8 @@ export default function TabLayout() {
                       style={[
                         styles.fabTabButton,
                         {
-                          backgroundColor: '#0060B6',
-                          borderColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                          backgroundColor: '#0F172A',
+                          borderColor: '#FFFFFF',
                         }
                       ]}
                     >

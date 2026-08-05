@@ -1212,18 +1212,24 @@ export function useAuth() {
   const sendOtp = async (): Promise<{ success: boolean; message: string }> => {
     try {
       const user = auth.currentUser;
-      if (!user) return { success: false, message: 'Chưa đăng nhập.' };
+      if (!user || !user.email) return { success: false, message: 'Chưa đăng nhập hoặc tài khoản thiếu email.' };
       
-      const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/send-otp`, {
+      const response = await fetch('http://160.250.246.119:4000/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email })
       });
-      const result = await response.json();
+      const responseText = await response.text();
+      let result: any = {};
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.warn('Phản hồi send-otp từ server không phải JSON:', responseText);
+      }
       
-      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi OTP.' };
+      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi mã OTP qua Nodemailer. Vui lòng deploy server VPS.' };
     } catch (error: any) {
-      console.error('Lỗi gọi API sendOtp:', error);
+      console.error('Lỗi gọi API sendOtp Nodemailer:', error);
       return { success: false, message: error.message };
     }
   };

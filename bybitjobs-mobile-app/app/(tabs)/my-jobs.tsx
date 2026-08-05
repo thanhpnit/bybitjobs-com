@@ -110,28 +110,28 @@ function CandidateMyJobsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
       {/* Header */}
-      <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
+      <View style={[styles.headerBar, { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }]}>
         <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>Việc của tôi</Text>
+        <Text style={[styles.headerTitle, { color: '#0F172A' }]}>Việc của tôi</Text>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.push('/(tabs)/notifications')}
           style={styles.notifBtn}
         >
-          <Ionicons name="notifications-outline" size={22} color="#FFF" />
+          <Ionicons name="notifications-outline" size={20} color="#0F172A" />
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <View style={[styles.tabBarContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+      <View style={[styles.tabBarContainer, { backgroundColor: '#FFFFFF' }]}>
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setActiveTab('Applied')}
           style={[styles.tabButton, activeTab === 'Applied' && styles.tabButtonActive]}
         >
-          <Text style={[styles.tabText, activeTab === 'Applied' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
+          <Text style={[styles.tabText, activeTab === 'Applied' ? styles.tabTextActive : { color: '#64748B' }]}>
             Đã nộp ({candidateApps.length})
           </Text>
         </TouchableOpacity>
@@ -346,25 +346,32 @@ function CandidateMyJobsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   headerBar: {
-    height: 56,
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
   },
   headerSpacer: {
-    width: 40,
+    width: 36,
   },
   headerTitle: {
-    color: '#FFF',
+    color: '#0F172A',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   notifBtn: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -372,7 +379,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 48,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECEFF1',
+    borderBottomColor: '#F1F5F9',
   },
   tabButton: {
     flex: 1,
@@ -382,14 +389,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabButtonActive: {
-    borderBottomColor: '#0084FF',
+    borderBottomColor: '#0F172A',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#0084FF',
+    color: '#0F172A',
+    fontWeight: '700',
   },
   scrollContent: {
     padding: 16,
@@ -398,11 +406,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F1F5F9',
     marginBottom: 14,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
   },
   cardHeader: {
@@ -418,10 +428,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: '#0F172A',
   },
   companyName: {
     fontSize: 12,
-    color: '#0084FF',
+    color: '#0F172A',
     fontWeight: '600',
   },
   statusBadge: {
@@ -441,10 +452,11 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: '#64748B',
   },
   divider: {
     height: 1,
+    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
   cardFooter: {
@@ -454,11 +466,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: '#94A3B8',
   },
   cvText: {
     fontSize: 11,
-    color: '#0084FF',
+    color: '#0F172A',
     maxWidth: '60%',
   },
   inviteDesc: {
@@ -487,13 +499,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   declineBtnText: {
-    color: '#FF3B30',
+    color: '#EF4444',
     fontSize: 12,
     fontWeight: 'bold',
   },
   acceptBtn: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   acceptBtnText: {
     color: '#FFF',
@@ -510,6 +522,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -517,18 +530,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#0F172A',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#687076',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
     paddingHorizontal: 16,
   },
   loginButton: {
-    backgroundColor: '#0084FF',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,

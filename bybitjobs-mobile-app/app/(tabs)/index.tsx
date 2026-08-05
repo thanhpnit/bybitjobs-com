@@ -697,98 +697,88 @@ function CandidateHomeScreen() {
   const aiRecommendedJobs = React.useMemo(() => {
     if (!userData?.uid) return [];
 
-    // 1. Target desired job keywords
     const desired = (userData.desiredJob || '').toLowerCase().trim();
-    const desiredKeywords = desired.split(' ').filter(word => word.length > 2);
-
-    // 2. Target CV keywords
     const cvName = (userData.cvName || '').toLowerCase().trim();
-    const cvKeywords = cvName.replace('.pdf', '').split(/[_\s-]/).filter(word => word.length > 2);
+    const hasCv = Boolean(userData.cvUrl || cvName);
+    const hasDesired = desired.length > 0;
+    const hasSaved = Array.isArray(savedJobs) && savedJobs.length > 0;
+    const hasViewed = Array.isArray(viewedJobs) && viewedJobs.length > 0;
 
-    // 3. Target recently viewed and saved job titles
-    const viewedTitles = (viewedJobs || []).map(v => v.jobTitle.toLowerCase());
-    const savedTitles = (savedJobs || []).map(s => s.jobTitle.toLowerCase());
+    // Check if user has profile data or activity
+    const isProfileConfigured = hasDesired || hasCv || hasSaved || hasViewed;
+    if (!isProfileConfigured) {
+      return [];
+    }
+
+    const desiredKeywords = desired.split(' ').filter((w: string) => w.length > 2);
+    const cvKeywords = cvName.replace('.pdf', '').split(/[_\s-]/).filter((w: string) => w.length > 2);
+    const viewedTitles = (viewedJobs || []).map((v: any) => (v.jobTitle || '').toLowerCase());
+    const savedTitles = (savedJobs || []).map((s: any) => (s.jobTitle || '').toLowerCase());
 
     const scored = jobListings.map(job => {
       let score = 0;
-      let reasons: string[] = [];
+      let reason = '';
       const title = job.title.toLowerCase();
       const industry = (job.originalIndustry || '').toLowerCase();
 
-      // Check desiredJob keywords
-      if (desired) {
+      // 1. Match Desired Job (Up to 55%)
+      if (hasDesired && desiredKeywords.length > 0) {
         let matchCount = 0;
-        desiredKeywords.forEach(kw => {
-          if (title.includes(kw)) {
-            matchCount++;
-          }
+        desiredKeywords.forEach((kw: string) => {
+          if (title.includes(kw) || industry.includes(kw)) matchCount++;
         });
         if (matchCount > 0) {
-          score += 30 + matchCount * 5;
-          reasons.push('Khớp với công việc mong muốn của bạn');
+          score += 40 + Math.min(matchCount * 5, 15);
+          reason = `Khớp mong muốn "${userData.desiredJob}"`;
         }
       }
 
-      // Check CV keywords
-      if (cvKeywords.length > 0) {
-        let matchCount = 0;
-        cvKeywords.forEach(kw => {
-          if (title.includes(kw)) {
-            matchCount++;
-          }
+      // 2. Match CV (Up to 30%)
+      if (hasCv && cvKeywords.length > 0) {
+        let cvMatchCount = 0;
+        cvKeywords.forEach((kw: string) => {
+          if (title.includes(kw) || industry.includes(kw)) cvMatchCount++;
         });
-        if (matchCount > 0) {
-          score += 15 + matchCount * 3;
-          reasons.push('Phù hợp với chuyên môn trong CV của bạn');
+        if (cvMatchCount > 0) {
+          score += 30;
+          if (!reason) reason = 'Khớp chuyên môn trong CV';
         }
       }
 
-      // Check viewed history (similarity with recently viewed jobs)
-      let viewMatch = false;
-      viewedTitles.forEach(vt => {
-        if (title.includes(vt) || vt.includes(title)) {
-          viewMatch = true;
+      // 3. Match Saved Jobs (Up to 20%)
+      if (hasSaved) {
+        const isSavedMatch = savedTitles.some((st: string) => title.includes(st) || st.includes(title));
+        if (isSavedMatch) {
+          score += 20;
+          if (!reason) reason = 'Tương tự công việc bạn đã lưu';
         }
-      });
-      if (viewMatch) {
-        score += 20;
-        reasons.push('Tương tự với các công việc bạn vừa xem');
       }
 
-      // Check saved history
-      let saveMatch = false;
-      savedTitles.forEach(st => {
-        if (title.includes(st) || st.includes(title)) {
-          saveMatch = true;
+      // 4. Match Viewed Jobs (Up to 15%)
+      if (hasViewed) {
+        const isViewedMatch = viewedTitles.some((vt: string) => title.includes(vt) || vt.includes(title));
+        if (isViewedMatch) {
+          score += 15;
+          if (!reason) reason = 'Phù hợp lịch sử xem gần đây';
         }
-      });
-      if (saveMatch) {
-        score += 25;
-        reasons.push('Phù hợp với các công việc đã lưu');
       }
 
-      // If industry matches CV or desiredJob keywords
-      if (industry && (desired.includes(industry) || industry.includes(desired))) {
-        score += 10;
-      }
-
-      // Calculate percentage match (cap at 99%)
-      const matchPercentage = Math.min(Math.max(Math.round((score / 90) * 100), 45), 99);
+      const matchPercentage = Math.min(score, 98);
 
       return {
         ...job,
         score,
         matchPercentage,
-        reason: reasons[0] || 'Gợi ý dựa trên hồ sơ của bạn',
+        reason: reason || 'Gợi ý từ TOPPY AI',
       };
     });
 
-    // Filter jobs with a meaningful match score and sort descending
+    // Only return jobs with a real match score >= 35%
     return scored
-      .filter(item => item.score > 25)
+      .filter(item => item.score >= 35)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 3); // Get top 3 recommendations
-  }, [jobListings, userData?.desiredJob, userData?.cvName, viewedJobs, savedJobs, userData?.uid]);
+      .slice(0, 4);
+  }, [jobListings, userData?.desiredJob, userData?.cvName, userData?.cvUrl, viewedJobs, savedJobs, userData?.uid]);
 
   const [searchLocationFilter, setSearchLocationFilter] = React.useState('Tất cả');
   const [searchSalaryFilter, setSearchSalaryFilter] = React.useState('Tất cả');
@@ -964,8 +954,8 @@ function CandidateHomeScreen() {
 
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
-      {/* Background Header Gradient Simulation */}
+    <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
+      {/* Background Header */}
       <View style={styles.gradientHeaderBg} />
 
       <SafeAreaView style={styles.safeArea}>
@@ -973,13 +963,12 @@ function CandidateHomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0084FF" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F172A" />
           }
         >
           {/* Top Bar Header */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftGroup}>
-              <View style={styles.iconButton} />
               <Text style={styles.brandTitle}>BybitJobs</Text>
             </View>
 
@@ -989,7 +978,7 @@ function CandidateHomeScreen() {
                 onPress={() => setIsSearchModalVisible(true)}
                 style={styles.iconButton}
               >
-                <Ionicons name="search-outline" size={24} color="#FFF" />
+                <Ionicons name="search-outline" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
           </View>
@@ -1004,7 +993,7 @@ function CandidateHomeScreen() {
               <Text style={styles.selectorText} numberOfLines={1}>
                 {selectedIndustry}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#FFF" />
+              <Ionicons name="chevron-down" size={14} color="#0F172A" />
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -1014,6 +1003,7 @@ function CandidateHomeScreen() {
               <Text style={styles.selectorText} numberOfLines={1}>
                 {selectedLocation}
               </Text>
+              <Ionicons name="chevron-down" size={14} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
@@ -1140,90 +1130,124 @@ function CandidateHomeScreen() {
             </View>
           </View>
 
-          {/* TOPPY AI Job Recommendations (Hiển thị nếu có aiRecommendedJobs) */}
-          {aiRecommendedJobs.length > 0 && (
-            <View style={styles.aiRecommendedSection}>
-              <View style={styles.aiSectionHeader}>
-                <Ionicons name="sparkles" size={18} color="#0084FF" />
-                <Text style={[styles.aiSectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  Việc làm đề xuất từ TOPPY AI
-                </Text>
-                <View style={styles.aiHeaderBadge}>
-                  <Text style={styles.aiHeaderBadgeText}>Đề xuất cho bạn</Text>
-                </View>
-              </View>
-              <Text style={[styles.aiSectionDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                Hệ thống AI tự động phân tích CV, công việc mong muốn & hành vi của bạn để gợi ý.
+          {/* TOPPY AI Job Recommendations */}
+          <View style={styles.aiRecommendedSection}>
+            <View style={styles.aiSectionHeader}>
+              <Ionicons name="sparkles" size={18} color="#0F172A" />
+              <Text style={[styles.aiSectionTitle, { color: '#0F172A' }]}>
+                Việc làm đề xuất từ TOPPY AI
               </Text>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.aiJobsScrollList}
-              >
-                {aiRecommendedJobs.map((job) => (
-                  <TouchableOpacity
-                    key={`ai-${job.id}`}
-                    activeOpacity={0.9}
-                    onPress={() => openJobDetails(job)}
-                    style={[
-                      styles.aiJobCard,
-                      {
-                        backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                        borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
-                      },
-                    ]}
-                  >
-                    <View style={styles.aiCardTop}>
-                      {/* Avatar */}
-                      <View style={[styles.aiJobAvatar, { backgroundColor: isDark ? '#2D2D30' : '#E6F4FE' }]}>
-                        <Text style={styles.aiJobAvatarText}>{job.author.avatar}</Text>
-                      </View>
-                      
-                      {/* Job details */}
-                      <View style={styles.aiJobTextWrapper}>
-                        <Text style={[styles.aiJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
-                          {job.title}
-                        </Text>
-                        <Text style={styles.aiCompanyName} numberOfLines={1}>
-                          {job.author.name}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Fit percentage indicator */}
-                    <View style={styles.fitProgressContainer}>
-                      <View style={styles.fitProgressHeader}>
-                        <Text style={styles.fitReasonText} numberOfLines={1}>🎯 {job.reason}</Text>
-                        <Text style={styles.fitPercentageText}>Độ khớp {job.matchPercentage}%</Text>
-                      </View>
-                      <View style={[styles.fitProgressBarBg, { backgroundColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
-                        <View
-                          style={[
-                            styles.fitProgressBarFill,
-                            {
-                              width: `${job.matchPercentage}%`,
-                              backgroundColor: job.matchPercentage > 80 ? '#2E7D32' : '#0084FF',
-                            },
-                          ]}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Metadata (Salary, Location) */}
-                    <View style={styles.aiCardMeta}>
-                      <Text style={[styles.aiMetaText, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
-                        💰 {job.price}
-                      </Text>
-                      <Text style={[styles.aiMetaText, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
-                        📍 {job.location}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              {aiRecommendedJobs.length > 0 && (
+                <View style={styles.aiHeaderBadge}>
+                  <Text style={styles.aiHeaderBadgeText}>Phù hợp với bạn</Text>
+                </View>
+              )}
             </View>
-          )}
+
+            {aiRecommendedJobs.length > 0 ? (
+              <>
+                <Text style={[styles.aiSectionDesc, { color: '#64748B' }]}>
+                  Hệ thống AI phân tích thực tế từ CV, vị trí mong muốn & lịch sử quan tâm của bạn.
+                </Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.aiJobsScrollList}
+                >
+                  {aiRecommendedJobs.map((job) => (
+                    <TouchableOpacity
+                      key={`ai-${job.id}`}
+                      activeOpacity={0.9}
+                      onPress={() => openJobDetails(job)}
+                      style={[
+                        styles.aiJobCard,
+                        {
+                          backgroundColor: '#FFFFFF',
+                          borderColor: '#E2E8F0',
+                        },
+                      ]}
+                    >
+                      <View style={styles.aiCardTop}>
+                        {/* Avatar */}
+                        <View style={[styles.aiJobAvatar, { backgroundColor: '#F1F5F9' }]}>
+                          <Text style={styles.aiJobAvatarText}>{job.author.avatar}</Text>
+                        </View>
+                        
+                        {/* Job details */}
+                        <View style={styles.aiJobTextWrapper}>
+                          <Text style={[styles.aiJobTitle, { color: '#0F172A' }]} numberOfLines={1}>
+                            {job.title}
+                          </Text>
+                          <Text style={styles.aiCompanyName} numberOfLines={1}>
+                            {job.author.name}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Fit percentage indicator */}
+                      <View style={styles.fitProgressContainer}>
+                        <View style={styles.fitProgressHeader}>
+                          <Text style={styles.fitReasonText} numberOfLines={1}>🎯 {job.reason}</Text>
+                          <Text style={styles.fitPercentageText}>Độ khớp {job.matchPercentage}%</Text>
+                        </View>
+                        <View style={[styles.fitProgressBarBg, { backgroundColor: '#F1F5F9' }]}>
+                          <View
+                            style={[
+                              styles.fitProgressBarFill,
+                              {
+                                width: `${job.matchPercentage}%`,
+                                backgroundColor: job.matchPercentage >= 75 ? '#10B981' : '#0F172A',
+                              },
+                            ]}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Metadata (Salary, Location) */}
+                      <View style={styles.aiCardMeta}>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1}>
+                          💰 {job.price}
+                        </Text>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1}>
+                          📍 {job.location}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <View style={{
+                backgroundColor: '#F8FAFC',
+                borderRadius: 16,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+                marginTop: 8,
+              }}>
+                <Text style={{ fontSize: 13, color: '#334155', lineHeight: 20, fontWeight: '500' }}>
+                  🤖 {userData?.uid ? 'Tài khoản của bạn chưa có thông tin công việc mong muốn hoặc CV. Hãy cập nhật hồ sơ để TOPPY AI tính toán độ khớp (%) thực tế và gợi ý việc làm chính xác cho bạn!' : 'Vui lòng đăng nhập và cập nhật hồ sơ để TOPPY AI gợi ý việc làm chính xác cho bạn!'}
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => router.push(userData?.uid ? '/profile' : '/login')}
+                  style={{
+                    backgroundColor: '#0F172A',
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    marginTop: 12,
+                    alignSelf: 'flex-start',
+                  }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                    {userData?.uid ? '🎯 Cập nhật công việc mong muốn & CV' : 'Đăng nhập ngay'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
           {/* Featured Companies Section (Thương hiệu nổi bật) */}
           {featuredPremiumCompanies.length > 0 && (
@@ -2002,18 +2026,18 @@ function CandidateHomeScreen() {
                     style={[
                       styles.modalItem,
                       { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' },
-                      isSelected && { backgroundColor: isDark ? '#26354A' : '#E6F4FE' }
+                      isSelected && { backgroundColor: isDark ? '#26354A' : '#F1F5F9' }
                     ]}
                   >
                     <Text style={[
                       styles.modalItemText,
                       { color: isDark ? '#FFF' : '#333' },
-                      isSelected && { color: '#0084FF', fontWeight: 'bold' }
+                      isSelected && { color: '#0F172A', fontWeight: 'bold' }
                     ]}>
                       {ind}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={18} color="#0084FF" />
+                      <Ionicons name="checkmark" size={18} color="#0F172A" />
                     )}
                   </TouchableOpacity>
                 );
@@ -2029,16 +2053,17 @@ function CandidateHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   gradientHeaderBg: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 240 : 220,
-    backgroundColor: '#0084FF',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    height: Platform.OS === 'ios' ? 130 : 110,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   safeArea: {
     flex: 1,
@@ -2050,9 +2075,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 8 : 16,
-    height: 60,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 8 : 12,
+    height: 54,
   },
   headerLeftGroup: {
     flexDirection: 'row',
@@ -2060,18 +2085,19 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginLeft: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2086,15 +2112,15 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF3D00',
+    backgroundColor: '#EF4444',
     borderWidth: 1.5,
-    borderColor: '#0084FF',
+    borderColor: '#FFFFFF',
   },
   selectorsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 12,
+    paddingHorizontal: 20,
+    marginTop: 10,
     gap: 12,
   },
   selectorDropdown: {
@@ -2102,17 +2128,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     height: 42,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   selectorText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '600',
   },
   overlapCard: {
     backgroundColor: '#FFFFFF',
@@ -2127,9 +2153,9 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   overlapCardDark: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.08,
   },
   actionGrid: {
     flexDirection: 'row',
@@ -2153,7 +2179,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dollarSymbol: {
-    color: '#0084FF',
+    color: '#0F172A',
     fontSize: 22,
     fontWeight: 'bold',
   },
@@ -2161,7 +2187,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: '#FF3D00',
+    backgroundColor: '#EF4444',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 1.5,
@@ -2172,6 +2198,83 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 8,
     fontWeight: 'bold',
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bannerCard: {
+    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 18,
+    padding: 16,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  bannerLeft: {
+    flex: 1.3,
+    justifyContent: 'center',
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  bannerDescription: {
+    fontSize: 10,
+    lineHeight: 15,
+  },
+  bannerRight: {
+    flex: 1,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginLeft: 8,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  chipsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
+  },
+  chipItem: {
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 17,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipItemActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  chipItemInactive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+  },
+  chipItemDark: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  chipTextInactive: {
+    color: '#64748B',
+  },
+  chipTextDark: {
+    color: '#64748B',
   },
   actionLabel: {
     fontSize: 12,
