@@ -351,6 +351,155 @@ function CompanyDetailsContent({
   );
 }
 
+const checkSalaryMatch = (jobPrice: string, filterSalary: string): boolean => {
+  if (
+    !filterSalary ||
+    filterSalary === 'Chọn mức lương' ||
+    filterSalary === 'Chọn lương' ||
+    filterSalary === 'Tất cả' ||
+    filterSalary === 'Tất cả mức lương'
+  ) {
+    return true;
+  }
+
+  const salaryStr = (jobPrice || '').toLowerCase();
+
+  if (filterSalary === 'Thỏa thuận') {
+    return (
+      salaryStr.includes('thỏa thuận') ||
+      salaryStr.includes('cạnh tranh') ||
+      salaryStr.includes('deal') ||
+      salaryStr.includes('negotiable')
+    );
+  }
+
+  const cleanStr = salaryStr.replace(/[,\.]/g, '');
+  const regex = /(\d+)\s*(k|tr|triệu|ngàn|nghìn)?/gi;
+  let match;
+  const numbers: number[] = [];
+
+  while ((match = regex.exec(cleanStr)) !== null) {
+    let val = parseFloat(match[1]);
+    const unit = (match[2] || '').toLowerCase();
+    if (unit === 'k' || unit === 'ngàn' || unit === 'nghìn') {
+      val = val / 1000;
+    } else if (unit === 'tr' || unit === 'triệu') {
+      val = val;
+    } else {
+      if (val >= 100000) val = val / 1000000;
+      else if (val >= 100) val = val / 1000;
+    }
+    numbers.push(val);
+  }
+
+  let parsedMin = 0;
+  let parsedMax = 0;
+  if (numbers.length === 1) {
+    parsedMin = numbers[0];
+    parsedMax = numbers[0];
+  } else if (numbers.length >= 2) {
+    parsedMin = numbers[0];
+    parsedMax = numbers[1];
+  }
+
+  if (numbers.length === 0) {
+    if (salaryStr.includes('thỏa thuận') || salaryStr.includes('cạnh tranh')) {
+      return filterSalary === 'Thỏa thuận' || filterSalary === 'Trên 20 triệu' || filterSalary === '15 - 20 triệu' || filterSalary === '10 - 20 triệu';
+    }
+    return true;
+  }
+
+  if (filterSalary === 'Dưới 5 triệu') {
+    return parsedMax < 5 && parsedMax > 0;
+  }
+  if (filterSalary === '5 - 10 triệu') {
+    return (parsedMin >= 5 && parsedMin <= 10) || (parsedMax >= 5 && parsedMax <= 10) || (parsedMin < 5 && parsedMax > 10);
+  }
+  if (filterSalary === 'Dưới 10 triệu') {
+    return parsedMax < 10 && parsedMax > 0;
+  }
+  if (filterSalary === '10 - 15 triệu') {
+    return (parsedMin >= 10 && parsedMin <= 15) || (parsedMax >= 10 && parsedMax <= 15) || (parsedMin < 10 && parsedMax > 15);
+  }
+  if (filterSalary === '10 - 20 triệu') {
+    return (parsedMin >= 10 && parsedMin <= 20) || (parsedMax >= 10 && parsedMax <= 20) || (parsedMin < 10 && parsedMax > 20);
+  }
+  if (filterSalary === '15 - 20 triệu') {
+    return (parsedMin >= 15 && parsedMin <= 20) || (parsedMax >= 15 && parsedMax <= 20) || (parsedMin < 15 && parsedMax > 20);
+  }
+  if (filterSalary === 'Trên 20 triệu') {
+    return parsedMax > 20 || parsedMin > 20;
+  }
+
+  return true;
+};
+
+const checkIndustryMatch = (jobIndustry: string = '', jobTitle: string = '', selectedIndustry: string): boolean => {
+  if (!selectedIndustry || selectedIndustry === 'Chọn lĩnh vực' || selectedIndustry === 'Tất cả lĩnh vực') {
+    return true;
+  }
+
+  const cleanSelected = selectedIndustry.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const cleanJobInd = (jobIndustry || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const cleanJobTitle = (jobTitle || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (jobIndustry === selectedIndustry || cleanJobInd === cleanSelected) {
+    return true;
+  }
+
+  if (cleanJobInd && (cleanSelected.includes(cleanJobInd) || cleanJobInd.includes(cleanSelected))) {
+    return true;
+  }
+
+  if (cleanSelected.includes('cong nghe') || cleanSelected.includes('it') || cleanSelected.includes('phan mem')) {
+    return cleanJobInd.includes('it') || cleanJobInd.includes('cong nghe') || cleanJobInd.includes('phan mem') ||
+           cleanJobTitle.includes('developer') || cleanJobTitle.includes('coder') || cleanJobTitle.includes('lap trinh') || cleanJobTitle.includes('react') || cleanJobTitle.includes('software') || cleanJobTitle.includes('it');
+  }
+
+  if (cleanSelected.includes('thiet ke') || cleanSelected.includes('ui/ux')) {
+    return cleanJobInd.includes('thiet ke') || cleanJobInd.includes('design') || cleanJobInd.includes('ui/ux') ||
+           cleanJobTitle.includes('design') || cleanJobTitle.includes('figma') || cleanJobTitle.includes('thiet ke') || cleanJobTitle.includes('photoshop');
+  }
+
+  if (cleanSelected.includes('ban hang') || cleanSelected.includes('tu van') || cleanSelected.includes('sales')) {
+    return cleanJobInd.includes('ban hang') || cleanJobInd.includes('sales') || cleanJobInd.includes('kinh doanh') || cleanJobInd.includes('tu van') ||
+           cleanJobTitle.includes('sales') || cleanJobTitle.includes('ban hang') || cleanJobTitle.includes('kinh doanh') || cleanJobTitle.includes('tu van');
+  }
+
+  if (cleanSelected.includes('nha hang') || cleanSelected.includes('f&b') || cleanSelected.includes('an uong')) {
+    return cleanJobInd.includes('nha hang') || cleanJobInd.includes('f&b') || cleanJobInd.includes('pha che') || cleanJobInd.includes('phuc vu') ||
+           cleanJobTitle.includes('pha che') || cleanJobTitle.includes('phuc vu') || cleanJobTitle.includes('thu ngan') || cleanJobTitle.includes('barista') || cleanJobTitle.includes('bep');
+  }
+
+  if (cleanSelected.includes('giao hang') || cleanSelected.includes('van chuyen') || cleanSelected.includes('van tai')) {
+    return cleanJobInd.includes('giao hang') || cleanJobInd.includes('shipper') || cleanJobInd.includes('van chuyen') || cleanJobInd.includes('kho') ||
+           cleanJobTitle.includes('shipper') || cleanJobTitle.includes('giao hang') || cleanJobTitle.includes('driver') || cleanJobTitle.includes('tai xe');
+  }
+
+  if (cleanSelected.includes('hanh chinh') || cleanSelected.includes('van phong') || cleanSelected.includes('nhan su') || cleanSelected.includes('ke toan')) {
+    return cleanJobInd.includes('hanh chinh') || cleanJobInd.includes('van phong') || cleanJobInd.includes('nhan su') || cleanJobInd.includes('ke toan') ||
+           cleanJobTitle.includes('hanh chinh') || cleanJobTitle.includes('hr') || cleanJobTitle.includes('ke toan') || cleanJobTitle.includes('tro ly') || cleanJobTitle.includes('admin');
+  }
+
+  if (cleanSelected.includes('ky thuat') || cleanSelected.includes('co khi') || cleanSelected.includes('dien')) {
+    return cleanJobInd.includes('ky thuat') || cleanJobInd.includes('co khi') || cleanJobInd.includes('dien') || cleanJobInd.includes('bao tri') ||
+           cleanJobTitle.includes('ky thuat') || cleanJobTitle.includes('co khi') || cleanJobTitle.includes('sua chua');
+  }
+
+  if (cleanSelected.includes('gia su') || cleanSelected.includes('giao duc')) {
+    return cleanJobInd.includes('gia su') || cleanJobInd.includes('giao duc') || cleanJobInd.includes('tieng anh') || cleanJobInd.includes('giao vien') ||
+           cleanJobTitle.includes('gia su') || cleanJobTitle.includes('giao vien') || cleanJobTitle.includes('tro giang');
+  }
+
+  if (cleanSelected.includes('lam dep') || cleanSelected.includes('spa')) {
+    return cleanJobInd.includes('lam dep') || cleanJobInd.includes('spa') || cleanJobInd.includes('toc') || cleanJobInd.includes('nail') ||
+           cleanJobTitle.includes('spa') || cleanJobTitle.includes('lam dep') || cleanJobTitle.includes('makeup');
+  }
+
+  const words = cleanSelected.split(/[\/\s\-\_]+/).filter((w: string) => w.length > 2);
+  return words.some((word: string) => cleanJobInd.includes(word) || cleanJobTitle.includes(word));
+};
+
 function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -625,22 +774,42 @@ function CandidateHomeScreen() {
     'Yên Bái'
   ];
 
-  const industries = [
-    'Tất cả lĩnh vực',
-    'Nhà hàng / F&B',
-    'UI/UX / Thiết kế',
-    'Giao hàng / Vận chuyển',
-    'Bán hàng / Tư vấn',
-    'Gia sư / Giáo dục',
-    'Hành chính / Văn phòng',
-    'Kỹ thuật / Cơ khí',
-    'Dịch vụ làm đẹp'
+  const industries = React.useMemo(() => {
+    const defaultList = [
+      'Tất cả lĩnh vực',
+      'Công nghệ thông tin',
+      'Bán hàng / Tư vấn',
+      'UI/UX / Thiết kế',
+      'Hành chính / Văn phòng',
+      'Nhà hàng / F&B',
+      'Giao hàng / Vận chuyển',
+      'Kỹ thuật / Cơ khí',
+      'Gia sư / Giáo dục',
+      'Dịch vụ làm đẹp',
+    ];
+    const fetchedIndustries = jobs
+      .map((j) => (j.industry || '').trim())
+      .filter((ind) => ind && ind !== 'Khác' && !defaultList.includes(ind));
+
+    return Array.from(new Set([...defaultList, ...fetchedIndustries]));
+  }, [jobs]);
+
+  const salaryRanges = [
+    'Tất cả mức lương',
+    'Dưới 5 triệu',
+    '5 - 10 triệu',
+    '10 - 15 triệu',
+    '15 - 20 triệu',
+    'Trên 20 triệu',
+    'Thỏa thuận'
   ];
 
   const [selectedLocation, setSelectedLocation] = React.useState('Chọn địa điểm');
   const [isLocationModalVisible, setIsLocationModalVisible] = React.useState(false);
   const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+  const [selectedSalary, setSelectedSalary] = React.useState('Chọn mức lương');
+  const [isSalaryModalVisible, setIsSalaryModalVisible] = React.useState(false);
   const [isSearchModalVisible, setIsSearchModalVisible] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCompany, setSelectedCompany] = React.useState<FeaturedCompany | null>(null);
@@ -693,7 +862,7 @@ function CandidateHomeScreen() {
       location: job.location,
       timeLeft: job.isOpen ? `Hạn chót: ${formatDeadlineDisplay(job.deadline)}` : 'Đã đóng',
       tags: [
-        { label: job.industry.length > 15 ? job.industry.substring(0, 15) + '...' : job.industry, type: 'category', icon: 'briefcase-outline' },
+        { label: job.industry, type: 'category', icon: 'briefcase-outline' },
       ],
       price: job.salary,
       originalIndustry: job.industry,
@@ -870,9 +1039,12 @@ function CandidateHomeScreen() {
       }
 
       // Filter by Industry
-      let matchIndustry = true;
-      if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
-        matchIndustry = job.originalIndustry === selectedIndustry;
+      let matchIndustry = checkIndustryMatch(job.originalIndustry, job.title, selectedIndustry);
+
+      // Filter by Salary
+      let matchSalary = true;
+      if (selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương') {
+        matchSalary = checkSalaryMatch(job.price, selectedSalary);
       }
 
       // Filter by active category chip
@@ -893,14 +1065,14 @@ function CandidateHomeScreen() {
         matchCategory = isIntern;
       }
 
-      return matchLocation && matchIndustry && matchCategory;
+      return matchLocation && matchIndustry && matchSalary && matchCategory;
     }).sort((a, b) => {
       if (activeChip === 'Nổi bật' && a.isPremium !== b.isPremium) {
         return a.isPremium ? -1 : 1;
       }
       return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
     });
-  }, [jobListings, selectedLocation, selectedIndustry, activeChip]);
+  }, [jobListings, selectedLocation, selectedIndustry, selectedSalary, activeChip]);
 
   const searchSuggestions = React.useMemo(() => {
     const keyword = normalizeText(searchQuery.trim());
@@ -1044,28 +1216,95 @@ function CandidateHomeScreen() {
           </View>
 
           {/* Selectors / Dropdowns Row */}
-          <View style={styles.selectorsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.selectorsScrollContainer}
+          >
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setIsIndustryModalVisible(true)}
-              style={styles.selectorDropdown}
+              style={[
+                styles.selectorDropdownPill,
+                selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' && styles.selectorDropdownPillActive
+              ]}
             >
-              <Text style={styles.selectorText} numberOfLines={1}>
+              <Ionicons
+                name="briefcase-outline"
+                size={15}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#0084FF' : '#475569'}
+              />
+              <Text
+                style={[
+                  styles.selectorTextPill,
+                  selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' && styles.selectorTextPillActive
+                ]}
+              >
                 {selectedIndustry}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#0F172A" />
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#0084FF' : '#475569'}
+              />
             </TouchableOpacity>
+
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setIsLocationModalVisible(true)}
-              style={styles.selectorDropdown}
+              style={[
+                styles.selectorDropdownPill,
+                selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' && styles.selectorDropdownPillActive
+              ]}
             >
-              <Text style={styles.selectorText} numberOfLines={1}>
+              <Ionicons
+                name="location-outline"
+                size={15}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#0084FF' : '#475569'}
+              />
+              <Text
+                style={[
+                  styles.selectorTextPill,
+                  selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' && styles.selectorTextPillActive
+                ]}
+              >
                 {selectedLocation}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#0F172A" />
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#0084FF' : '#475569'}
+              />
             </TouchableOpacity>
-          </View>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsSalaryModalVisible(true)}
+              style={[
+                styles.selectorDropdownPill,
+                selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorDropdownPillActive
+              ]}
+            >
+              <Ionicons
+                name="cash-outline"
+                size={15}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#0084FF' : '#475569'}
+              />
+              <Text
+                style={[
+                  styles.selectorTextPill,
+                  selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorTextPillActive
+                ]}
+              >
+                {selectedSalary}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#0084FF' : '#475569'}
+              />
+            </TouchableOpacity>
+          </ScrollView>
 
           {/* AI Advisor Banner */}
           <TouchableOpacity
@@ -1414,13 +1653,14 @@ function CandidateHomeScreen() {
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={48} color={isDark ? '#555' : '#CCC'} style={{ marginBottom: 12 }} />
                 <Text style={[styles.emptyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                  Chưa có công việc phù hợp tại địa điểm/lĩnh vực này
+                  Chưa có công việc phù hợp tại tiêu chí địa điểm/lĩnh vực/mức lương này
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => {
                     setSelectedLocation('Tất cả địa điểm');
                     setSelectedIndustry('Tất cả lĩnh vực');
+                    setSelectedSalary('Tất cả mức lương');
                   }}
                   style={styles.resetFilterBtn}
                 >
@@ -2071,6 +2311,65 @@ function CandidateHomeScreen() {
         </TouchableOpacity>
       </Modal>
 
+      {/* Salary Selection Modal */}
+      <Modal
+        visible={isSalaryModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsSalaryModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsSalaryModalVisible(false)}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalSheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Chọn mức lương mong muốn
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsSalaryModalVisible(false)}
+                style={styles.closeModalBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {salaryRanges.map((sal) => {
+                const isSelected = selectedSalary === sal || (sal === 'Tất cả mức lương' && selectedSalary === 'Chọn mức lương');
+                return (
+                  <TouchableOpacity
+                    key={sal}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedSalary(sal);
+                      setIsSalaryModalVisible(false);
+                    }}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' },
+                      isSelected && { backgroundColor: isDark ? '#26354A' : '#F1F5F9' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      { color: isDark ? '#FFF' : '#333' },
+                      isSelected && { color: '#0F172A', fontWeight: 'bold' }
+                    ]}>
+                      {sal}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color="#0F172A" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Modal Dạng Danh Sách Bộ Lọc Tìm Kiếm Cho Ứng Viên (Candidate Search Filter List Modal) */}
       <Modal
         visible={activeCandidateFilterModalType !== null}
@@ -2178,6 +2477,7 @@ function CandidateHomeScreen() {
                     activeOpacity={0.8}
                     onPress={() => {
                       setSearchSalaryFilter(item.id);
+                      setSelectedSalary(item.id === 'Tất cả' ? 'Tất cả mức lương' : item.id);
                       setActiveCandidateFilterModalType(null);
                     }}
                     style={{
@@ -2365,29 +2665,36 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
   },
-  selectorsRow: {
+  selectorsScrollContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop: 10,
-    gap: 12,
+    alignItems: 'center',
   },
-  selectorDropdown: {
-    flex: 1,
+  selectorDropdownPill: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 12,
-    height: 42,
+    borderRadius: 20,
+    height: 38,
     paddingHorizontal: 14,
+    gap: 6,
   },
-  selectorText: {
+  selectorDropdownPillActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#0084FF',
+  },
+  selectorTextPill: {
     color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
+  },
+  selectorTextPillActive: {
+    color: '#0084FF',
+    fontWeight: '700',
   },
   overlapCard: {
     backgroundColor: '#FFFFFF',
@@ -2524,82 +2831,6 @@ const styles = StyleSheet.create({
   },
   chipTextDark: {
     color: '#64748B',
-  },
-  actionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bannerCard: {
-    borderRadius: 18,
-    marginHorizontal: 16,
-    marginTop: 18,
-    padding: 16,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  bannerLeft: {
-    flex: 1.3,
-    justifyContent: 'center',
-  },
-  bannerTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  bannerDescription: {
-    fontSize: 10,
-    lineHeight: 15,
-  },
-  bannerRight: {
-    flex: 1,
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    marginLeft: 8,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-  },
-  chipsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  chipItem: {
-    height: 34,
-    paddingHorizontal: 16,
-    borderRadius: 17,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chipItemActive: {
-    backgroundColor: '#E6F4FE',
-    borderColor: '#0084FF',
-  },
-  chipItemInactive: {
-    backgroundColor: '#FFF',
-    borderColor: '#E5E5EA',
-  },
-  chipItemDark: {
-    backgroundColor: '#1C1C1E',
-    borderColor: '#2C2C2E',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  chipTextActive: {
-    color: '#0084FF',
-  },
-  chipTextInactive: {
-    color: '#687076',
-  },
-  chipTextDark: {
-    color: '#9BA1A6',
   },
   feedContainer: {
     paddingHorizontal: 16,

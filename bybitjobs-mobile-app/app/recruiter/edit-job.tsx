@@ -60,6 +60,7 @@ export default function RecruiterEditJobScreen() {
   const [industry, setIndustry] = React.useState(existingJob?.industry || 'Công nghệ thông tin');
   const [salary, setSalary] = React.useState(existingJob?.salary || 'Thỏa thuận');
   const [location, setLocation] = React.useState(existingJob?.location || '');
+  const [experience, setExperience] = React.useState(existingJob?.experience || 'Không yêu cầu kinh nghiệm');
   const [description, setDescription] = React.useState(existingJob?.description || '');
   const [requirements, setRequirements] = React.useState(existingJob?.requirements || '');
   const getThirtyDaysFromNow = () => {
@@ -239,6 +240,7 @@ export default function RecruiterEditJobScreen() {
       industry,
       salary,
       location,
+      experience,
       description,
       requirements,
       deadline,
@@ -464,6 +466,51 @@ export default function RecruiterEditJobScreen() {
                   >
                     <Text style={{ fontSize: 11, fontWeight: '600', color: location === item ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
                       📍 {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Input: Experience */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>YÊU CẦU KINH NGHIỆM</Text>
+              <View style={[styles.inputBoxWithIcon, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+                <Ionicons name="star-outline" size={18} color="#8E8E93" style={styles.fieldIcon} />
+                <TextInput
+                  style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
+                  placeholder="Ví dụ: Không yêu cầu, 1-2 năm kinh nghiệm..."
+                  placeholderTextColor={isDark ? '#555' : '#8E8E93'}
+                  value={experience}
+                  onChangeText={setExperience}
+                />
+              </View>
+
+              {/* Quick Experience Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 8 }}>
+                {[
+                  'Không yêu cầu kinh nghiệm',
+                  'Dưới 1 năm / Fresher',
+                  '1 - 2 năm kinh nghiệm',
+                  '2 - 5 năm kinh nghiệm',
+                  'Trên 5 năm (Senior)',
+                  'Theo chi tiết yêu cầu',
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => setExperience(item)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: experience === item ? '#0084FF' : (isDark ? '#2C2C2E' : '#F1F5F9'),
+                      borderWidth: 1,
+                      borderColor: experience === item ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: experience === item ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
+                      ⭐ {item}
                     </Text>
                   </TouchableOpacity>
                 ))}

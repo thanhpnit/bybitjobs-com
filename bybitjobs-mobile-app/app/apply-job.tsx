@@ -32,10 +32,10 @@ export default function ApplyJobScreen() {
     salary?: string;
     location?: string;
   }>();
-  const displayTitle = title || 'Nhân viên phục vụ quán cà phê The Coffee House';
-  const displayCompanyName = companyName || 'The Coffee House';
-  const displaySalary = salary || '25k - 30k / giờ';
-  const displayLocation = location || 'Quận 1, TP. Hồ Chí Minh';
+  const displayTitle = title || 'Vị trí tuyển dụng';
+  const displayCompanyName = companyName || 'Doanh nghiệp tuyển dụng';
+  const displaySalary = salary || 'Thỏa thuận';
+  const displayLocation = location || 'Chưa cập nhật địa điểm';
 
   // Form states
   const [fullName, setFullName] = React.useState('');

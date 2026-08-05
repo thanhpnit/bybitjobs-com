@@ -72,11 +72,35 @@ export default function JobDetailsScreen() {
     return undefined;
   }, [jobId, jobs, title]);
 
-  const displayTitle = currentJob?.title || title || 'Nhân viên phục vụ quán cà phê The Coffee House';
-  const displaySalary = currentJob?.salary || salary || '300.000đ /ngày';
-  const displayLocation = currentJob?.location || location || 'The Coffee House, 123 Nguyễn Văn Lượng, Phường 17, Gò Vấp, TP.HCM';
+  const displayTitle = currentJob?.title || title || 'Thông tin việc làm';
+  const displaySalary = currentJob?.salary || salary || 'Thỏa thuận';
+  const displayLocation = currentJob?.location || location || 'Chưa cập nhật địa điểm';
   const displayJobId = currentJob?.id || jobId || `job-${displayTitle.trim().toLowerCase().replace(/\s+/g, '-')}`;
-  const displayExperience = getFirstText((currentJob as any)?.experience, (currentJob as any)?.workingExperience, 'Không yêu cầu');
+  const rawExperience = getFirstText((currentJob as any)?.experience, (currentJob as any)?.workingExperience);
+  const displayExperience = React.useMemo(() => {
+    if (rawExperience) return rawExperience;
+
+    const fullText = `${currentJob?.requirements || ''} ${currentJob?.description || ''}`.toLowerCase();
+    if (!fullText.trim()) return 'Theo chi tiết yêu cầu';
+
+    if (fullText.includes('không cần kinh nghiệm') || fullText.includes('không yêu cầu kinh nghiệm') || fullText.includes('chưa có kinh nghiệm')) {
+      return 'Không yêu cầu kinh nghiệm';
+    }
+    if (fullText.includes('thực tập') || fullText.includes('intern') || fullText.includes('fresher') || fullText.includes('sinh viên')) {
+      return 'Dưới 1 năm / Fresher';
+    }
+    if (fullText.includes('5 năm') || fullText.includes('senior')) {
+      return 'Trên 5 năm (Senior)';
+    }
+    if (fullText.includes('2 năm') || fullText.includes('3 năm') || fullText.includes('4 năm')) {
+      return '2 - 5 năm kinh nghiệm';
+    }
+    if (fullText.includes('1 năm') || fullText.includes('có kinh nghiệm')) {
+      return '1 - 2 năm kinh nghiệm';
+    }
+
+    return 'Theo chi tiết yêu cầu';
+  }, [rawExperience, currentJob?.requirements, currentJob?.description]);
   const isSaved = savedJobs.some((savedJob) => savedJob.jobId === displayJobId);
   const isEmployerView = userRole === 'employer';
   const reporterName = userData?.fullName || 'Người dùng';
@@ -254,7 +278,7 @@ export default function JobDetailsScreen() {
       </View>
       <View style={styles.employerDetailTextCol}>
         <Text style={styles.employerDetailLabel}>{label}</Text>
-        <Text style={[styles.employerDetailValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={3}>
+        <Text style={[styles.employerDetailValue, { color: isDark ? '#FFF' : '#11181C' }]}>
           {value || 'Chưa cập nhật'}
         </Text>
       </View>
@@ -272,7 +296,7 @@ export default function JobDetailsScreen() {
         <Ionicons name={icon} size={22} color="#0F172A" />
       </View>
       <Text style={styles.heroMetricLabel}>{label}</Text>
-      <Text style={styles.heroMetricValue} numberOfLines={1}>
+      <Text style={styles.heroMetricValue}>
         {value}
       </Text>
     </View>
@@ -280,7 +304,7 @@ export default function JobDetailsScreen() {
 
   const renderInfoChip = (label: string) => (
     <View key={label} style={[styles.infoChip, { backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9' }]}>
-      <Text style={[styles.infoChipText, { color: isDark ? '#ECEDEE' : '#334155' }]} numberOfLines={1}>
+      <Text style={[styles.infoChipText, { color: isDark ? '#ECEDEE' : '#334155' }]}>
         {label}
       </Text>
     </View>
@@ -293,7 +317,7 @@ export default function JobDetailsScreen() {
       </View>
       <View style={styles.companyDetailTextCol}>
         <Text style={styles.companyDetailLabel}>{label}</Text>
-        <Text style={[styles.companyDetailValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={2}>
+        <Text style={[styles.companyDetailValue, { color: isDark ? '#FFF' : '#11181C' }]}>
           {value || 'Chưa cập nhật'}
         </Text>
       </View>
@@ -341,11 +365,11 @@ export default function JobDetailsScreen() {
               )}
             </View>
 
-            <Text style={[styles.heroJobTitle, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={3}>
+            <Text style={[styles.heroJobTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
               {displayTitle}
             </Text>
             <TouchableOpacity activeOpacity={0.85} onPress={() => setEmployerInfoModalVisible(true)}>
-              <Text style={styles.heroCompanyName} numberOfLines={2}>
+              <Text style={styles.heroCompanyName}>
                 {employerInfo?.companyName || employerName}
               </Text>
             </TouchableOpacity>
@@ -365,9 +389,9 @@ export default function JobDetailsScreen() {
 
           <View style={styles.infoChipsWrap}>
             {[
-              displayExperience === 'Không yêu cầu' ? 'Không yêu cầu kinh nghiệm chuyên môn' : displayExperience,
+              displayExperience,
               currentJob?.industry || 'Tuyển dụng',
-              (currentJob as any)?.type || 'Bán thời gian',
+              (currentJob as any)?.type || 'Toàn thời gian',
               (currentJob as any)?.isPremium ? 'Tin tuyển dụng HOT' : 'Tin tuyển dụng mới',
               currentJob?.deadline ? `Hạn ứng tuyển ${formatDeadlineDisplay(currentJob.deadline)}` : 'Đang tuyển',
             ].map(renderInfoChip)}
