@@ -1302,6 +1302,8 @@ export function useAuth() {
         const user = auth.currentUser;
         if (!user) throw new Error('Chưa đăng nhập');
 
+        const payload: any = {};
+        if (data.companyName) payload.company = data.companyName;
         if (data.industry) payload.industry = data.industry;
         if (data.address) payload.address = data.address;
         if (data.taxId) payload.taxId = data.taxId;
