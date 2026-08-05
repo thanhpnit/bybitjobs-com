@@ -342,7 +342,7 @@ function CandidateProfileScreen() {
         }
       }
       if (extractedJobTitle) {
-        setDesiredJobInput(extractedJobTitle);
+        setEditJobInput(extractedJobTitle);
       }
       setCvFile(newFile);
       setIsUploading(false);
