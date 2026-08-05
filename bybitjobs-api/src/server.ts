@@ -612,7 +612,7 @@ app.post('/api/send-otp', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
-// API xóa người dùng khỏi Firebase Auth
+// API xóa người dùng khỏi Firebase Auth & Xóa toàn bộ tin tuyển dụng liên quan
 app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {
     return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
@@ -626,28 +626,43 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
   try {
     const db = admin.firestore();
     
-    // Xóa tài khoản khỏi Firebase Auth
-    await admin.auth().deleteUser(uid as string);
+    // 1. Xóa tài khoản khỏi Firebase Auth
+    try {
+      await admin.auth().deleteUser(uid as string);
+    } catch (authErr: any) {
+      console.warn('Cảnh báo khi xóa trên Auth (có thể đã xóa trước đó):', authErr.message);
+    }
     
-    // Xóa thông tin doanh nghiệp trong Firestore
+    // 2. Xóa tất cả các bài đăng tin tuyển dụng của nhà tuyển dụng này trong Firestore
+    const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
+    if (!jobsSnap.empty) {
+      const batch = db.batch();
+      jobsSnap.forEach((jobDoc) => {
+        batch.delete(jobDoc.ref);
+      });
+      await batch.commit();
+      console.log(`🔥 Đã xóa toàn bộ ${jobsSnap.size} tin tuyển dụng của nhà tuyển dụng UID: ${uid}`);
+    }
+
+    // 3. Xóa thông tin doanh nghiệp trong Firestore
     await db.collection('employers').doc(uid).delete();
     
-    // Xóa thông tin bổ sung user (ví dụ công việc mong muốn) trong Firestore
+    // 4. Xóa thông tin bổ sung user (ví dụ công việc mong muốn) trong Firestore
     await db.collection('users').doc(uid).delete();
     
-    // Xóa các thông tin OTP liên quan
+    // 5. Xóa các thông tin OTP liên quan
     await db.collection('otps').doc(uid).delete();
     await db.collection('passwordResetOtps').doc(uid).delete();
 
-    console.log(`🔥 Đã xóa vĩnh viễn người dùng và các dữ liệu liên quan có UID: ${uid}`);
-    return res.status(200).json({ success: true, message: `Đã xóa vĩnh viễn người dùng và các dữ liệu liên quan có UID: ${uid}` });
+    console.log(`🔥 Đã xóa vĩnh viễn người dùng và tất cả tin tuyển dụng liên quan có UID: ${uid}`);
+    return res.status(200).json({ success: true, message: `Đã xóa vĩnh viễn nhà tuyển dụng và tất cả tin tuyển dụng liên quan.` });
   } catch (error: any) {
     console.error('Lỗi khi xóa người dùng:', error);
     return res.status(500).json({ error: 'Lỗi server khi xóa người dùng khỏi Firebase', details: error.message });
   }
 });
 
-// API cập nhật trạng thái Khóa / Mở khóa người dùng
+// API cập nhật trạng thái Khóa / Mở khóa người dùng & tự động ẩn/mở lại tất cả tin tuyển dụng
 app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<any> => {
   if (!admin.apps.length) {
     return res.status(500).json({ error: 'Firebase Admin chưa được khởi tạo. Thiếu serviceAccountKey.json' });
@@ -667,22 +682,43 @@ app.put('/api/users/:uid/status', async (req: Request, res: Response): Promise<a
     // Cập nhật trạng thái disabled trong Firebase Auth
     await admin.auth().updateUser(uid as string, { disabled });
 
-    // Đồng bộ trạng thái vô hiệu hóa lên Firestore
+    // Đồng bộ trạng thái vô hiệu hóa lên Firestore 'users' & 'employers'
     const db = admin.firestore();
     if (disabled) {
       await db.collection('users').doc(uid as string).set({
         disabled: true,
         disabledByUser: !!disabledByUser
       }, { merge: true });
+      await db.collection('employers').doc(uid as string).set({
+        disabled: true,
+      }, { merge: true });
     } else {
       await db.collection('users').doc(uid as string).set({
         disabled: false,
         disabledByUser: false
       }, { merge: true });
+      await db.collection('employers').doc(uid as string).set({
+        disabled: false,
+      }, { merge: true });
+    }
+
+    // Tự động đóng hoặc mở lại tất cả bài đăng tuyển dụng của Nhà tuyển dụng này
+    const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
+    if (!jobsSnap.empty) {
+      const batch = db.batch();
+      jobsSnap.forEach((jobDoc) => {
+        batch.update(jobDoc.ref, {
+          isOpen: !disabled,
+          employerDisabled: disabled,
+          status: disabled ? 'Tài khoản nhà tuyển dụng bị khóa' : 'Đang mở'
+        });
+      });
+      await batch.commit();
+      console.log(`🔥 Đã cập nhật ${disabled ? 'đóng/ẩn' : 'mở lại'} ${jobsSnap.size} tin tuyển dụng của UID: ${uid}`);
     }
 
     console.log(`🔥 Đã cập nhật trạng thái khóa cho người dùng ${uid} thành: ${disabled} (bởi user: ${!!disabledByUser})`);
-    return res.status(200).json({ success: true, message: `Cập nhật trạng thái người dùng thành công.` });
+    return res.status(200).json({ success: true, message: `Cập nhật trạng thái người dùng và bài đăng liên quan thành công.` });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật trạng thái người dùng:', error);
     return res.status(500).json({ error: 'Lỗi server khi cập nhật trạng thái người dùng', details: error.message });

@@ -283,7 +283,7 @@ const initJobsListener = () => {
         ...data,
         isOpen,
       } as JobItem;
-    });
+    }).filter(job => !(job as any).employerDisabled);
     notifyAll();
   }, (error) => {
     console.error('Lỗi tải danh sách việc làm:', error);
