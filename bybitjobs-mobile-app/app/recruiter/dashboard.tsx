@@ -599,7 +599,7 @@ export default function RecruiterDashboardScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsContainer}
         >
-          {['Tất cả', 'Hot', 'Tuyển gấp', 'Lương cao', 'Mới nhất'].map((chip) => {
+          {['Tất cả', 'Hot', 'Tuyển gấp', 'Mới nhất'].map((chip) => {
             const isActive = activeChip === chip;
             return (
               <TouchableOpacity
