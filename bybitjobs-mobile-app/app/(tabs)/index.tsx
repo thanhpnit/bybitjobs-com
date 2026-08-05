@@ -1475,10 +1475,10 @@ function CandidateHomeScreen() {
                         
                         {/* Job details */}
                         <View style={styles.aiJobTextWrapper}>
-                          <Text style={[styles.aiJobTitle, { color: '#0F172A' }]} numberOfLines={1}>
+                          <Text style={[styles.aiJobTitle, { color: '#0F172A' }]}>
                             {job.title}
                           </Text>
-                          <Text style={styles.aiCompanyName} numberOfLines={1}>
+                          <Text style={styles.aiCompanyName}>
                             {job.author.name}
                           </Text>
                         </View>
@@ -1487,7 +1487,7 @@ function CandidateHomeScreen() {
                       {/* Fit percentage indicator */}
                       <View style={styles.fitProgressContainer}>
                         <View style={styles.fitProgressHeader}>
-                          <Text style={styles.fitReasonText} numberOfLines={1}>🎯 {job.reason}</Text>
+                          <Text style={styles.fitReasonText}>🎯 {job.reason}</Text>
                           <Text style={styles.fitPercentageText}>Độ khớp {job.matchPercentage}%</Text>
                         </View>
                         <View style={[styles.fitProgressBarBg, { backgroundColor: '#F1F5F9' }]}>
@@ -1505,10 +1505,10 @@ function CandidateHomeScreen() {
 
                       {/* Metadata (Salary, Location) */}
                       <View style={styles.aiCardMeta}>
-                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1}>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]}>
                           💰 {job.price}
                         </Text>
-                        <Text style={[styles.aiMetaText, { color: '#64748B' }]} numberOfLines={1}>
+                        <Text style={[styles.aiMetaText, { color: '#64748B' }]}>
                           📍 {job.location}
                         </Text>
                       </View>
@@ -1595,13 +1595,13 @@ function CandidateHomeScreen() {
                       <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
                       <View style={styles.companyCardContent}>
                         <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
-                        <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>
+                        <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]}>
                           {company.name}
                         </Text>
-                        <Text style={styles.companyCardMeta} numberOfLines={1}>
+                        <Text style={styles.companyCardMeta}>
                           ⭐ {company.rating} • {company.scale}
                         </Text>
-                        <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]} numberOfLines={1}>
+                        <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]}>
                           📍 {company.location.split(',').slice(-2).join(',').trim()}
                         </Text>
                         <View style={styles.companyCardBottom}>

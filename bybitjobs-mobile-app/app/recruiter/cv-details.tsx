@@ -685,7 +685,7 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
                 <Ionicons name="document-text" size={24} color="#D32F2F" />
               </View>
               <View style={{ marginLeft: 12, flex: 1 }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDark ? '#FFF' : '#11181C' }} numberOfLines={1}>
+                <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDark ? '#FFF' : '#11181C' }}>
                   {application.cvName || 'CV_Web_Developer_VN.pdf'}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#8E8E93', marginTop: 4 }}>
