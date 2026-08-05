@@ -28,7 +28,7 @@ export default function RecruiterEditJobScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { jobs, addJob, updateJob, userData } = useAuth();
+  const { jobs, addJob, updateJob, userData, employerData } = useAuth();
 
   const isNew = id === 'new';
   const existingJob = jobs.find((j) => j.id === id);
@@ -301,12 +301,42 @@ export default function RecruiterEditJobScreen() {
               <View style={[styles.inputBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
                 <TextInput
                   style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
-                  placeholder="Ví dụ: Thiết kế logo quán cafe"
+                  placeholder="Ví dụ: Lập trình viên React Native"
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                   value={title}
                   onChangeText={setTitle}
                 />
               </View>
+
+              {/* Quick Title Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 8 }}>
+                {[
+                  'Lập trình viên React Native',
+                  'Lập trình viên Fullstack / Web',
+                  'UI/UX Designer',
+                  'Chuyên viên Marketing & Content',
+                  'Nhân viên CSKH / Telesales',
+                  'Thực tập sinh IT (Internship)',
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => setTitle(item)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: title === item ? '#0084FF' : (isDark ? '#2C2C2E' : '#F1F5F9'),
+                      borderWidth: 1,
+                      borderColor: title === item ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: title === item ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
+                      + {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Input: Industry */}
@@ -345,27 +375,99 @@ export default function RecruiterEditJobScreen() {
                 <Ionicons name="cash-outline" size={18} color="#8E8E93" style={styles.fieldIcon} />
                 <TextInput
                   style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
-                  placeholder="Thỏa thuận, 300k/ngày, 25k/giờ..."
+                  placeholder="Thỏa thuận, 15-20 triệu, 300k/ngày..."
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                   value={salary}
                   onChangeText={setSalary}
                 />
               </View>
+
+              {/* Quick Salary Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 8 }}>
+                {[
+                  'Thỏa thuận trực tiếp',
+                  '10 - 15 Triệu/tháng',
+                  '15 - 25 Triệu/tháng',
+                  'Trên 25 Triệu/tháng',
+                  '300k/ngày',
+                  '25k - 35k/giờ (Part-time)',
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => setSalary(item)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: salary === item ? '#0084FF' : (isDark ? '#2C2C2E' : '#F1F5F9'),
+                      borderWidth: 1,
+                      borderColor: salary === item ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: salary === item ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
+                      💵 {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Input: Location */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>ĐỊA ĐIỂM</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>ĐỊA ĐIỂM</Text>
+                {(employerData?.address || userData?.address) && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setLocation(employerData?.address || userData?.address || '')}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Ionicons name="location" size={13} color="#0084FF" />
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#0084FF' }}>Lấy địa chỉ công ty</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <View style={[styles.inputBoxWithIcon, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
                 <Ionicons name="location-outline" size={18} color="#8E8E93" style={styles.fieldIcon} />
                 <TextInput
                   style={[styles.textInput, { color: isDark ? '#FFF' : '#11181C' }]}
-                  placeholder="Ví dụ: Phú Nhuận, TP.HCM"
+                  placeholder="Ví dụ: Quận 7, TP. Hồ Chí Minh"
                   placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                   value={location}
                   onChangeText={setLocation}
                 />
               </View>
+
+              {/* Quick Location Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 8 }}>
+                {[
+                  'TP. Hồ Chí Minh',
+                  'Hà Nội',
+                  'Đà Nẵng',
+                  'Làm việc từ xa (Remote / WFH)',
+                  'Quận 7, TP.HCM',
+                  'Quận Cầu Giấy, Hà Nội',
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => setLocation(item)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: location === item ? '#0084FF' : (isDark ? '#2C2C2E' : '#F1F5F9'),
+                      borderWidth: 1,
+                      borderColor: location === item ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: location === item ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
+                      📍 {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Input: Description */}
@@ -455,6 +557,38 @@ export default function RecruiterEditJobScreen() {
                   textAlignVertical="top"
                 />
               </View>
+
+              {/* Quick Requirement Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 8 }}>
+                {[
+                  'Không yêu cầu kinh nghiệm',
+                  'Tối thiểu 1 năm kinh nghiệm',
+                  'Tốt nghiệp Đại học / Cao đẳng',
+                  'Tinh thần trách nhiệm & chủ động',
+                  'Giao tiếp tốt, làm việc nhóm tốt',
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      if (requirements.includes(item)) return;
+                      setRequirements((prev) => (prev ? `${prev}\n• ${item}` : `• ${item}`));
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#3A3D40' : '#E2E8F0',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: isDark ? '#CBD5E1' : '#475569' }}>
+                      + {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Input: Deadline */}
