@@ -1968,13 +1968,31 @@ export function useAuth() {
     }
   };
 
-  const updateCandidateCV = async (cvName: string | null, cvSize?: string, cvUploadTime?: string, cvUrl?: string) => {
+  const updateCandidateCV = async (
+    cvName: string | null,
+    cvSize?: string,
+    cvUploadTime?: string,
+    cvUrl?: string,
+    extractedJobTitle?: string,
+    extractedSkills?: string[],
+    extractedIntro?: string,
+    extractedEducation?: string
+  ) => {
     if (firebaseUser) {
       try {
         const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/cv`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvName, cvSize, cvUploadTime, cvUrl })
+          body: JSON.stringify({
+            cvName,
+            cvSize,
+            cvUploadTime,
+            cvUrl,
+            extractedJobTitle,
+            extractedSkills,
+            extractedIntro,
+            extractedEducation
+          })
         });
         if (!response.ok) {
           const errorText = await response.text();

@@ -308,9 +308,18 @@ function CandidateProfileScreen() {
           body: JSON.stringify({ fileName: asset.name, base64Data })
         });
 
+        let extractedJobTitle: string | undefined;
+        let extractedSkills: string[] | undefined;
+        let extractedIntro: string | undefined;
+        let extractedEducation: string | undefined;
+
         if (uploadResponse.ok) {
           const data = await uploadResponse.json();
           newFile.cvUrl = data.url;
+          extractedJobTitle = data.extractedJobTitle;
+          extractedSkills = data.extractedSkills;
+          extractedIntro = data.extractedIntro;
+          extractedEducation = data.extractedEducation;
         }
       } catch (error) {
         console.warn('Lỗi khi tải file CV lên máy chủ, dùng URI cục bộ thay thế:', error);
@@ -318,7 +327,16 @@ function CandidateProfileScreen() {
 
       if (updateCandidateCV) {
         try {
-          await updateCandidateCV(newFile.fileName, newFile.fileSize, newFile.uploadTime, newFile.cvUrl);
+          await updateCandidateCV(
+            newFile.fileName,
+            newFile.fileSize,
+            newFile.uploadTime,
+            newFile.cvUrl,
+            extractedJobTitle,
+            extractedSkills,
+            extractedIntro,
+            extractedEducation
+          );
         } catch {
           Alert.alert('Lỗi', 'Không thể lưu thông tin CV lên máy chủ.');
         }

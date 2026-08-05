@@ -520,7 +520,97 @@ app.put('/api/users/:uid/phone', async (req: Request, res: Response): Promise<an
   }
 });
 
-// API tải lên tài liệu CV (lưu file trực tiếp trên server)
+async function parseCVContentWithAI(fileBuffer: Buffer, fileName: string, cleanBase64: string): Promise<{
+  jobTitle?: string;
+  skills?: string[];
+  introduction?: string;
+  education?: string;
+}> {
+  try {
+    let textContent = '';
+    const lowerName = fileName.toLowerCase();
+
+    if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+      try {
+        const result = await mammoth.extractRawText({ buffer: fileBuffer });
+        textContent = result.value || '';
+      } catch (e) {
+        console.warn('[Mammoth DOCX Extract] Lỗi:', e);
+      }
+    }
+
+    let promptContents: any[] = [];
+    if (textContent.trim().length > 20) {
+      promptContents = [
+        {
+          parts: [
+            { text: `Dưới đây là toàn bộ văn bản của tài liệu CV ứng viên:\n\n${textContent.substring(0, 4000)}` },
+            {
+              text: `Bạn là chuyên gia Tuyển dụng HR hàng đầu. Hãy đọc kỹ nội dung CV trên và phân tích trả về đối tượng JSON gồm các thuộc tính sau:
+- "jobTitle": Tên vị trí/chức danh công việc chuyên môn hoặc công việc mong muốn chính xác nhất của ứng viên được ghi trong CV (ví dụ: "Lập trình viên React Native", "Trưởng phòng Marketing", "Kế toán tổng hợp", "Nhân viên Bán hàng", "Pha chế / Barista"...).
+- "skills": Mảng chứa từ 4-6 kỹ năng chuyên môn nổi bật nhất trong CV.
+- "introduction": Tóm tắt 2 câu về năng lực bản thân của ứng viên từ CV.
+- "education": Trình độ học vấn chính của ứng viên.
+
+Chỉ trả về cú pháp JSON thuần, không bọc mã markdown block.`
+            }
+          ]
+        }
+      ];
+    } else {
+      promptContents = [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: lowerName.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+                data: cleanBase64
+              }
+            },
+            {
+              text: `Bạn là chuyên gia Tuyển dụng HR hàng đầu. Hãy đọc tệp tài liệu CV này và phân tích trả về đối tượng JSON gồm các thuộc tính sau:
+- "jobTitle": Tên vị trí/chức danh công việc chuyên môn hoặc công việc mong muốn chính xác nhất của ứng viên được ghi trong CV (ví dụ: "Lập trình viên React Native", "Trưởng phòng Marketing", "Kế toán tổng hợp", "Nhân viên Bán hàng", "Pha chế / Barista"...).
+- "skills": Mảng chứa từ 4-6 kỹ năng chuyên môn nổi bật nhất trong CV.
+- "introduction": Tóm tắt 2 câu về năng lực bản thân của ứng viên từ CV.
+- "education": Trình độ học vấn chính của ứng viên.
+
+Chỉ trả về cú pháp JSON thuần, không bọc mã markdown block.`
+            }
+          ]
+        }
+      ];
+    }
+
+    const aiRes = await generateGeminiContent('', promptContents);
+    const parsed = extractJsonFromText(aiRes);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        jobTitle: parsed.jobTitle || parsed.title || parsed.desiredJob,
+        skills: Array.isArray(parsed.skills) ? parsed.skills : undefined,
+        introduction: parsed.introduction || parsed.summary,
+        education: parsed.education,
+      };
+    }
+  } catch (err: any) {
+    console.warn('[AI CV Parser] Lỗi khi đọc nội dung CV:', err.message);
+  }
+
+  let cleanName = fileName
+    .replace(/\.pdf|\.docx|\.doc/gi, '')
+    .replace(/^cv[_\s-]?/gi, '')
+    .replace(/[_\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleanName.length >= 2) {
+    cleanName = cleanName.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  } else {
+    cleanName = 'Ứng viên tìm việc';
+  }
+
+  return { jobTitle: cleanName };
+}
+
+// API tải lên tài liệu CV (lưu file trực tiếp trên server & đọc nội dung bằng AI)
 app.post('/api/upload-cv', async (req: Request, res: Response): Promise<any> => {
   const { fileName, base64Data } = req.body;
   if (!fileName || !base64Data) {
@@ -540,9 +630,19 @@ app.post('/api/upload-cv', async (req: Request, res: Response): Promise<any> => 
 
     fs.writeFileSync(filePath, fileBuffer);
 
-    // Trả về đường dẫn công khai của tài liệu trên máy chủ
     const fileUrl = `http://160.250.246.119:4000/uploads/cvs/${safeFileName}`;
-    return res.status(200).json({ success: true, url: fileUrl });
+
+    // Đọc & phân tích nội dung thực tế trong file CV bằng AI
+    const parsedData = await parseCVContentWithAI(fileBuffer, fileName, cleanBase64);
+
+    return res.status(200).json({
+      success: true,
+      url: fileUrl,
+      extractedJobTitle: parsedData.jobTitle,
+      extractedSkills: parsedData.skills,
+      extractedIntro: parsedData.introduction,
+      extractedEducation: parsedData.education
+    });
   } catch (error: any) {
     console.error('Lỗi khi lưu file CV lên máy chủ:', error);
     return res.status(500).json({ error: 'Lỗi server khi lưu file', details: error.message });
@@ -561,20 +661,22 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
     const updateData: Record<string, any> = {};
     if (cvName !== undefined) {
       updateData.cvName = cvName;
-      if (cvName) {
-        let extractedJob = cvName
-          .replace(/\.pdf|\.docx|\.doc/gi, '')
-          .replace(/^cv[_\s-]?/gi, '')
-          .replace(/[_\-]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (extractedJob.length >= 2) {
-          extractedJob = extractedJob.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          updateData.job = extractedJob;
-          updateData.desiredJob = extractedJob;
-          updateData.roleTitle = extractedJob;
-        }
+      const extracted = req.body.extractedJobTitle || req.body.job;
+      if (extracted) {
+        updateData.job = extracted;
+        updateData.desiredJob = extracted;
+        updateData.roleTitle = extracted;
       }
+    }
+    if (req.body.extractedSkills && Array.isArray(req.body.extractedSkills)) {
+      updateData.skills = req.body.extractedSkills;
+    }
+    if (req.body.extractedIntro) {
+      updateData.cvSummary = req.body.extractedIntro;
+      updateData.introduction = req.body.extractedIntro;
+    }
+    if (req.body.extractedEducation) {
+      updateData.education = req.body.extractedEducation;
     }
     if (cvSize !== undefined) updateData.cvSize = cvSize;
     if (cvUploadTime !== undefined) updateData.cvUploadTime = cvUploadTime;
