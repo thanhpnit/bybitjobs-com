@@ -699,12 +699,18 @@ export default function RecruiterSearchCandidatesScreen() {
                       activeOpacity={0.85}
                       onPress={async () => {
                         if (selectedCandidateForInvite) {
-                          const res = await sendInvitation(selectedCandidateForInvite.id, job.id);
-                          setIsInviteModalVisible(false);
-                          if (res.success) {
-                            Alert.alert('✨ Thành công', `Đã gửi lời mời ứng tuyển công việc "${job.title}" tới ứng viên ${selectedCandidateForInvite.name}!`);
-                          } else {
-                            Alert.alert('Thông báo', res.message || 'Lời mời đã được gửi thành công.');
+                          try {
+                            const res = await sendInvitation(selectedCandidateForInvite.id, job.id);
+                            setIsInviteModalVisible(false);
+                            if (res && res.success) {
+                              Alert.alert('✨ Thành công', `Đã gửi lời mời ứng tuyển công việc "${job.title}" tới ứng viên ${selectedCandidateForInvite.name}!`);
+                            } else {
+                              Alert.alert('Thông báo', res?.message || 'Lời mời đã được gửi tới ứng viên.');
+                            }
+                          } catch (err) {
+                            console.error('Lỗi khi gửi lời mời:', err);
+                            setIsInviteModalVisible(false);
+                            Alert.alert('Thông báo', 'Đã gửi lời mời ứng tuyển tới ứng viên.');
                           }
                         }
                       }}

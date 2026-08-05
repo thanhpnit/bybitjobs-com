@@ -1849,7 +1849,7 @@ export function useAuth() {
     return { success: true, message: 'Đã xóa khỏi việc làm đã xem.' };
   };
 
-  const sendInvitation = async (candidateId: string, jobId: string) => {
+  const sendInvitation = async (candidateId: string, jobId: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await fetch('http://160.250.246.119:4000/api/invitations', {
         method: 'POST',
@@ -1858,16 +1858,13 @@ export function useAuth() {
       });
       const data = await response.json();
       if (response.ok) {
-        Alert.alert(
-          'Đã gửi lời mời',
-          data.message || 'Gửi lời mời thành công!'
-        );
+        return { success: true, message: data.message || 'Gửi lời mời thành công!' };
       } else {
-        Alert.alert('Thất bại', data.error || 'Không thể gửi lời mời.');
+        return { success: false, message: data.error || 'Không thể gửi lời mời.' };
       }
     } catch (error: any) {
       console.error('Lỗi khi gửi lời mời:', error);
-      Alert.alert('Lỗi', 'Không thể kết nối tới server.');
+      return { success: false, message: 'Không thể kết nối tới server.' };
     }
   };
 
