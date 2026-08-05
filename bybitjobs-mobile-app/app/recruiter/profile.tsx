@@ -37,7 +37,7 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, disableAccount } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, updateBanner, disableAccount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -209,24 +209,34 @@ export default function RecruiterProfileScreen() {
     }
   };
 
-  const handleSelectBanner = () => {
-    Alert.alert(
-      'Tải lên Ảnh bìa (Banner)',
-      'Chọn phương thức tải ảnh bìa công ty:',
-      [
-        {
-          text: 'Chụp ảnh mới', onPress: () => {
-            Alert.alert('Thành công', 'Đã cập nhật ảnh bìa (Banner) công ty mới.');
-          }
-        },
-        {
-          text: 'Chọn từ Thư viện', onPress: () => {
-            Alert.alert('Thành công', 'Đã tải ảnh bìa (Banner) thành công.');
-          }
-        },
-        { text: 'Hủy', style: 'cancel' }
-      ]
-    );
+  const handleSelectBanner = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập thư viện ảnh để tải lên ảnh bìa.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+        const res = await updateBanner(result.assets[0].base64);
+        if (res.success) {
+          Alert.alert('Thành công', 'Đã cập nhật ảnh bìa (Banner) công ty mới!');
+        } else {
+          Alert.alert('Lỗi', res.message || 'Không thể cập nhật ảnh bìa công ty.');
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Lỗi', 'Đã có lỗi xảy ra khi chọn ảnh bìa.');
+    }
   };
 
   const handleSaveChanges = () => {
@@ -512,11 +522,19 @@ export default function RecruiterProfileScreen() {
           {/* Banner image and overlapping logo section */}
           <View style={styles.heroSection}>
             <TouchableOpacity activeOpacity={0.85} onPress={handleSelectBanner} style={{ width: '100%' }}>
-              <Image
-                source={require('../../assets/images/small_jobs_banner.png')}
-                style={styles.bannerImage}
-                resizeMode="cover"
-              />
+              {employerData?.coverImage || employerData?.cover_image ? (
+                <Image
+                  source={{ uri: employerData.coverImage || employerData.cover_image }}
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={require('../../assets/images/small_jobs_banner.png')}
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+              )}
               {/* Camera icon overlay on banner */}
               <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.5)', padding: 6, borderRadius: 20 }}>
                 <Ionicons name="camera-outline" size={18} color="#FFF" />
@@ -991,11 +1009,19 @@ export default function RecruiterProfileScreen() {
           <View style={[styles.empProfileCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}>
             {/* 1. Cover & Logo Hero */}
             <View style={styles.empHeroSection}>
-              <Image
-                source={require('../../assets/images/small_jobs_banner.png')}
-                style={styles.empBannerImage}
-                resizeMode="cover"
-              />
+              {employerData?.coverImage || employerData?.cover_image ? (
+                <Image
+                  source={{ uri: employerData.coverImage || employerData.cover_image }}
+                  style={styles.empBannerImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={require('../../assets/images/small_jobs_banner.png')}
+                  style={styles.empBannerImage}
+                  resizeMode="cover"
+                />
+              )}
               <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
                   {employerData?.logo ? (

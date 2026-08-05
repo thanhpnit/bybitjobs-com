@@ -400,6 +400,33 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
   }
 });
 
+// API tải lên ảnh đại diện / Logo công ty
+app.post('/api/upload-avatar', async (req: Request, res: Response): Promise<any> => {
+  const { fileName, base64Data } = req.body;
+  if (!fileName || !base64Data) {
+    return res.status(400).json({ error: 'Thiếu thông tin fileName hoặc base64Data' });
+  }
+
+  try {
+    const uploadsDir = path.join(__dirname, '../uploads/avatars');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const safeFileName = `${Date.now()}_${(fileName || 'avatar.jpg').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const filePath = path.join(uploadsDir, safeFileName);
+    fs.writeFileSync(filePath, buffer);
+
+    const fileUrl = `http://160.250.246.119:4000/uploads/avatars/${safeFileName}`;
+    return res.status(200).json({ success: true, url: fileUrl });
+  } catch (error: any) {
+    console.error('Lỗi upload avatar:', error);
+    return res.status(500).json({ error: 'Lỗi lưu ảnh avatar trên server', details: error.message });
+  }
+});
+
 // API cập nhật công việc mong muốn
 app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;

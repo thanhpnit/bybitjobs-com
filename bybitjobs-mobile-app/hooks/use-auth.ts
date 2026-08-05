@@ -2012,6 +2012,38 @@ export function useAuth() {
     }
   };
 
+  const updateBanner = async (base64Image: string): Promise<{ success: boolean; url?: string; message?: string }> => {
+    if (!firebaseUser) return { success: false, message: 'Chưa đăng nhập' };
+    try {
+      const uploadRes = await fetch('http://160.250.246.119:4000/api/upload-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: `banner_${firebaseUser.uid}.jpg`, base64Data: base64Image })
+      });
+      if (!uploadRes.ok) {
+        throw new Error('Lỗi upload ảnh bìa lên server');
+      }
+      const uploadData = await uploadRes.json();
+      const imageUrl = uploadData.url;
+
+      await fetch(`http://160.250.246.119:4000/api/employers/${firebaseUser.uid}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coverImage: imageUrl, cover_image: imageUrl })
+      });
+
+      if (globalEmployerData) {
+        globalEmployerData = { ...globalEmployerData, coverImage: imageUrl } as any;
+        setEmployerData({ ...globalEmployerData });
+      }
+      notifyAll();
+      return { success: true, url: imageUrl };
+    } catch (error: any) {
+      console.error('Lỗi updateBanner:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const disableAccount = async (): Promise<{ success: boolean; message: string }> => {
     if (!firebaseUser) {
       return { success: false, message: 'Bạn chưa đăng nhập.' };
@@ -2187,6 +2219,7 @@ export function useAuth() {
     updateUserPhone,
     updateCandidateCV,
     updateAvatar,
+    updateBanner,
     notifications: mergedNotifications,
     unreadNotificationsCount,
     markAllNotificationsAsRead,
