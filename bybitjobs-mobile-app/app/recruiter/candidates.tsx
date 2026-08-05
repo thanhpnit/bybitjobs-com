@@ -42,7 +42,10 @@ export default function RecruiterCandidatesScreen() {
 
   // Filter application records
   const filteredApps = employerApplications.filter((app) => {
-    if (activeTab === 'HighMatch') return app.status !== 'Rejected';
+    if (activeTab === 'HighMatch') {
+      const score = (app as any).matchScore !== undefined ? (app as any).matchScore : 84;
+      return score >= 80 && app.status !== 'Rejected';
+    }
     if (activeTab === 'Pending') return app.status === 'Pending';
     if (activeTab === 'Approved') return app.status === 'Approved';
     if (activeTab === 'Rejected') return app.status === 'Rejected';

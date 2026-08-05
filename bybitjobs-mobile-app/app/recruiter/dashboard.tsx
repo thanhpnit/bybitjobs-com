@@ -66,7 +66,10 @@ export default function RecruiterDashboardScreen() {
   const receivedAppsCount = employerApplications.length;
 
   const highMatchAppsCount = React.useMemo(() => {
-    return employerApplications.filter((app) => app.status !== 'Rejected').length;
+    return employerApplications.filter((app) => {
+      const score = (app as any).matchScore !== undefined ? (app as any).matchScore : 84;
+      return score >= 80 && app.status !== 'Rejected';
+    }).length;
   }, [employerApplications]);
 
   const totalViewsCount = React.useMemo(() => {
