@@ -497,37 +497,37 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
               </View>
             </View>
 
-            {/* List Item 3: Location (Chưa phù hợp) */}
+            {/* List Item 3: Location (Phù hợp / Khớp vị trí) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F3F4F6' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="location" size={16} color="#DC2626" />
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location" size={16} color="#059669" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Địa điểm làm việc</Text>
-                  <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 1 }}>Địa điểm chưa phù hợp ({candidateLocation})</Text>
+                  <Text style={{ fontSize: 11, color: '#059669', marginTop: 1 }}>Phù hợp khu vực làm việc ({candidateLocation})</Text>
                 </View>
               </View>
-              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="alert-circle" size={13} color="#DC2626" />
-                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '700' }}>Chưa phù hợp</Text>
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                <Text style={{ color: '#065F46', fontSize: 11, fontWeight: '700' }}>Phù hợp</Text>
               </View>
             </View>
 
-            {/* List Item 4: Salary (Chưa phù hợp) */}
+            {/* List Item 4: Salary (Phù hợp / Đạt ngân sách) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="cash" size={16} color="#DC2626" />
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="cash" size={16} color="#059669" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Mức lương kỳ vọng</Text>
-                  <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 1 }}>Mức lương chưa phù hợp với ngân sách tin tuyển</Text>
+                  <Text style={{ fontSize: 11, color: '#059669', marginTop: 1 }}>Nằm trong dải ngân sách tin tuyển dụng</Text>
                 </View>
               </View>
-              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="alert-circle" size={13} color="#DC2626" />
-                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '700' }}>Chưa phù hợp</Text>
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                <Text style={{ color: '#065F46', fontSize: 11, fontWeight: '700' }}>Phù hợp</Text>
               </View>
             </View>
           </View>
