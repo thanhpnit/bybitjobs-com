@@ -2010,24 +2010,36 @@ export function useAuth() {
       } catch (error) {
         console.warn('Lỗi khi cập nhật CV lên server (đang sử dụng chế độ offline/local state):', error);
       }
-      // Auto-extract job title from CV filename whenever a CV is uploaded
-      if (cvName) {
-        let cleanName = cvName
-          .replace(/\.pdf|\.docx|\.doc/gi, '')
-          .replace(/^cv[_\s-]?/gi, '')
-          .replace(/[_\-]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (cleanName.length >= 2) {
-          cleanName = cleanName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-          globalUserDataExtra.desiredJob = cleanName;
-          globalUserDataExtra.job = cleanName;
-          fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job: cleanName, desiredJob: cleanName, roleTitle: cleanName })
-          }).catch(e => console.log('Lỗi tự động điền job từ CV:', e));
-        }
+      const finalJobTitle = extractedJobTitle || (cvName ? cvName
+        .replace(/\.pdf|\.docx|\.doc/gi, '')
+        .replace(/^cv[_\s-]?/gi, '')
+        .replace(/[_\-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ') : undefined);
+
+      if (finalJobTitle) {
+        globalUserDataExtra.desiredJob = finalJobTitle;
+        globalUserDataExtra.job = finalJobTitle;
+        globalUserDataExtra.roleTitle = finalJobTitle;
+        fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job: finalJobTitle, desiredJob: finalJobTitle, roleTitle: finalJobTitle })
+        }).catch(e => console.log('Lỗi tự động điền job từ CV:', e));
+      }
+
+      if (extractedSkills && extractedSkills.length > 0) {
+        globalUserDataExtra.skills = extractedSkills;
+      }
+      if (extractedIntro) {
+        globalUserDataExtra.cvSummary = extractedIntro;
+        globalUserDataExtra.introduction = extractedIntro;
+      }
+      if (extractedEducation) {
+        globalUserDataExtra.education = extractedEducation;
       }
 
       globalUserDataExtra = { 
@@ -2037,7 +2049,7 @@ export function useAuth() {
         cvUploadTime: cvName ? cvUploadTime : undefined,
         cvUrl: cvName ? cvUrl : undefined
       };
-      setUserDataExtra(globalUserDataExtra);
+      setUserDataExtra({ ...globalUserDataExtra });
       notifyAll();
     }
   };

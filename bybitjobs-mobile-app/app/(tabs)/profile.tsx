@@ -341,9 +341,12 @@ function CandidateProfileScreen() {
           Alert.alert('Lỗi', 'Không thể lưu thông tin CV lên máy chủ.');
         }
       }
+      if (extractedJobTitle) {
+        setDesiredJobInput(extractedJobTitle);
+      }
       setCvFile(newFile);
       setIsUploading(false);
-      Alert.alert('Thành công', 'Tải lên tài liệu CV thành công!');
+      Alert.alert('Thành công ✨', `AI đã đọc CV và tự động cập nhật vị trí "${extractedJobTitle || 'Ứng viên'}" vào hồ sơ của bạn!`);
 
     } catch (err) {
       console.error('Lỗi khi chọn file:', err);
