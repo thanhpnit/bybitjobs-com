@@ -659,25 +659,7 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
 
   try {
     const updateData: Record<string, any> = {};
-    if (cvName !== undefined) {
-      updateData.cvName = cvName;
-      const extracted = req.body.extractedJobTitle || req.body.job;
-      if (extracted) {
-        updateData.job = extracted;
-        updateData.desiredJob = extracted;
-        updateData.roleTitle = extracted;
-      }
-    }
-    if (req.body.extractedSkills && Array.isArray(req.body.extractedSkills)) {
-      updateData.skills = req.body.extractedSkills;
-    }
-    if (req.body.extractedIntro) {
-      updateData.cvSummary = req.body.extractedIntro;
-      updateData.introduction = req.body.extractedIntro;
-    }
-    if (req.body.extractedEducation) {
-      updateData.education = req.body.extractedEducation;
-    }
+    if (cvName !== undefined) updateData.cvName = cvName;
     if (cvSize !== undefined) updateData.cvSize = cvSize;
     if (cvUploadTime !== undefined) updateData.cvUploadTime = cvUploadTime;
     if (cvUrl !== undefined) updateData.cvUrl = cvUrl;

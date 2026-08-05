@@ -1972,11 +1972,7 @@ export function useAuth() {
     cvName: string | null,
     cvSize?: string,
     cvUploadTime?: string,
-    cvUrl?: string,
-    extractedJobTitle?: string,
-    extractedSkills?: string[],
-    extractedIntro?: string,
-    extractedEducation?: string
+    cvUrl?: string
   ) => {
     if (firebaseUser) {
       try {
@@ -1987,11 +1983,7 @@ export function useAuth() {
             cvName,
             cvSize,
             cvUploadTime,
-            cvUrl,
-            extractedJobTitle,
-            extractedSkills,
-            extractedIntro,
-            extractedEducation
+            cvUrl
           })
         });
         if (!response.ok) {
@@ -2009,37 +2001,6 @@ export function useAuth() {
         }
       } catch (error) {
         console.warn('Lỗi khi cập nhật CV lên server (đang sử dụng chế độ offline/local state):', error);
-      }
-      const finalJobTitle = extractedJobTitle || (cvName ? cvName
-        .replace(/\.pdf|\.docx|\.doc/gi, '')
-        .replace(/^cv[_\s-]?/gi, '')
-        .replace(/[_\-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .split(' ')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ') : undefined);
-
-      if (finalJobTitle) {
-        globalUserDataExtra.desiredJob = finalJobTitle;
-        globalUserDataExtra.job = finalJobTitle;
-        globalUserDataExtra.roleTitle = finalJobTitle;
-        fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job: finalJobTitle, desiredJob: finalJobTitle, roleTitle: finalJobTitle })
-        }).catch(e => console.log('Lỗi tự động điền job từ CV:', e));
-      }
-
-      if (extractedSkills && extractedSkills.length > 0) {
-        globalUserDataExtra.skills = extractedSkills;
-      }
-      if (extractedIntro) {
-        globalUserDataExtra.cvSummary = extractedIntro;
-        globalUserDataExtra.introduction = extractedIntro;
-      }
-      if (extractedEducation) {
-        globalUserDataExtra.education = extractedEducation;
       }
 
       globalUserDataExtra = { 
