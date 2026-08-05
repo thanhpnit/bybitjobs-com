@@ -135,6 +135,26 @@ export default function RecruiterProfileScreen() {
     return lastPart.charAt(0).toUpperCase();
   };
 
+  const handleGenerateCompanyDesc = (presetCategory?: string) => {
+    const name = companyName || 'Công ty chúng tôi';
+    const cat = presetCategory || industry || 'Công nghệ';
+
+    let generated = '';
+    if (cat.includes('Công nghệ') || cat.includes('IT') || cat.includes('Phần mềm')) {
+      generated = `${name} là doanh nghiệp tiên phong trong lĩnh vực Công nghệ thông tin và Giải pháp số hóa. Chúng tôi chuyên nghiên cứu, phát triển các hệ thống phần mềm hiệu năng cao và ứng dụng di động thông minh nhằm mang lại trải nghiệm tối ưu cho người dùng.\n\nVới môi trường làm việc sáng tạo, minh bạch và chính sách đãi ngộ hấp dẫn, ${name} luôn mở rộng cửa đón chào các tài năng đam mê công nghệ cùng đồng hành và bứt phá sự nghiệp.`;
+    } else if (cat.includes('Vận tải') || cat.includes('Giao nhận') || cat.includes('Logistics')) {
+      generated = `${name} là đơn vị uy tín hàng đầu trong lĩnh vực Vận tải & Giao nhận hàng hóa toàn quốc. Chúng tôi cung cấp giải pháp chuỗi cung ứng toàn diện, giao vận tốc độ và đảm bảo an toàn tuyệt đối cho hàng triệu kiện hàng mỗi ngày.\n\nTại ${name}, cán bộ nhân viên được làm việc trong môi trường năng động, thu nhập ổn định cùng đầy đủ các chế độ phúc lợi và chương trình thưởng hiệu quả công việc hấp dẫn.`;
+    } else if (cat.includes('F&B') || cat.includes('Nhà hàng') || cat.includes('Pha chế') || cat.includes('Ẩm thực')) {
+      generated = `${name} là chuỗi thương hiệu Nhà hàng & Dịch vụ Ẩm thực được đông đảo khách hàng yêu thích. Chúng tôi cam kết mang đến những trải nghiệm ẩm thực chất lượng, không gian hiện đại và phong cách phục vụ tận tâm chuyên nghiệp.\n\n${name} coi trọng sự gắn kết của từng thành viên, liên tục đào tạo nâng cao tay nghề và tạo cơ hội thăng tiến rõ ràng cho đội ngũ nhân sự nhiệt huyết.`;
+    } else if (cat.includes('Bán lẻ') || cat.includes('Thương mại') || cat.includes('Dịch vụ')) {
+      generated = `${name} là hệ thống Bán lẻ & Dịch vụ thương mại uy tín. Chúng tôi tự hào mang đến cho khách hàng các sản phẩm chính hãng, dịch vụ chăm sóc tận tình và trải nghiệm mua sắm tiện lợi hàng đầu.\n\nChúng tôi mang đến môi trường làm việc thân thiện, mức thưởng doanh số hấp dẫn và chính sách lộ trình thăng tiến công bằng cho tất cả nhân sự.`;
+    } else {
+      generated = `${name} là doanh nghiệp uy tín hoạt động trong lĩnh vực ${cat}. Chúng tôi cam kết chất lượng sản phẩm dịch vụ hàng đầu, minh bạch trong quản trị và xây dựng văn hóa doanh nghiệp bền vững.\n\nĐến với ${name}, bạn sẽ được làm việc cùng đội ngũ đồng nghiệp nhiệt huyết, thu nhập cạnh tranh và được tạo mọi điều kiện để phát triển tối đa năng lực bản thân.`;
+    }
+
+    setDescription(generated);
+  };
+
   const handleSelectIndustry = () => {
     setIsIndustryModalVisible(true);
   };
@@ -556,7 +576,7 @@ export default function RecruiterProfileScreen() {
               >
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Lĩnh vực</Text>
                 <View style={[styles.dropdownBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-                  <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]}>{industry}</Text>
+                  <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>{industry}</Text>
                   <Ionicons name="chevron-down" size={16} color="#8E8E93" />
                 </View>
               </TouchableOpacity>
@@ -568,11 +588,37 @@ export default function RecruiterProfileScreen() {
               >
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Quy mô</Text>
                 <View style={[styles.dropdownBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-                  <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]}>{scale}</Text>
+                  <Text style={[styles.dropdownValue, { color: isDark ? '#FFF' : '#11181C' }]} numberOfLines={1}>{scale}</Text>
                   <Ionicons name="chevron-down" size={16} color="#8E8E93" />
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* Quick Scale Preset Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4, marginBottom: 12 }}>
+              {['Dưới 10 nhân viên', '10-50 nhân viên', '51-200 nhân viên', '201-500 nhân viên', 'Trên 500 nhân viên'].map((item) => {
+                const checked = scale === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.8}
+                    onPress={() => setScale(item)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: checked ? '#0084FF' : (isDark ? '#2C2C2E' : '#EBF5FF'),
+                      borderWidth: 1,
+                      borderColor: checked ? '#0084FF' : (isDark ? '#3A3D40' : '#D0E7FF'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: checked ? '#FFF' : (isDark ? '#D1D5DB' : '#0084FF') }}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
             {/* Website */}
             <View style={styles.inputGroup}>
@@ -630,7 +676,44 @@ export default function RecruiterProfileScreen() {
 
             {/* Mô tả công ty */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C' }]}>Mô tả công ty</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>Mô tả công ty</Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => handleGenerateCompanyDesc()}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F3E8FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}
+                >
+                  <Ionicons name="sparkles" size={12} color="#7C3AED" />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#7C3AED' }}>✨ AI Mẫu mô tả</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick Preset Description Chips */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 8 }}>
+                {[
+                  { label: '🏢 Công nghệ / IT', cat: 'Công nghệ' },
+                  { label: '🚚 Vận tải & Logistics', cat: 'Vận tải' },
+                  { label: '☕ Chuỗi F&B / Nhà hàng', cat: 'F&B' },
+                  { label: '🏬 Bán lẻ & Dịch vụ', cat: 'Bán lẻ' },
+                ].map((preset) => (
+                  <TouchableOpacity
+                    key={preset.cat}
+                    activeOpacity={0.8}
+                    onPress={() => handleGenerateCompanyDesc(preset.cat)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#3A3D40' : '#E2E8F0',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: isDark ? '#E2E8F0' : '#475569', fontWeight: '500' }}>{preset.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
               <View style={[styles.textareaBox, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <TextInput
                   style={[styles.textarea, { color: isDark ? '#FFF' : '#11181C' }]}
@@ -717,6 +800,53 @@ export default function RecruiterProfileScreen() {
 
               {/* Inputs */}
               <View style={{ padding: 20 }}>
+                {/* Quick Branch Presets */}
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#687076', marginBottom: 6 }}>Chọn nhanh gợi ý văn phòng:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setBranchNameInput('Chi nhánh chính');
+                        setBranchAddressInput(address || 'TP. Hồ Chí Minh');
+                      }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: isDark ? '#2C2C2E' : '#EBF5FF', borderWidth: 1, borderColor: '#0084FF' }}
+                    >
+                      <Text style={{ fontSize: 11, color: '#0084FF', fontWeight: '700' }}>📍 Lấy địa chỉ công ty</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setBranchNameInput('Văn phòng Hà Nội');
+                        setBranchAddressInput('Tòa nhà Charmvit, 117 Trần Duy Hưng, Cầu Giấy, Hà Nội');
+                      }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', borderWidth: 1, borderColor: isDark ? '#3A3D40' : '#E2E8F0' }}
+                    >
+                      <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#334155' }}>🏛️ Chi nhánh Hà Nội</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setBranchNameInput('Văn phòng TP.HCM');
+                        setBranchAddressInput('Số 180 Nguyễn Thị Minh Khai, Quận 3, TP. Hồ Chí Minh');
+                      }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', borderWidth: 1, borderColor: isDark ? '#3A3D40' : '#E2E8F0' }}
+                    >
+                      <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#334155' }}>🏛️ Chi nhánh TP.HCM</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setBranchNameInput('Văn phòng Đà Nẵng');
+                        setBranchAddressInput('Số 271 Nguyễn Văn Linh, Thanh Khê, Đà Nẵng');
+                      }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', borderWidth: 1, borderColor: isDark ? '#3A3D40' : '#E2E8F0' }}
+                    >
+                      <Text style={{ fontSize: 11, color: isDark ? '#FFF' : '#334155' }}>🏛️ Chi nhánh Đà Nẵng</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                </View>
+
                 <View style={styles.inputGroup}>
                   <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }]}>
                     Tên văn phòng / chi nhánh
