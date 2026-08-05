@@ -305,6 +305,8 @@ function CandidateProfileScreen() {
             }
           };
           reader.readAsDataURL(blob);
+        });
+
         const uploadResponse = await fetch('http://160.250.246.119:4000/api/upload-cv', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
