@@ -548,8 +548,12 @@ export default function RecruiterProfileScreen() {
               style={[styles.logoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}
             >
               <View style={[styles.logoCircle, { backgroundColor: '#E6F4FE', overflow: 'hidden' }]}>
-                {employerData?.logo ? (
-                  <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
+                {(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url) && String(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url).trim().length > 5 ? (
+                  <Image
+                    source={{ uri: employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
                 ) : (
                   <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
                     {getInitial(companyName)}
@@ -1024,8 +1028,12 @@ export default function RecruiterProfileScreen() {
               )}
               <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
-                  {employerData?.logo ? (
-                    <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
+                  {(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url) && String(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url).trim().length > 5 ? (
+                    <Image
+                      source={{ uri: employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
                   ) : (
                     <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
                       {getInitial(companyName)}

@@ -1985,13 +1985,13 @@ export function useAuth() {
         const res = await fetch(`http://160.250.246.119:4000/api/employers/${firebaseUser.uid}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ logo: imageUrl })
+          body: JSON.stringify({ logo: imageUrl, logoUrl: imageUrl, logo_url: imageUrl })
         });
         if (!res.ok) throw new Error('Lỗi lưu logo');
         
         if (globalEmployerData) {
-          globalEmployerData = { ...globalEmployerData, logo: imageUrl };
-          setEmployerData(globalEmployerData);
+          globalEmployerData = { ...globalEmployerData, logo: imageUrl, logoUrl: imageUrl, logo_url: imageUrl } as any;
+          setEmployerData({ ...globalEmployerData });
         }
       } else {
         const res = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/avatar`, {

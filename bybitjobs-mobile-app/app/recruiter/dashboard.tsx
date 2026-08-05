@@ -85,7 +85,9 @@ export default function RecruiterDashboardScreen() {
   const [isLocationModalVisible, setIsLocationModalVisible] = React.useState(false);
   const [selectedIndustry, setSelectedIndustry] = React.useState('Chọn lĩnh vực');
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
-  const [activeChip, setActiveChip] = React.useState('Hot');
+  const [selectedSalary, setSelectedSalary] = React.useState('Chọn mức lương');
+  const [isSalaryModalVisible, setIsSalaryModalVisible] = React.useState(false);
+  const [activeChip, setActiveChip] = React.useState('Tất cả');
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
   const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
@@ -264,8 +266,14 @@ export default function RecruiterDashboardScreen() {
     'Bán hàng / Tư vấn',
     'Gia sư / Giáo dục',
     'Hành chính / Văn phòng',
-    'Kỹ thuật / Cơ khí',
-    'Dịch vụ làm đẹp'
+  const salaryRanges = [
+    'Tất cả mức lương',
+    'Dưới 5 triệu',
+    '5 - 10 triệu',
+    '10 - 15 triệu',
+    '15 - 20 triệu',
+    'Trên 20 triệu',
+    'Thỏa thuận'
   ];
 
   const toggleBookmark = (id: string) => {
@@ -282,6 +290,9 @@ export default function RecruiterDashboardScreen() {
   };
 
   const openJobs = jobs.filter(job => {
+    if (job.employerId !== userData?.uid && (!employerData?.id || job.employerId !== employerData.id)) {
+      return false;
+    }
     if (job.isOpen === false) return false;
     if (checkIsJobExpired(job.deadline)) return false;
     const status = (job.status || '').toLowerCase();
@@ -402,6 +413,21 @@ export default function RecruiterDashboardScreen() {
             <Ionicons name="location-outline" size={14} color="#FFF" />
             <Text style={styles.selectorTextPill}>
               {selectedLocation}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color="#FFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsSalaryModalVisible(true)}
+            style={[
+              styles.selectorDropdownPill,
+              selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorDropdownPillActive
+            ]}
+          >
+            <Ionicons name="cash-outline" size={14} color="#FFF" />
+            <Text style={styles.selectorTextPill}>
+              {selectedSalary}
             </Text>
             <Ionicons name="chevron-down" size={12} color="#FFF" />
           </TouchableOpacity>
@@ -569,7 +595,7 @@ export default function RecruiterDashboardScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsContainer}
         >
-          {['Hot', 'Mới nhất'].map((chip) => {
+          {['Tất cả', 'Hot', 'Tuyển gấp', 'Lương cao', 'Mới nhất'].map((chip) => {
             const isActive = activeChip === chip;
             return (
               <TouchableOpacity
@@ -950,6 +976,65 @@ export default function RecruiterDashboardScreen() {
                       isSelected && { color: '#0084FF', fontWeight: 'bold' }
                     ]}>
                       {ind}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color="#0084FF" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Chọn Mức Lương */}
+      <Modal
+        visible={isSalaryModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsSalaryModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsSalaryModalVisible(false)}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' }]}>
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Chọn mức lương tuyển dụng
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsSalaryModalVisible(false)}
+                style={styles.closeModalBtn}
+              >
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {salaryRanges.map((sal) => {
+                const isSelected = selectedSalary === sal || (sal === 'Tất cả mức lương' && selectedSalary === 'Chọn mức lương');
+                return (
+                  <TouchableOpacity
+                    key={sal}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedSalary(sal);
+                      setIsSalaryModalVisible(false);
+                    }}
+                    style={[
+                      styles.modalItem,
+                      { borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1' },
+                      isSelected && { backgroundColor: isDark ? '#26354A' : '#E6F4FE' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.modalItemText,
+                      { color: isDark ? '#FFF' : '#333' },
+                      isSelected && { color: '#0084FF', fontWeight: 'bold' }
+                    ]}>
+                      {sal}
                     </Text>
                     {isSelected && (
                       <Ionicons name="checkmark" size={18} color="#0084FF" />

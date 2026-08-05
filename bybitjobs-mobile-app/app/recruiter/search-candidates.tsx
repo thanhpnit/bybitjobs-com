@@ -34,13 +34,11 @@ export default function RecruiterSearchCandidatesScreen() {
   const [selectedSalary, setSelectedSalary] = React.useState<string | null>(null);
   const [activeFilterModalType, setActiveFilterModalType] = React.useState<'experience' | 'location' | 'salary' | null>(null);
 
-  // Active jobs to invite candidates to
+  // Active jobs to invite candidates to (STRICTLY recruiter's own jobs)
   const activeJobs = React.useMemo(() => {
     if (!userData?.uid) return [];
-    const myJobs = jobs.filter((j) => j.isOpen && j.employerId === userData.uid);
-    if (myJobs.length > 0) return myJobs;
-    return jobs.filter((j) => j.isOpen);
-  }, [jobs, userData?.uid]);
+    return jobs.filter((j) => j.isOpen && (j.employerId === userData.uid || (employerData?.id && j.employerId === employerData.id)));
+  }, [jobs, userData?.uid, employerData?.id]);
 
   // Handle select filter chips
   const handleSelectExperience = () => {
