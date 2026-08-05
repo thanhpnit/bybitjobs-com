@@ -3262,6 +3262,39 @@ function CandidateProfileScreen() {
               />
             </View>
 
+            {/* Quick Preset Chips for Candidate */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDark ? '#FFF' : '#334155', marginTop: 12, marginBottom: 8 }}>
+              ⚡ Gợi ý chọn nhanh vị trí:
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {[
+                'Lập trình viên Web / Mobile',
+                'UI/UX Designer',
+                'Marketing & Content',
+                'Quản lý dự án (PM)',
+                'Chăm sóc khách hàng',
+                'Thực tập sinh (Internship)',
+              ].map((preset) => (
+                <TouchableOpacity
+                  key={preset}
+                  activeOpacity={0.8}
+                  onPress={() => setEditJobInput(preset)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 16,
+                    backgroundColor: editJobInput === preset ? '#0084FF' : (isDark ? '#2C2C2E' : '#F1F5F9'),
+                    borderWidth: 1,
+                    borderColor: editJobInput === preset ? '#0084FF' : (isDark ? '#3A3D40' : '#E2E8F0'),
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: editJobInput === preset ? '#FFF' : (isDark ? '#CBD5E1' : '#475569') }}>
+                    + {preset}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={[styles.verificationSubmitBtn, { flex: 1, backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA' }]}
