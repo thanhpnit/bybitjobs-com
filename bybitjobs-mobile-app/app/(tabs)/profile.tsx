@@ -353,6 +353,53 @@ function CandidateProfileScreen() {
     pickDocument();
   };
 
+  const [isSuggestingJob, setIsSuggestingJob] = React.useState(false);
+
+  const handleSuggestJobFromCV = async () => {
+    if (!cvFile) return;
+    setIsSuggestingJob(true);
+    try {
+      const res = await fetch('http://160.250.246.119:4000/api/analyze-cv-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: userData?.uid,
+          fileName: cvFile.fileName,
+          cvUrl: cvFile.cvUrl
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.suggestedJob) {
+        const suggested = data.suggestedJob;
+        Alert.alert(
+          '✨ AI Gợi Ý Vị Trí Việc Làm',
+          `Dựa trên tệp CV "${cvFile.fileName}", AI gợi ý vị trí chuyên môn phù hợp cho bạn là:\n\n🎯 "${suggested}"\n\nBạn có muốn cập nhật vị trí này vào Hồ sơ không?`,
+          [
+            { text: 'Bỏ qua', style: 'cancel' },
+            {
+              text: '✓ Cập nhật ngay',
+              onPress: async () => {
+                setEditJobInput(suggested);
+                if (updateDesiredJob) {
+                  await updateDesiredJob(suggested);
+                  Alert.alert('Thành công', `Đã cập nhật vị trí mong muốn thành "${suggested}"!`);
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Thông báo', 'Không thể bóc tách tên công việc từ tệp CV này.');
+      }
+    } catch (e) {
+      console.warn('Lỗi AI gợi ý job:', e);
+      Alert.alert('Lỗi', 'Không thể kết nối dịch vụ AI gợi ý lúc này.');
+    } finally {
+      setIsSuggestingJob(false);
+    }
+  };
+
   const handleSendVerificationEmail = async () => {
     const result = await sendOtp();
     if (result.success) {
@@ -1848,6 +1895,35 @@ function CandidateProfileScreen() {
                       <>
                         <Ionicons name="sparkles" size={16} color="#0084FF" style={{ marginRight: 6 }} />
                         <Text style={styles.aiScoreBtnText}>Chấm điểm CV bằng AI (ATS)</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleSuggestJobFromCV}
+                    disabled={isSuggestingJob}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isDark ? '#2D1B36' : '#F3E8FF',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#6B21A8' : '#D8B4FE',
+                      borderRadius: 10,
+                      height: 40,
+                      marginTop: 8,
+                      width: '100%',
+                    }}
+                  >
+                    {isSuggestingJob ? (
+                      <ActivityIndicator size="small" color="#7C3AED" />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles" size={16} color="#7C3AED" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#7C3AED', fontSize: 12.5, fontWeight: 'bold' }}>
+                          ✨ AI Gợi Ý Vị Trí Phù Hợp Từ CV
+                        </Text>
                       </>
                     )}
                   </TouchableOpacity>

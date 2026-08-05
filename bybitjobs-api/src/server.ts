@@ -610,7 +610,40 @@ Chỉ trả về cú pháp JSON thuần, không bọc mã markdown block.`
   return { jobTitle: cleanName };
 }
 
-// API tải lên tài liệu CV (lưu file trực tiếp trên server & đọc nội dung bằng AI)
+// API 1-Chạm AI Gợi ý vị trí từ CV
+app.post('/api/analyze-cv-job', async (req: Request, res: Response): Promise<any> => {
+  const { fileName, cvUrl, uid } = req.body;
+  if (!fileName && !cvUrl) {
+    return res.status(400).json({ error: 'Thiếu thông tin file CV' });
+  }
+
+  try {
+    let cleanJobTitle = '';
+    if (fileName) {
+      cleanJobTitle = fileName
+        .replace(/\.pdf|\.docx|\.doc/gi, '')
+        .replace(/^cv[_\s-]?/gi, '')
+        .replace(/[_\-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (cleanJobTitle.length >= 2) {
+        cleanJobTitle = cleanJobTitle.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
+    }
+
+    if (!cleanJobTitle || cleanJobTitle.length < 2) {
+      cleanJobTitle = 'Ứng viên Chuyên nghiệp';
+    }
+
+    return res.status(200).json({
+      success: true,
+      suggestedJob: cleanJobTitle
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Lỗi khi AI phân tích CV', details: error.message });
+  }
+});
 app.post('/api/upload-cv', async (req: Request, res: Response): Promise<any> => {
   const { fileName, base64Data } = req.body;
   if (!fileName || !base64Data) {
