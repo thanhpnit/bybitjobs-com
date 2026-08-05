@@ -168,7 +168,7 @@ export default function RecruiterCandidatesScreen() {
             style={[styles.tabButton, activeTab === 'HighMatch' && styles.tabButtonActive]}
           >
             <Text style={[styles.tabText, activeTab === 'HighMatch' ? styles.tabTextActive : { color: isDark ? '#9BA1A6' : '#687076' }]}>
-              ✨ Match Cao (&gt;80%)
+              🔥 Ứng viên tiềm năng (&gt;80%)
             </Text>
           </TouchableOpacity>
 

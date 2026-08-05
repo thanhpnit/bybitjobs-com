@@ -210,16 +210,29 @@ export default function RecruiterSearchCandidatesScreen() {
             >
               {/* Row 1: Profile picture & basic info */}
               <View style={styles.cardUpperRow}>
-                <Image source={{ uri: candidate.avatar }} style={styles.avatar} />
+                {candidate.avatar ? (
+                  <Image source={{ uri: candidate.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: '#0084FF', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>
+                      {(candidate.name || 'UV').split(' ').pop()?.[0]?.toUpperCase() || 'U'}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.infoWrapper}>
-                  <Text style={[styles.candidateName, { color: isDark ? '#FFF' : '#11181C' }]}>
-                    {candidate.name}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={[styles.candidateName, { color: isDark ? '#FFF' : '#11181C' }]}>
+                      {candidate.name}
+                    </Text>
+                    <View style={{ backgroundColor: '#F3E8FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ color: '#7C3AED', fontSize: 10, fontWeight: '700' }}>🔥 Ứng viên tiềm năng</Text>
+                    </View>
+                  </View>
                   <Text style={styles.candidateRole}>
                     {candidate.role}
                   </Text>
                   <Text style={styles.candidateRatingText}>
-                    ⭐️ {candidate.rating} • {candidate.yearsOfExp} năm kinh nghiệm
+                    ⭐️ {candidate.rating || 5.0} • {candidate.yearsOfExp || 1} năm kinh nghiệm
                   </Text>
                 </View>
 

@@ -446,13 +446,13 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
           <View style={styles.aiMatchHeaderRow}>
             <View style={styles.aiMatchBadge}>
               <Ionicons name="sparkles" size={18} color="#7C3AED" />
-              <Text style={styles.aiMatchBadgeText}>AI Match Review</Text>
+              <Text style={styles.aiMatchBadgeText}>🎯 Đánh giá Độ tương thích AI</Text>
             </View>
             {isLoadingMatch ? (
               <ActivityIndicator size="small" color="#7C3AED" />
             ) : matchScore !== null ? (
               <View style={styles.scorePill}>
-                <Text style={styles.scorePillText}>AI Match: {matchScore}%</Text>
+                <Text style={styles.scorePillText}>🎯 Độ phù hợp: {matchScore}%</Text>
               </View>
             ) : null}
           </View>

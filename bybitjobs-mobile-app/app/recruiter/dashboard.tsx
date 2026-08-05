@@ -471,7 +471,7 @@ export default function RecruiterDashboardScreen() {
               </View>
               <View>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: '#7C3AED' }}>{highMatchAppsCount}</Text>
-                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Match Cao (&gt;80%)</Text>
+                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>🔥 Ứng viên tiềm năng (&gt;80%)</Text>
               </View>
             </TouchableOpacity>
 
