@@ -610,19 +610,24 @@ Chỉ trả về cú pháp JSON thuần, không bọc mã markdown block.`
   return { jobTitle: cleanName };
 }
 
-// API 1-Chạm AI Gợi ý vị trí từ CV (Đọc trực tiếp tệp PDF/DOCX từ đĩa)
+// API 1-Chạm AI Gợi ý vị trí từ CV (Đọc trực tiếp nội dung PDF/DOCX qua AI)
 app.post('/api/analyze-cv-job', async (req: Request, res: Response): Promise<any> => {
-  const { fileName, cvUrl, uid } = req.body;
-  if (!fileName && !cvUrl) {
+  const { fileName, cvUrl, uid, base64Data } = req.body;
+  if (!fileName && !cvUrl && !base64Data) {
     return res.status(400).json({ error: 'Thiếu thông tin file CV' });
   }
 
   try {
     let fileBuffer: Buffer | null = null;
-    let cleanBase64 = '';
+    let cleanBase64 = base64Data || '';
+
+    if (cleanBase64) {
+      fileBuffer = Buffer.from(cleanBase64, 'base64');
+    }
+
     const uploadsDir = path.join(__dirname, '../uploads/cvs');
 
-    if (cvUrl) {
+    if (!fileBuffer && cvUrl) {
       const urlParts = cvUrl.split('/');
       const actualFileName = urlParts[urlParts.length - 1];
       const diskPath = path.join(uploadsDir, actualFileName);
@@ -657,6 +662,7 @@ app.post('/api/analyze-cv-job', async (req: Request, res: Response): Promise<any
         title.length < 3 ||
         lower.includes('cvchinh') ||
         lower.includes('cv chinh') ||
+        lower.includes('chinh') ||
         lower === 'cv' ||
         lower === 'hồ sơ' ||
         lower === 'ho so' ||

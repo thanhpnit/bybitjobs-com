@@ -359,13 +359,36 @@ function CandidateProfileScreen() {
     if (!cvFile) return;
     setIsSuggestingJob(true);
     try {
+      let base64Data = '';
+      if (cvFile.cvUrl) {
+        try {
+          const response = await fetch(cvFile.cvUrl);
+          const blob = await response.blob();
+          base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = reject;
+            reader.onload = () => {
+              if (typeof reader.result === 'string') {
+                resolve(reader.result.split(',')[1] || '');
+              } else {
+                resolve('');
+              }
+            };
+            reader.readAsDataURL(blob);
+          });
+        } catch (err) {
+          console.warn('Không thể đọc base64 trực tiếp từ URI:', err);
+        }
+      }
+
       const res = await fetch('http://160.250.246.119:4000/api/analyze-cv-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           uid: userData?.uid,
           fileName: cvFile.fileName,
-          cvUrl: cvFile.cvUrl
+          cvUrl: cvFile.cvUrl,
+          base64Data
         })
       });
 
@@ -374,7 +397,7 @@ function CandidateProfileScreen() {
         const suggested = data.suggestedJob;
         Alert.alert(
           '✨ AI Gợi Ý Vị Trí Việc Làm',
-          `Dựa trên tệp CV "${cvFile.fileName}", AI gợi ý vị trí chuyên môn phù hợp cho bạn là:\n\n🎯 "${suggested}"\n\nBạn có muốn cập nhật vị trí này vào Hồ sơ không?`,
+          `Dựa trên nội dung CV "${cvFile.fileName}", AI gợi ý vị trí chuyên môn phù hợp cho bạn là:\n\n🎯 "${suggested}"\n\nBạn có muốn cập nhật vị trí này vào Hồ sơ không?`,
           [
             { text: 'Bỏ qua', style: 'cancel' },
             {
