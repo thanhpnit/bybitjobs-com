@@ -37,7 +37,7 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, disableAccount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -210,29 +210,39 @@ export default function RecruiterProfileScreen() {
   };
 
   const handleSaveChanges = () => {
-    // 1. Update state back in auth context
-    updateCompany({
-      companyName,
-      phoneNumber: phone,
-      address,
-      website,
-      email,
-      industry,
-      scale,
-      description,
-      branches,
-      logo: logoColor,
-    });
-
-    // 2. Alert success & switch back to overview mode
     Alert.alert(
-      'Thành công',
-      'Thông tin doanh nghiệp đã được cập nhật thành công.',
+      'Xác nhận cập nhật thông tin',
+      `Bạn có chắc chắn muốn lưu các thay đổi cho doanh nghiệp "${companyName}" không?`,
       [
+        { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Đồng ý',
+          text: 'Xác nhận lưu',
           onPress: () => {
-            setIsEditing(false);
+            updateCompany({
+              companyName,
+              phoneNumber: phone,
+              address,
+              website,
+              email,
+              industry,
+              scale,
+              description,
+              branches,
+              logo: logoColor,
+            });
+
+            Alert.alert(
+              '✓ Đã cập nhật thành công',
+              'Thông tin doanh nghiệp đã được lưu thay đổi thành công.',
+              [
+                {
+                  text: 'Đồng ý',
+                  onPress: () => {
+                    setIsEditing(false);
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -454,7 +464,20 @@ export default function RecruiterProfileScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
         {/* Header Bar */}
         <View style={[styles.headerBar, { backgroundColor: '#0084FF' }]}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => setIsEditing(false)}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.iconBtn}
+            onPress={() => {
+              Alert.alert(
+                'Hủy chỉnh sửa',
+                'Bạn có chắc chắn muốn thoát mà không lưu thông tin vừa thay đổi?',
+                [
+                  { text: 'Tiếp tục chỉnh sửa', style: 'cancel' },
+                  { text: 'Thoát không lưu', style: 'destructive', onPress: () => setIsEditing(false) }
+                ]
+              );
+            }}
+          >
             <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>Thông tin công ty</Text>
@@ -1180,6 +1203,35 @@ export default function RecruiterProfileScreen() {
                     );
                   })}
                   {renderSettingRow('book-outline', 'Hướng dẫn đăng tin & Mẹo tuyển dụng', () => setIsGuideModalVisible(true))}
+                  {renderSettingRow('alert-circle-outline', 'Vô hiệu hóa tài khoản doanh nghiệp', () => {
+                    Alert.alert(
+                      'Xác nhận vô hiệu hóa tài khoản',
+                      'Bạn có chắc chắn muốn vô hiệu hóa tài khoản Nhà tuyển dụng không? Tất cả tin tuyển dụng đang mở sẽ tạm ẩn khỏi hệ thống.',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        {
+                          text: 'Vô hiệu hóa ngay',
+                          style: 'destructive',
+                          onPress: async () => {
+                            const res = await disableAccount();
+                            if (res.success) {
+                              Alert.alert('Đã vô hiệu hóa', res.message, [
+                                {
+                                  text: 'Đăng xuất',
+                                  onPress: async () => {
+                                    await logout();
+                                    router.replace('/(tabs)');
+                                  }
+                                }
+                              ]);
+                            } else {
+                              Alert.alert('Thất bại', res.message);
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  })}
                 </View>
 
                 <TouchableOpacity
