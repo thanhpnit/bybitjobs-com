@@ -92,34 +92,17 @@ export default function RecruiterSearchCandidatesScreen() {
     return true;
   });
 
-  const handleSendInvite = (candidateId: string, candidateName: string) => {
-    if (activeJobs.length === 0) {
-      Alert.alert(
-        'Không có bài đăng hoạt động',
-        'Công ty của bạn hiện không có bài tuyển dụng nào đang ở trạng thái ĐANG MỞ. Hãy đăng bài hoặc mở lại bài đăng trước.'
-      );
-      return;
-    }
+  const [selectedCandidateForInvite, setSelectedCandidateForInvite] = React.useState<{ id: string; name: string; avatar?: string; role?: string } | null>(null);
+  const [isInviteModalVisible, setIsInviteModalVisible] = React.useState(false);
 
-    // Build the alert options listing the recruiter's active jobs
-    const jobOptions = activeJobs.map((job) => ({
-      text: job.title,
-      onPress: () => {
-        sendInvitation(candidateId, job.id);
-      },
-    }));
-
-    // Add a cancel option at the end
-    jobOptions.push({
-      text: 'Hủy bỏ',
-      onPress: () => {},
-    } as any);
-
-    Alert.alert(
-      'Chọn bài viết tuyển dụng',
-      `Chọn 1 bài đăng của bạn để đính kèm trong lời mời gửi tới ứng viên "${candidateName}":`,
-      jobOptions as any
-    );
+  const handleSendInvite = (candidate: CandidateItem) => {
+    setSelectedCandidateForInvite({
+      id: candidate.id,
+      name: candidate.name || 'Ứng viên',
+      avatar: candidate.avatar,
+      role: candidate.role || 'Ứng viên tiềm năng',
+    });
+    setIsInviteModalVisible(true);
   };
 
   return (
@@ -325,10 +308,10 @@ export default function RecruiterSearchCandidatesScreen() {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => handleSendInvite(candidate.id, candidate.name)}
+                  onPress={() => handleSendInvite(candidate)}
                   style={styles.inviteButton}
                 >
-                  <Text style={styles.inviteButtonText}>Gửi lời mời</Text>
+                  <Text style={styles.inviteButtonText}>📩 Gửi lời mời</Text>
                 </TouchableOpacity>
               </View>
 
@@ -600,6 +583,151 @@ export default function RecruiterSearchCandidatesScreen() {
             >
               <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>Đặt lại về "Tất cả"</Text>
             </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Dạng Danh Sách Gửi Lời Mời Ứng Tuyển (Send Invite Jobs List Modal) */}
+      <Modal
+        visible={isInviteModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsInviteModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsInviteModalVisible(false)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              maxHeight: '85%',
+            }}
+          >
+            {/* Modal Header with Candidate Info */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F1F5F9', paddingBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                {selectedCandidateForInvite?.avatar ? (
+                  <Image source={{ uri: selectedCandidateForInvite.avatar }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                ) : (
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#0084FF', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 18 }}>
+                      {(selectedCandidateForInvite?.name || 'UV').split(' ').pop()?.[0]?.toUpperCase() || 'U'}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                      Mời {selectedCandidateForInvite?.name || 'Ứng viên'}
+                    </Text>
+                    <Ionicons name="sparkles" size={14} color="#7C3AED" />
+                  </View>
+                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                    {selectedCandidateForInvite?.role || 'Ứng viên tiềm năng'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => setIsInviteModalVisible(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={22} color={isDark ? '#FFF' : '#64748B'} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#93C5FD' : '#1D4ED8', marginBottom: 12 }}>
+              💼 Chọn 1 bài đăng tuyển dụng đang mở của bạn để gửi lời mời:
+            </Text>
+
+            {/* List of Recruiter's Active Jobs */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {activeJobs.length === 0 ? (
+                <View style={{ padding: 24, alignItems: 'center', backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC', borderRadius: 16 }}>
+                  <Ionicons name="alert-circle-outline" size={40} color="#F59E0B" />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937', marginTop: 10, textAlign: 'center' }}>
+                    Không có bài tuyển dụng nào đang mở
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4, textAlign: 'center' }}>
+                    Công ty của bạn hiện chưa có bài đăng hoạt động. Hãy tạo bài tuyển dụng mới để săn ứng viên!
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setIsInviteModalVisible(false);
+                      router.push('/recruiter/edit-job?id=new');
+                    }}
+                    style={{ backgroundColor: '#0084FF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginTop: 14 }}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>+ Đăng tin mới ngay</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                activeJobs.map((job) => (
+                  <View
+                    key={job.id}
+                    style={{
+                      padding: 14,
+                      borderRadius: 14,
+                      backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#3A3D40' : '#E2E8F0',
+                      gap: 8,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A', flex: 1, marginRight: 8 }}>
+                        {job.title}
+                      </Text>
+                      <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#065F46' }}>Đang tuyển</Text>
+                      </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="cash-outline" size={13} color="#059669" />
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#059669' }}>{job.salary || 'Thỏa thuận'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="location-outline" size={13} color="#64748B" />
+                        <Text style={{ fontSize: 12, color: isDark ? '#CBD5E1' : '#64748B' }}>{job.location}</Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={async () => {
+                        if (selectedCandidateForInvite) {
+                          const res = await sendInvitation(selectedCandidateForInvite.id, job.id);
+                          setIsInviteModalVisible(false);
+                          if (res.success) {
+                            Alert.alert('✨ Thành công', `Đã gửi lời mời ứng tuyển công việc "${job.title}" tới ứng viên ${selectedCandidateForInvite.name}!`);
+                          } else {
+                            Alert.alert('Thông báo', res.message || 'Lời mời đã được gửi thành công.');
+                          }
+                        }
+                      }}
+                      style={{
+                        backgroundColor: '#0084FF',
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        gap: 6,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Ionicons name="paper-plane-outline" size={16} color="#FFF" />
+                      <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Gửi lời mời ngay ✨</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
