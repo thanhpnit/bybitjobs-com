@@ -558,8 +558,23 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
   }
 
   try {
-    const updateData: Record<string, any> = {};
-    if (cvName !== undefined) updateData.cvName = cvName;
+    if (cvName !== undefined) {
+      updateData.cvName = cvName;
+      if (cvName) {
+        let extractedJob = cvName
+          .replace(/\.pdf|\.docx|\.doc/gi, '')
+          .replace(/^cv[_\s-]?/gi, '')
+          .replace(/[_\-]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (extractedJob.length >= 2) {
+          extractedJob = extractedJob.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          updateData.job = extractedJob;
+          updateData.desiredJob = extractedJob;
+          updateData.roleTitle = extractedJob;
+        }
+      }
+    }
     if (cvSize !== undefined) updateData.cvSize = cvSize;
     if (cvUploadTime !== undefined) updateData.cvUploadTime = cvUploadTime;
     if (cvUrl !== undefined) updateData.cvUrl = cvUrl;
