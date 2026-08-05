@@ -78,6 +78,22 @@ export default function RecruiterDashboardScreen() {
     return viewedJobs.filter((item) => employerJobIds.has(item.jobId)).length;
   }, [viewedJobs, employerJobIds, userData?.uid]);
 
+  const recruiterOwnOpenJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
+    return jobs.filter((job) => {
+      if (job.employerId !== userData.uid && (!employerData?.id || job.employerId !== employerData.id)) {
+        return false;
+      }
+      if (job.isOpen === false) return false;
+      if (checkIsJobExpired(job.deadline)) return false;
+      const status = (job.status || '').toLowerCase();
+      if (status.includes('chờ') || status.includes('từ chối') || status.includes('đóng') || status === 'rejected' || status === 'pending') {
+        return false;
+      }
+      return true;
+    });
+  }, [jobs, userData?.uid, employerData?.id]);
+
   const [isMenuVisible, setIsMenuVisible] = React.useState(false);
   const handleCloseMenu = () => setIsMenuVisible(false);
 
@@ -526,7 +542,7 @@ export default function RecruiterDashboardScreen() {
                 <Ionicons name="briefcase-outline" size={18} color="#0084FF" />
               </View>
               <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{openJobs.length}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{recruiterOwnOpenJobs.length}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Tin tuyển dụng</Text>
               </View>
             </TouchableOpacity>
