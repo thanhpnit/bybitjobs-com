@@ -3725,12 +3725,12 @@ function CandidateProfileScreen() {
                       }
                     ]}
                   >
-                    <Text style={[styles.twoFAButtonText, { color: isDark ? '#FFF' : '#11181C' }]}>Đóng</Text>
-                  </TouchableOpacity>
                 </View>
               </>
             )}
-
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
     </View>
   );
