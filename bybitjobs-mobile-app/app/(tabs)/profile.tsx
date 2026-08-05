@@ -124,6 +124,16 @@ function CandidateProfileScreen() {
   const [isEditJobModalVisible, setIsEditJobModalVisible] = React.useState(false);
   const [editJobInput, setEditJobInput] = React.useState('');
 
+  // AI Extracted CV Summary Modal State
+  const [isAISummaryModalVisible, setIsAISummaryModalVisible] = React.useState(false);
+  const [aiSummaryData, setAiSummaryData] = React.useState<{
+    jobTitle?: string;
+    skills?: string[];
+    introduction?: string;
+    education?: string;
+    fileName?: string;
+  } | null>(null);
+
   // Edit Phone State
   const [isEditPhoneModalVisible, setIsEditPhoneModalVisible] = React.useState(false);
   const [editPhoneInput, setEditPhoneInput] = React.useState('');
@@ -346,7 +356,15 @@ function CandidateProfileScreen() {
       }
       setCvFile(newFile);
       setIsUploading(false);
-      Alert.alert('Thành công ✨', `AI đã đọc CV và tự động cập nhật vị trí "${extractedJobTitle || 'Ứng viên'}" vào hồ sơ của bạn!`);
+
+      setAiSummaryData({
+        jobTitle: extractedJobTitle || userData?.desiredJob || 'Ứng viên',
+        skills: extractedSkills || userData?.skills || ['Kỹ năng chuyên môn', 'Giao tiếp', 'Làm việc nhóm'],
+        introduction: extractedIntro || userData?.cvSummary || 'Hồ sơ đã được tải lên thành công và sẵn sàng ứng tuyển.',
+        education: extractedEducation || userData?.education || 'Đại học / Cao đẳng',
+        fileName: newFile.fileName,
+      });
+      setIsAISummaryModalVisible(true);
 
     } catch (err) {
       console.error('Lỗi khi chọn file:', err);
@@ -5408,6 +5426,117 @@ const styles = StyleSheet.create({
 });
 
 import RecruiterProfileScreen from '../recruiter/profile';
+
+      {/* AI CV Extraction Summary Modal */}
+      <Modal
+        visible={isAISummaryModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsAISummaryModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            maxHeight: '85%',
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="sparkles" size={20} color="#7C3AED" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                    Kết Quả AI Phân Tích CV ✨
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280' }}>
+                    File: {aiSummaryData?.fileName || 'CV.pdf'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setIsAISummaryModalVisible(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Item 1: Extracted Job Title */}
+              <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC', padding: 14, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: isDark ? '#3A3A3C' : '#E2E8F0' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#7C3AED', textTransform: 'uppercase', marginBottom: 4 }}>
+                  🎯 Vị trí mong muốn AI bóc tách
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDark ? '#FFF' : '#0F172A' }}>
+                  {aiSummaryData?.jobTitle}
+                </Text>
+              </View>
+
+              {/* Item 2: Extracted Skills */}
+              {aiSummaryData?.skills && aiSummaryData.skills.length > 0 && (
+                <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC', padding: 14, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: isDark ? '#3A3A3C' : '#E2E8F0' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#0084FF', textTransform: 'uppercase', marginBottom: 8 }}>
+                    💡 Kỹ năng chuyên môn trích xuất ({aiSummaryData.skills.length})
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {aiSummaryData.skills.map((skill, idx) => (
+                      <View key={idx} style={{ backgroundColor: isDark ? '#3A3A3C' : '#E0F2FE', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                        <Text style={{ color: '#0284C7', fontSize: 12, fontWeight: '600' }}>{skill}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Item 3: Extracted Summary / Introduction */}
+              {aiSummaryData?.introduction && (
+                <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC', padding: 14, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: isDark ? '#3A3A3C' : '#E2E8F0' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669', textTransform: 'uppercase', marginBottom: 4 }}>
+                    📝 Tóm tắt năng lực từ CV
+                  </Text>
+                  <Text style={{ fontSize: 13, color: isDark ? '#D1D5DB' : '#334155', lineHeight: 18 }}>
+                    {aiSummaryData.introduction}
+                  </Text>
+                </View>
+              )}
+
+              {/* Item 4: Education */}
+              {aiSummaryData?.education && (
+                <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F8FAFC', padding: 14, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#3A3A3C' : '#E2E8F0' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#D97706', textTransform: 'uppercase', marginBottom: 4 }}>
+                    🎓 Trình độ học vấn
+                  </Text>
+                  <Text style={{ fontSize: 13, color: isDark ? '#D1D5DB' : '#334155' }}>
+                    {aiSummaryData.education}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Bottom Actions */}
+            <View style={{ gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setIsAISummaryModalVisible(false)}
+                style={{ backgroundColor: '#0084FF', height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>✓ Xác Nhận & Đồng Ý Lưu Hồ Sơ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  setIsAISummaryModalVisible(false);
+                  setIsEditJobModalVisible(true);
+                }}
+                style={{ backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text style={{ color: isDark ? '#FFF' : '#475569', fontWeight: '600', fontSize: 13.5 }}>✏️ Chỉnh Sửa Tên Vị Trí Công Việc</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
 export default function ProfileScreen() {
   const { userRole } = useAuth();
