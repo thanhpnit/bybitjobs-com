@@ -558,6 +558,7 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
   }
 
   try {
+    const updateData: Record<string, any> = {};
     if (cvName !== undefined) {
       updateData.cvName = cvName;
       if (cvName) {
@@ -568,7 +569,7 @@ app.put('/api/users/:uid/cv', async (req: Request, res: Response): Promise<any> 
           .replace(/\s+/g, ' ')
           .trim();
         if (extractedJob.length >= 2) {
-          extractedJob = extractedJob.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          extractedJob = extractedJob.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
           updateData.job = extractedJob;
           updateData.desiredJob = extractedJob;
           updateData.roleTitle = extractedJob;
