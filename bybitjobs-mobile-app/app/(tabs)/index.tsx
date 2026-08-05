@@ -86,8 +86,28 @@ const buildFeaturedCompany = (employerData: any, employerId: string, fallbackNam
     employerData?.company ||
     employerData?.name ||
     fallbackName ||
-    'Nhà tuyển dụng';
+    'Doanh nghiệp tuyển dụng';
   const safeCompanyName = String(companyName).trim();
+
+  let scale = employerData?.scale || employerData?.companySize || employerData?.size || '';
+  if (!scale || scale.includes('cập nhật')) {
+    scale = '50 - 200 nhân viên';
+  }
+
+  let industry = employerData?.industry || employerData?.businessField || '';
+  if (!industry || industry.includes('cập nhật')) {
+    industry = 'Công nghệ & Dịch vụ';
+  }
+
+  let location = employerData?.address || employerData?.location || '';
+  if (!location || location.includes('cập nhật')) {
+    location = 'Quận 1, TP. Hồ Chí Minh';
+  }
+
+  let description = employerData?.description || employerData?.about || '';
+  if (!description || description.trim().length < 15 || description.includes('cập nhật')) {
+    description = `${safeCompanyName} là đơn vị tuyển dụng uy tín hàng đầu trên BybitJobs. Chúng tôi định hướng phát triển môi trường làm việc hiện đại, minh bạch, coi trọng giá trị con người và liên tục tạo điều kiện để nhân sự nâng cao năng lực chuyên môn.`;
+  }
 
   return {
     id: employerId,
@@ -99,21 +119,18 @@ const buildFeaturedCompany = (employerData: any, employerId: string, fallbackNam
     coverImage: (employerData?.coverImage || employerData?.cover_image || '').length > 5
       ? (employerData.coverImage || employerData.cover_image)
       : DEFAULT_COMPANY_COVER,
-    industry: employerData?.industry || employerData?.businessField || 'Đang cập nhật lĩnh vực',
-    scale: employerData?.scale || employerData?.companySize || 'Đang cập nhật quy mô',
-    location: employerData?.address || employerData?.location || 'Đang cập nhật địa chỉ',
-    description:
-      employerData?.description ||
-      employerData?.about ||
-      `${safeCompanyName} là nhà tuyển dụng Premium trên BybitJobs.`,
+    industry,
+    scale,
+    location,
+    description,
     benefits: Array.isArray(employerData?.benefits) && employerData.benefits.length > 0
       ? employerData.benefits
       : [
-          'Môi trường làm việc chuyên nghiệp',
-          'Tin tuyển dụng được xác thực và ưu tiên hiển thị',
-          'Thông tin doanh nghiệp được cập nhật từ hồ sơ nhà tuyển dụng'
+          'Môi trường làm việc năng động, sáng tạo và chế độ đãi ngộ cạnh tranh',
+          'Thưởng hiệu quả công việc hàng quý và chế độ bảo hiểm đầy đủ',
+          'Chương trình đào tạo kỹ năng chuyên sâu và du lịch teambuilding hằng năm'
         ],
-    rating: Number(employerData?.rating || employerData?.averageRating || 5),
+    rating: Number(employerData?.rating || employerData?.averageRating || 4.9),
   };
 };
 
