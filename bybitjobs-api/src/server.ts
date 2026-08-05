@@ -339,8 +339,14 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
     usersSnap.forEach((docSnap) => {
       const data = docSnap.data();
       if (data.role === 'candidate' || !data.role) {
-        const name = data.fullName || data.displayName || data.name || 'Ứng viên';
-        const role = data.desiredJob || data.job || 'Ứng viên tìm việc';
+        let rawName = data.fullName || data.full_name || data.displayName || data.display_name || data.name || data.username;
+        if (!rawName && data.emailOrPhone) {
+          rawName = data.emailOrPhone.includes('@') ? data.emailOrPhone.split('@')[0] : data.emailOrPhone;
+        }
+        const name = (rawName && String(rawName).trim() && rawName !== 'Ứng viên')
+          ? String(rawName).trim()
+          : `Ứng viên #${docSnap.id.substring(0, 5).toUpperCase()}`;
+        const role = data.desiredJob || data.job || data.roleTitle || 'Ứng viên tìm việc';
         const cvName = data.cvName || '';
 
         // Intelligently infer skills from desiredJob or cvName
@@ -1365,10 +1371,17 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
       const data = doc.data();
       const authUser = authUsers[uid];
       
-      const name = authUser?.displayName || data.name || 'Ứng viên';
-      const role = data.job || 'Ứng viên (Mobile App)';
-      const email = authUser?.email || '';
-      const phone = data.phone || 'Chưa cập nhật';
+      let rawName = authUser?.displayName || data.fullName || data.full_name || data.displayName || data.display_name || data.name || data.username;
+      if (!rawName && (data.emailOrPhone || authUser?.email || authUser?.phoneNumber)) {
+        const contactStr = data.emailOrPhone || authUser?.email || authUser?.phoneNumber;
+        rawName = contactStr.includes('@') ? contactStr.split('@')[0] : contactStr;
+      }
+      const name = (rawName && String(rawName).trim() && rawName !== 'Ứng viên')
+        ? String(rawName).trim()
+        : `Ứng viên #${uid.substring(0, 5).toUpperCase()}`;
+      const role = data.desiredJob || data.job || data.roleTitle || 'Ứng viên tìm việc';
+      const email = authUser?.email || data.emailOrPhone || data.email || 'Chưa cập nhật email';
+      const phone = data.phone || authUser?.phoneNumber || 'Chưa cập nhật';
       
       realCandidates.push({
         id: uid,
