@@ -459,8 +459,8 @@ export default function CvPdfViewerModal({
                 backgroundColor: viewMode === 'pdf' ? '#FFFFFF' : 'transparent',
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: viewMode === 'pdf' ? '#0084FF' : '#E0F2FE' }}>
-                📑 Xem Tệp PDF Trực Tiếp
+              <Text style={{ fontSize: 13, fontWeight: '700', color: viewMode === 'pdf' ? '#0084FF' : '#E0F2FE' }}>
+                📑 Tệp PDF Gốc
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -474,8 +474,8 @@ export default function CvPdfViewerModal({
                 backgroundColor: viewMode === 'html' ? '#FFFFFF' : 'transparent',
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: viewMode === 'html' ? '#0084FF' : '#E0F2FE' }}>
-                📄 Xem Bản Hồ Sơ Chuẩn
+              <Text style={{ fontSize: 13, fontWeight: '700', color: viewMode === 'html' ? '#0084FF' : '#E0F2FE' }}>
+                📄 Bản Hồ Sơ Chuẩn
               </Text>
             </TouchableOpacity>
           </View>
