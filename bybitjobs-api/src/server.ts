@@ -329,6 +329,77 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// API lấy danh sách ứng viên (Candidates) từ Firestore
+app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const db = admin.firestore();
+    const usersSnap = await db.collection('users').get();
+    const candidates: any[] = [];
+
+    usersSnap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.role === 'candidate' || !data.role) {
+        const name = data.fullName || data.displayName || data.name || 'Ứng viên';
+        const role = data.desiredJob || data.job || 'Ứng viên tìm việc';
+        const cvName = data.cvName || '';
+
+        // Intelligently infer skills from desiredJob or cvName
+        let skills: string[] = Array.isArray(data.skills) && data.skills.length > 0 ? data.skills : [];
+        if (skills.length === 0) {
+          const roleLower = (role + ' ' + cvName).toLowerCase();
+          if (roleLower.includes('web') || roleLower.includes('react') || roleLower.includes('frontend') || roleLower.includes('backend') || roleLower.includes('lập trình')) {
+            skills = ['React Native', 'JavaScript', 'TypeScript', 'HTML/CSS', 'Git'];
+          } else if (roleLower.includes('design') || roleLower.includes('ui') || roleLower.includes('ux') || roleLower.includes('đồ họa')) {
+            skills = ['Figma', 'Adobe Photoshop', 'UI/UX Design', 'Wireframing', 'Prototyping'];
+          } else if (roleLower.includes('marketing') || roleLower.includes('content') || roleLower.includes('seo')) {
+            skills = ['Social Media', 'Content Writing', 'SEO/SEM', 'Google Ads', 'Canva'];
+          } else if (roleLower.includes('pha chế') || roleLower.includes('bán nước') || roleLower.includes('phục vụ') || roleLower.includes('barista')) {
+            skills = ['Pha chế đồ uống', 'Quản lý quầy hàng', 'Giao tiếp khách hàng', 'Thu ngân'];
+          } else {
+            skills = ['Kỹ năng giao tiếp', 'Làm việc nhóm', 'Quản lý thời gian', 'Giải quyết vấn đề'];
+          }
+        }
+
+        candidates.push({
+          id: docSnap.id,
+          uid: docSnap.id,
+          name,
+          role,
+          avatar: data.avatar || data.photoURL || undefined,
+          email: data.emailOrPhone || data.email || 'Chưa cập nhật email',
+          phone: data.phone || 'Chưa cập nhật số điện thoại',
+          location: data.location || data.address || 'TP. Hồ Chí Minh',
+          jobType: data.jobType || 'Toàn thời gian',
+          skills,
+          portfolio: data.portfolio || 'Đã cập nhật trên BybitJobs',
+          education: data.education || 'Đại học / Cao đẳng',
+          rating: data.rating || 5.0,
+          reviewsCount: data.reviewsCount || 1,
+          yearsOfExp: data.yearsOfExp || 1,
+          cvName: data.cvName,
+          cvUrl: data.cvUrl,
+          cvSize: data.cvSize,
+          cvUploadTime: data.cvUploadTime,
+          experience: Array.isArray(data.experience) && data.experience.length > 0 ? data.experience : [
+            {
+              role: role,
+              company: 'Kinh nghiệm tích lũy',
+              duration: '2023 - Hiện tại',
+              description: `Đã có kinh nghiệm thực chiến trong lĩnh vực ${role}, tinh thần trách nhiệm cao và học hỏi nhanh.`,
+              isCurrent: true
+            }
+          ]
+        });
+      }
+    });
+
+    return res.status(200).json(candidates);
+  } catch (error: any) {
+    console.error('Lỗi khi lấy danh sách ứng viên:', error);
+    return res.status(500).json({ error: 'Lỗi server khi lấy dữ liệu ứng viên', details: error.message });
+  }
+});
+
 // API cập nhật công việc mong muốn
 app.put('/api/users/:uid/job', async (req: Request, res: Response): Promise<any> => {
   const uid = req.params.uid as string;

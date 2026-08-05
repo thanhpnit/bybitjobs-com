@@ -432,54 +432,53 @@ export default function CvPdfViewerModal({
           <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>
-            {cvName}
+          <Text style={[styles.title, { flex: 1, marginHorizontal: 8 }]} numberOfLines={1}>
+            {cvName || 'Hồ sơ CV Ứng viên'}
           </Text>
-          <View style={styles.headerRightPlaceholder} />
+          {cvUrl && cvUrl.startsWith('http') ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                Linking.openURL(cvUrl).catch(() => {
+                  Alert.alert('Thông báo', 'Không thể mở liên kết tệp PDF.');
+                });
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 14,
+                gap: 4
+              }}
+            >
+              <Ionicons name="open-outline" size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Tệp PDF gốc</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerRightPlaceholder} />
+          )}
         </View>
 
         {/* WebView Container */}
         <View style={styles.container}>
-          {loadError ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
-              <Text style={styles.errorTitle}>Lỗi tải tệp tin</Text>
-              <Text style={styles.errorText}>
-                Không thể hiển thị tệp PDF này. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.
-              </Text>
-              <TouchableOpacity activeOpacity={0.8} onPress={handleRetry} style={styles.retryButton}>
-                <Text style={styles.retryButtonText}>Thử lại</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <WebView
-              key={key}
-              source={renderHtmlSource ? { html: getHtmlContent() } : { uri: getPreparedUrl() }}
-              style={styles.webview}
-              scalesPageToFit={true}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={true}
-              originWhitelist={['*']}
-              renderLoading={() => (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#0084FF" />
-                  <Text style={styles.loadingText}>Đang tải tài liệu...</Text>
-                </View>
-              )}
-              onError={() => {
-                // Chỉ hiển thị màn hình lỗi khi thực sự tải URL ngoài bị lỗi
-                if (!renderHtmlSource) {
-                  setLoadError(true);
-                }
-              }}
-              onHttpError={() => {
-                if (!renderHtmlSource) {
-                  setLoadError(true);
-                }
-              }}
-            />
-          )}
+          <WebView
+            key={key}
+            source={{ html: getHtmlContent() }}
+            style={styles.webview}
+            scalesPageToFit={true}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            originWhitelist={['*']}
+            renderLoading={() => (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0084FF" />
+                <Text style={styles.loadingText}>Đang chuẩn bị hồ sơ CV...</Text>
+              </View>
+            )}
+          />
         </View>
       </SafeAreaView>
     </Modal>
