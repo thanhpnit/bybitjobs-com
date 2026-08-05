@@ -881,6 +881,7 @@ function CandidateHomeScreen() {
   }, [openJobs, premiumCompaniesByEmployerId]);
 
   const aiRecommendedJobs = React.useMemo(() => {
+    if (!userData?.uid) return [];
     if (!jobListings || jobListings.length === 0) return [];
 
     const desired = (userData?.desiredJob || '').toLowerCase().trim();
@@ -1436,14 +1437,33 @@ function CandidateHomeScreen() {
               <Text style={[styles.aiSectionTitle, { color: '#0F172A' }]}>
                 Việc làm đề xuất từ TOPPY AI
               </Text>
-              {aiRecommendedJobs.length > 0 && (
+              {userData?.uid && aiRecommendedJobs.length > 0 && (
                 <View style={styles.aiHeaderBadge}>
                   <Text style={styles.aiHeaderBadgeText}>Phù hợp với bạn</Text>
                 </View>
               )}
             </View>
 
-            {aiRecommendedJobs.length > 0 ? (
+            {!userData?.uid ? (
+              <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <Ionicons name="sparkles" size={26} color="#7C3AED" />
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', textAlign: 'center' }}>
+                  Đăng nhập để xem Đề xuất Việc làm từ TOPPY AI ✨
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 4, paddingHorizontal: 10 }}>
+                  TOPPY AI tự động phân tích kinh nghiệm & vị trí mong muốn của bạn để tìm việc làm phù hợp nhất (&gt;85%).
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => router.push('/login')}
+                  style={{ backgroundColor: '#0084FF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 14 }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>🔑 Đăng nhập / Đăng ký ngay</Text>
+                </TouchableOpacity>
+              </View>
+            ) : aiRecommendedJobs.length > 0 ? (
               <>
                 <Text style={[styles.aiSectionDesc, { color: '#64748B' }]}>
                   Hệ thống AI phân tích thực tế từ CV, vị trí mong muốn & lịch sử quan tâm của bạn.
