@@ -43,7 +43,7 @@ export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, applications, candidates, viewedJobs, userData, logout, unreadNotificationsCount } = useAuth();
+  const { jobs, applications, candidates, viewedJobs, userData, employerData, logout, unreadNotificationsCount } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
