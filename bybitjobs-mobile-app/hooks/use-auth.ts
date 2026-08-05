@@ -1470,6 +1470,13 @@ export function useAuth() {
 
   const updateApplicationStatus = async (appId: string, status: 'Pending' | 'Approved' | 'Rejected') => {
     const app = globalApplications.find((a) => a.id === appId);
+    if (!app) return;
+
+    // Strict rule: Once application status is Approved or Rejected, it is permanently locked and cannot be changed!
+    if (app.status === 'Approved' || app.status === 'Rejected') {
+      console.warn(`[Status Locked] Application ${appId} is already ${app.status}. Cannot change status.`);
+      return;
+    }
 
     globalApplications = globalApplications.map((appItem) => {
       if (appItem.id === appId) {

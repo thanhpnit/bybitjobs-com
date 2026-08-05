@@ -63,6 +63,7 @@ export default function RecruiterCvDetailsScreen() {
   }
 
   const isApproved = application.status === 'Approved';
+  const isRejected = application.status === 'Rejected';
   const candidateName = application.applicantName || candidate?.name || 'Ứng viên';
   const candidateEmail = application.applicantEmail || candidate?.email || 'Chưa cập nhật email';
   const candidatePhone = application.applicantPhone || candidate?.phone || 'Chưa cập nhật số điện thoại';
@@ -156,6 +157,15 @@ export default function RecruiterCvDetailsScreen() {
   }, [appId, application]);
 
   const handleApprove = () => {
+    if (application.status === 'Approved') {
+      Alert.alert('Thông báo', `Hồ sơ của "${candidateName}" đã được duyệt trước đó. Trạng thái đã được cố định và không thể thay đổi nữa.`);
+      return;
+    }
+    if (application.status === 'Rejected') {
+      Alert.alert('Không thể thay đổi', `Hồ sơ của "${candidateName}" đã bị từ chối trước đó. Trạng thái đã cố định và không thể duyệt lại!`);
+      return;
+    }
+
     updateApplicationStatus(application.id, 'Approved');
     Alert.alert(
       '✓ Đã duyệt hồ sơ',
@@ -164,6 +174,15 @@ export default function RecruiterCvDetailsScreen() {
   };
 
   const handleReject = () => {
+    if (application.status === 'Rejected') {
+      Alert.alert('Thông báo', `Hồ sơ của "${candidateName}" đã bị từ chối trước đó. Trạng thái đã được cố định và không thể thay đổi nữa.`);
+      return;
+    }
+    if (application.status === 'Approved') {
+      Alert.alert('Không thể thay đổi', `Hồ sơ của "${candidateName}" đã được duyệt thành công trước đó. Trạng thái đã cố định và không thể từ chối!`);
+      return;
+    }
+
     updateApplicationStatus(application.id, 'Rejected');
     Alert.alert(
       '✕ Đã từ chối',
@@ -431,6 +450,88 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
             </Text>
           )}
 
+          {/* Structured List Breakdown: Match / Unmatched Criteria */}
+          <View style={{
+            marginTop: 14,
+            backgroundColor: isDark ? '#151020' : '#FFFFFF',
+            borderRadius: 12,
+            padding: 14,
+            borderWidth: 1,
+            borderColor: isDark ? '#2D2240' : '#EDE9FE',
+          }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#DDD6FE' : '#6D28D9', marginBottom: 10 }}>
+              📊 Bảng chi tiết danh sách đánh giá tiêu chí:
+            </Text>
+
+            {/* List Item 1: Skills */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F3F4F6' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="ribbon" size={16} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Chuyên môn & Kỹ năng</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>Đạt bộ kỹ năng chuyên ngành chính</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                <Text style={{ color: '#065F46', fontSize: 11, fontWeight: '700' }}>Phù hợp</Text>
+              </View>
+            </View>
+
+            {/* List Item 2: Experience */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F3F4F6' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="briefcase" size={16} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Kinh nghiệm làm việc</Text>
+                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>Đã có kinh nghiệm vị trí tương đương</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                <Text style={{ color: '#065F46', fontSize: 11, fontWeight: '700' }}>Phù hợp</Text>
+              </View>
+            </View>
+
+            {/* List Item 3: Location (Chưa phù hợp) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#F3F4F6' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location" size={16} color="#DC2626" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Địa điểm làm việc</Text>
+                  <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 1 }}>Địa điểm chưa phù hợp ({candidateLocation})</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="alert-circle" size={13} color="#DC2626" />
+                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '700' }}>Chưa phù hợp</Text>
+              </View>
+            </View>
+
+            {/* List Item 4: Salary (Chưa phù hợp) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="cash" size={16} color="#DC2626" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#1F2937' }}>Mức lương kỳ vọng</Text>
+                  <Text style={{ fontSize: 11, color: '#EF4444', marginTop: 1 }}>Mức lương chưa phù hợp với ngân sách tin tuyển</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="alert-circle" size={13} color="#DC2626" />
+                <Text style={{ color: '#991B1B', fontSize: 11, fontWeight: '700' }}>Chưa phù hợp</Text>
+              </View>
+            </View>
+          </View>
+
           {/* AI Interview Questions Generator Button */}
           <TouchableOpacity
             activeOpacity={0.85}
@@ -596,10 +697,17 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleReject}
-          style={[styles.bottomBtn, styles.rejectActionBtn]}
+          style={[
+            styles.bottomBtn,
+            styles.rejectActionBtn,
+            isRejected && { backgroundColor: '#EF4444', borderColor: '#EF4444' },
+            isApproved && { opacity: 0.45 }
+          ]}
         >
-          <Ionicons name="close" size={20} color="#FF3B30" style={{ marginRight: 6 }} />
-          <Text style={styles.rejectActionBtnText}>Từ chối</Text>
+          <Ionicons name="close" size={20} color={isRejected ? "#FFF" : "#FF3B30"} style={{ marginRight: 6 }} />
+          <Text style={[styles.rejectActionBtnText, isRejected && { color: '#FFF' }]}>
+            {isRejected ? '✕ Đã từ chối' : 'Từ chối'}
+          </Text>
         </TouchableOpacity>
 
         {/* Email Send Button */}
@@ -616,11 +724,16 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleApprove}
-          style={[styles.bottomBtn, styles.approveActionBtn, isApproved && { backgroundColor: '#10B981' }]}
+          style={[
+            styles.bottomBtn,
+            styles.approveActionBtn,
+            isApproved && { backgroundColor: '#10B981', borderColor: '#10B981' },
+            isRejected && { opacity: 0.45 }
+          ]}
         >
           <Ionicons name={isApproved ? "checkmark-done-circle" : "checkmark-circle-outline"} size={20} color="#FFF" style={{ marginRight: 6 }} />
           <Text style={styles.approveActionBtnText}>
-            {isApproved ? 'Đã duyệt • Mở SĐT' : 'Duyệt hồ sơ'}
+            {isApproved ? '✓ Đã duyệt' : 'Duyệt hồ sơ'}
           </Text>
         </TouchableOpacity>
 

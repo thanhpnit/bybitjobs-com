@@ -254,6 +254,68 @@ export default function RecruiterSearchCandidatesScreen() {
                 ))}
               </View>
 
+              {/* Row 3: Structured List breakdown for Match criteria */}
+              <View style={{
+                marginTop: 10,
+                backgroundColor: isDark ? '#252729' : '#F8FAFC',
+                borderRadius: 10,
+                padding: 10,
+                borderWidth: 1,
+                borderColor: isDark ? '#3A3D40' : '#E2E8F0',
+              }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#CBD5E1' : '#475569', marginBottom: 6 }}>
+                  📊 Bảng danh sách đánh giá độ phù hợp:
+                </Text>
+
+                {/* List Item 1: Chuyên môn & Kỹ năng */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: isDark ? '#3A3D40' : '#F1F5F9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <Ionicons name="ribbon-outline" size={13} color="#059669" />
+                    <Text style={{ fontSize: 11, color: isDark ? '#E2E8F0' : '#334155', fontWeight: '500' }}>Chuyên môn & Kỹ năng</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="checkmark-circle" size={11} color="#059669" />
+                    <Text style={{ color: '#065F46', fontSize: 10, fontWeight: '700' }}>Phù hợp</Text>
+                  </View>
+                </View>
+
+                {/* List Item 2: Kinh nghiệm */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: isDark ? '#3A3D40' : '#F1F5F9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <Ionicons name="briefcase-outline" size={13} color="#059669" />
+                    <Text style={{ fontSize: 11, color: isDark ? '#E2E8F0' : '#334155', fontWeight: '500' }}>Kinh nghiệm ({candidate.yearsOfExp} năm)</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="checkmark-circle" size={11} color="#059669" />
+                    <Text style={{ color: '#065F46', fontSize: 10, fontWeight: '700' }}>Phù hợp</Text>
+                  </View>
+                </View>
+
+                {/* List Item 3: Địa điểm */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: isDark ? '#3A3D40' : '#F1F5F9' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <Ionicons name="location-outline" size={13} color="#DC2626" />
+                    <Text style={{ fontSize: 11, color: isDark ? '#E2E8F0' : '#334155', fontWeight: '500' }}>Địa điểm ({candidate.location})</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="alert-circle" size={11} color="#DC2626" />
+                    <Text style={{ color: '#991B1B', fontSize: 10, fontWeight: '700' }}>Chưa phù hợp</Text>
+                  </View>
+                </View>
+
+                {/* List Item 4: Mức lương */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <Ionicons name="cash-outline" size={13} color="#DC2626" />
+                    <Text style={{ fontSize: 11, color: isDark ? '#E2E8F0' : '#334155', fontWeight: '500' }}>Mức lương kỳ vọng</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="alert-circle" size={11} color="#DC2626" />
+                    <Text style={{ color: '#991B1B', fontSize: 10, fontWeight: '700' }}>Chưa phù hợp</Text>
+                  </View>
+                </View>
+              </View>
+
               {/* Bottom divider line */}
               <View style={[styles.cardDivider, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]} />
 
