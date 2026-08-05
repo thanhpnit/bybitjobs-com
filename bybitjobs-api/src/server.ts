@@ -610,7 +610,7 @@ Chỉ trả về cú pháp JSON thuần, không bọc mã markdown block.`
   return { jobTitle: cleanName };
 }
 
-// API 1-Chạm AI Gợi ý vị trí từ CV
+// API 1-Chạm AI Gợi ý vị trí từ CV (Đọc trực tiếp tệp PDF/DOCX từ đĩa)
 app.post('/api/analyze-cv-job', async (req: Request, res: Response): Promise<any> => {
   const { fileName, cvUrl, uid } = req.body;
   if (!fileName && !cvUrl) {
@@ -618,29 +618,63 @@ app.post('/api/analyze-cv-job', async (req: Request, res: Response): Promise<any
   }
 
   try {
-    let cleanJobTitle = '';
-    if (fileName) {
-      cleanJobTitle = fileName
-        .replace(/\.pdf|\.docx|\.doc/gi, '')
-        .replace(/^cv[_\s-]?/gi, '')
-        .replace(/[_\-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+    let fileBuffer: Buffer | null = null;
+    let cleanBase64 = '';
+    const uploadsDir = path.join(__dirname, '../uploads/cvs');
 
-      if (cleanJobTitle.length >= 2) {
-        cleanJobTitle = cleanJobTitle.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    if (cvUrl) {
+      const urlParts = cvUrl.split('/');
+      const actualFileName = urlParts[urlParts.length - 1];
+      const diskPath = path.join(uploadsDir, actualFileName);
+      if (fs.existsSync(diskPath)) {
+        fileBuffer = fs.readFileSync(diskPath);
+        cleanBase64 = fileBuffer.toString('base64');
       }
     }
 
-    if (!cleanJobTitle || cleanJobTitle.length < 2) {
-      cleanJobTitle = 'Ứng viên Chuyên nghiệp';
+    if (!fileBuffer && fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      const safeNamePart = fileName ? fileName.replace(/[^a-zA-Z0-9.-]/g, '_') : '';
+      const matched = files.find(f => safeNamePart && f.includes(safeNamePart));
+      if (matched) {
+        const diskPath = path.join(uploadsDir, matched);
+        fileBuffer = fs.readFileSync(diskPath);
+        cleanBase64 = fileBuffer.toString('base64');
+      }
+    }
+
+    let parsedJobTitle = '';
+
+    if (fileBuffer) {
+      const parsedData = await parseCVContentWithAI(fileBuffer, fileName || 'CV.pdf', cleanBase64);
+      parsedJobTitle = parsedData.jobTitle || '';
+    }
+
+    const isGeneric = (title: string) => {
+      const lower = title.toLowerCase().trim();
+      return (
+        !title ||
+        title.length < 3 ||
+        lower.includes('cvchinh') ||
+        lower.includes('cv chinh') ||
+        lower === 'cv' ||
+        lower === 'hồ sơ' ||
+        lower === 'ho so' ||
+        lower.includes('tải lên') ||
+        lower.includes('tìm việc')
+      );
+    };
+
+    if (isGeneric(parsedJobTitle)) {
+      parsedJobTitle = 'Lập trình viên / Chuyên viên Chuyên nghiệp';
     }
 
     return res.status(200).json({
       success: true,
-      suggestedJob: cleanJobTitle
+      suggestedJob: parsedJobTitle
     });
   } catch (error: any) {
+    console.error('Lỗi AI phân tích CV:', error);
     return res.status(500).json({ error: 'Lỗi khi AI phân tích CV', details: error.message });
   }
 });
