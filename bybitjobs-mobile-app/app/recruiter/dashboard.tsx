@@ -294,9 +294,6 @@ export default function RecruiterDashboardScreen() {
   };
 
   const openJobs = jobs.filter(job => {
-    if (job.employerId !== userData?.uid && (!employerData?.id || job.employerId !== employerData.id)) {
-      return false;
-    }
     if (job.isOpen === false) return false;
     if (checkIsJobExpired(job.deadline)) return false;
     const status = (job.status || '').toLowerCase();
@@ -308,6 +305,10 @@ export default function RecruiterDashboardScreen() {
   const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
+    const titleLower = (job.title || '').toLowerCase();
+    const isUrgent = job.urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
+    const isHot = isPremium || (job as any).isHot === true || (job as any).isFeatured === true || ((job as any).viewsCount || 0) > 10;
+
     return {
       id: job.id,
       title: job.title,
@@ -327,31 +328,69 @@ export default function RecruiterDashboardScreen() {
       originalIndustry: job.industry,
       createdAt: job.createdAt,
       isPremium,
+      isHot,
+      isUrgent,
     } as any;
   });
 
-  const filteredJobs = combinedJobs.filter((job) => {
-    let matchLocation = true;
+  const filteredJobs = combinedJobs.filter((job: any) => {
+    // 1. Chip Tab Filter (Hot, Tuyển gấp, Mới nhất)
+    if (activeChip === 'Hot' && !job.isHot) {
+      return false;
+    }
+    if (activeChip === 'Tuyển gấp' && !job.isUrgent) {
+      return false;
+    }
+
+    // 2. Location Filter
     if (selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm') {
-      if (selectedLocation === 'TP. Hồ Chí Minh') {
-        matchLocation = job.location.includes('Phú Nhuận') || job.location.includes('Gò Vấp') || job.location.includes('Hồ Chí Minh');
-      } else if (selectedLocation === 'Hà Nội') {
-        matchLocation = job.location.includes('Hà Nội') || job.location.includes('Hoàn Kiếm') || job.location.includes('Cầu Giấy');
-      } else {
-        matchLocation = job.location.includes(selectedLocation);
+      const loc = (job.location || '').toLowerCase();
+      if (selectedLocation === 'TP. Hồ Chí Minh' && !(loc.includes('hồ chí minh') || loc.includes('hcm') || loc.includes('phú nhuận') || loc.includes('gò vấp') || loc.includes('quận') || loc.includes('thủ đức'))) {
+        return false;
+      }
+      if (selectedLocation === 'Hà Nội' && !(loc.includes('hà nội') || loc.includes('hoàn kiếm') || loc.includes('cầu giấy') || loc.includes('từ liêm'))) {
+        return false;
+      }
+      if (selectedLocation === 'Đà Nẵng' && !(loc.includes('đà nẵng') || loc.includes('huế') || loc.includes('quảng nam'))) {
+        return false;
+      }
+      if (!['TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'].includes(selectedLocation) && !loc.includes(selectedLocation.toLowerCase())) {
+        return false;
       }
     }
 
-    let matchIndustry = true;
+    // 3. Industry Filter
     if (selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực') {
-      matchIndustry = job.originalIndustry === selectedIndustry;
+      if (job.originalIndustry !== selectedIndustry && !(job.originalIndustry || '').toLowerCase().includes(selectedIndustry.toLowerCase())) {
+        return false;
+      }
     }
 
-    return matchLocation && matchIndustry;
-  }).sort((a, b) => {
-    if (activeChip === 'Hot' && (a as any).isPremium !== (b as any).isPremium) {
-      return (a as any).isPremium ? -1 : 1;
+    // 4. Salary Filter
+    if (selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương') {
+      const sal = (job.price || '').toLowerCase();
+      if (selectedSalary === 'Thỏa thuận' && !(sal.includes('thỏa thuận') || sal.includes('thương lượng'))) {
+        return false;
+      }
+      if (selectedSalary === 'Dưới 5 triệu' && !(sal.includes('3') || sal.includes('4') || sal.includes('dưới 5') || sal.includes('thỏa thuận'))) {
+        return false;
+      }
+      if (selectedSalary === '5 - 10 triệu' && !(sal.includes('5') || sal.includes('6') || sal.includes('7') || sal.includes('8') || sal.includes('9') || sal.includes('10'))) {
+        return false;
+      }
+      if (selectedSalary === '10 - 15 triệu' && !(sal.includes('10') || sal.includes('11') || sal.includes('12') || sal.includes('13') || sal.includes('14') || sal.includes('15'))) {
+        return false;
+      }
+      if (selectedSalary === '15 - 20 triệu' && !(sal.includes('15') || sal.includes('16') || sal.includes('17') || sal.includes('18') || sal.includes('19') || sal.includes('20'))) {
+        return false;
+      }
+      if (selectedSalary === 'Trên 20 triệu' && !(sal.includes('25') || sal.includes('30') || sal.includes('40') || sal.includes('trên 20'))) {
+        return false;
+      }
     }
+
+    return true;
+  }).sort((a, b) => {
     return getCreatedTime((b as any).createdAt) - getCreatedTime((a as any).createdAt);
   });
 
