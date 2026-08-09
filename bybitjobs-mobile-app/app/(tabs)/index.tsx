@@ -505,7 +505,7 @@ function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, userData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole } = useAuth();
+  const { jobs, userData, userDataExtra, employerData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole } = useAuth();
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = React.useCallback(() => {
