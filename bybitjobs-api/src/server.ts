@@ -1913,7 +1913,7 @@ app.get('/api/packages', async (req: Request, res: Response): Promise<any> => {
   try {
     const db = admin.firestore();
     const snapshot = await db.collection('packages').get();
-    let packages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let packages: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     if (!packages || packages.length === 0) {
       packages = [
