@@ -1913,7 +1913,54 @@ app.get('/api/packages', async (req: Request, res: Response): Promise<any> => {
   try {
     const db = admin.firestore();
     const snapshot = await db.collection('packages').get();
-    const packages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let packages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    if (!packages || packages.length === 0) {
+      packages = [
+        {
+          id: 'free',
+          name: 'Gói MIỄN PHÍ',
+          price: '0 VNĐ',
+          priceNum: 0,
+          period: '/ vĩnh viễn',
+          posts: '5 tin tuyển dụng',
+          cvs: '10 CV ứng viên',
+          badge: 'CƠ BẢN',
+          maxPosts: 5,
+          maxCvs: 10,
+          isPopular: false,
+          isVip: false,
+        },
+        {
+          id: 'pro',
+          name: 'Gói PRO (Phổ Biến ⭐)',
+          price: '299.000 VNĐ',
+          priceNum: 299000,
+          period: '/ 30 ngày',
+          posts: '15 tin tuyển dụng',
+          cvs: '50 CV ứng viên',
+          badge: 'BÁN CHẠY NHẤT ⭐',
+          maxPosts: 15,
+          maxCvs: 50,
+          isPopular: true,
+          isVip: false,
+        },
+        {
+          id: 'premium',
+          name: 'Gói PREMIUM (VIP 👑)',
+          price: '799.000 VNĐ',
+          priceNum: 799000,
+          period: '/ 30 ngày',
+          posts: 'Không giới hạn',
+          cvs: 'Không giới hạn CV',
+          badge: 'ĐỘC QUYỀN TOP 1 👑',
+          maxPosts: 9999,
+          maxCvs: 9999,
+          isPopular: false,
+          isVip: true,
+        },
+      ];
+    }
     return res.status(200).json(packages);
   } catch (error: any) {
     console.error('Lỗi lấy danh sách packages:', error);

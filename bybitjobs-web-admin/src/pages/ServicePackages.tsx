@@ -16,11 +16,11 @@ import { db } from '../config/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 
 const features = [
-  { name: 'Gắn nhãn "Nổi bật"', starter: false, pro: '5 bài / tháng', premium: 'Không giới hạn' },
-  { name: 'Xuất báo cáo ứng viên (PDF/CSV)', starter: false, pro: true, premium: true },
-  { name: 'Truy cập database CV', starter: false, pro: 'Giới hạn (100 CV)', premium: 'Full Access' },
-  { name: 'Hỗ trợ ưu tiên (Live Chat)', starter: false, pro: false, premium: true },
-  { name: 'API Tích hợp hệ thống ATS', starter: false, pro: false, premium: true },
+  { name: 'Số lượng tin đăng tối đa', starter: '5 tin', pro: '15 tin', premium: '🔥 Không giới hạn' },
+  { name: 'Lượt mở khóa CV & SĐT ứng viên', starter: '10 CV', pro: '50 CV', premium: '🔥 Không giới hạn CV' },
+  { name: 'Thứ tự ghim bài hiển thị', starter: 'Tiêu chuẩn', pro: '⚡ ƯU TIÊN TOP 2', premium: '👑 ĐỘC QUYỀN TOP 1' },
+  { name: 'Huy hiệu phát sáng viền bài', starter: 'Mặc định', pro: '⚡ PRO (Xanh Royal)', premium: '👑 ★ PREMIUM (Vàng Amber)' },
+  { name: 'Trợ lý AI HR (Soạn JD & Phỏng vấn)', starter: false, pro: 'Đánh giá AI CV', premium: '👑 Trợ lý AI HR Độc quyền' },
 ];
 
 export const ServicePackages: React.FC = () => {
