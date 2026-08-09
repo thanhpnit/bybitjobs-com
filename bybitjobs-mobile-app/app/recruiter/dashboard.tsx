@@ -439,6 +439,11 @@ export default function RecruiterDashboardScreen() {
 
     return true;
   }).sort((a, b) => {
+    const aIsPrem = (a as any).isPremium || (a.employerId ? isPremiumEmployer(employerData) : false);
+    const bIsPrem = (b as any).isPremium || (b.employerId ? isPremiumEmployer(employerData) : false);
+    if (aIsPrem !== bIsPrem) {
+      return aIsPrem ? -1 : 1;
+    }
     return getCreatedTime((b as any).createdAt) - getCreatedTime((a as any).createdAt);
   });
 
@@ -721,6 +726,7 @@ export default function RecruiterDashboardScreen() {
           ) : (
             filteredJobs.map((job) => {
               const isBookmarked = bookmarkedJobs.includes(job.id);
+              const isPremiumJob = (job as any).isPremium || (job.employerId ? isPremiumEmployer(employerData) : false);
               return (
                 <TouchableOpacity
                   key={job.id}
@@ -736,7 +742,20 @@ export default function RecruiterDashboardScreen() {
                       },
                     });
                   }}
-                  style={[styles.jobCard, isDark ? styles.jobCardDark : styles.jobCardLight]}
+                  style={[
+                    styles.jobCard,
+                    isDark ? styles.jobCardDark : styles.jobCardLight,
+                    isPremiumJob && {
+                      borderColor: '#F59E0B',
+                      borderWidth: 2,
+                      backgroundColor: isDark ? '#1C1917' : '#FEFDF5',
+                      elevation: 6,
+                      shadowColor: '#F59E0B',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                    }
+                  ]}
                 >
                   <View style={styles.jobCardTop}>
                     <View style={{ position: 'relative' }}>
@@ -747,14 +766,51 @@ export default function RecruiterDashboardScreen() {
                           <Ionicons name="desktop-outline" size={24} color="#FF9800" />
                         </View>
                       )}
-                      {(job as any).isPremium && (
-                        <View style={[styles.hotBadge, { top: -6, right: -6 }]}>
-                          <Text style={styles.hotBadgeText}>HOT</Text>
+                      {isPremiumJob && (
+                        <View style={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          backgroundColor: '#F59E0B',
+                          borderRadius: 10,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                          borderWidth: 1.5,
+                          borderColor: '#FFFFFF',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                          elevation: 4,
+                          shadowColor: '#F59E0B',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 4,
+                        }}>
+                          <Ionicons name="crown" size={10} color="#FFF" />
+                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PRE</Text>
                         </View>
                       )}
                     </View>
 
                     <View style={styles.jobDetails}>
+                      {isPremiumJob && (
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          backgroundColor: '#FEF3C7',
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 8,
+                          alignSelf: 'flex-start',
+                          marginBottom: 4,
+                          borderWidth: 1,
+                          borderColor: '#FDE68A',
+                        }}>
+                          <Ionicons name="sparkles" size={11} color="#D97706" />
+                          <Text style={{ color: '#B45309', fontSize: 10, fontWeight: '800' }}>👑 TIN ƯU TIÊN VIP (PRE)</Text>
+                        </View>
+                      )}
                       <View style={styles.titleRow}>
                         <Text
                           style={[styles.jobTitle, { color: isDark ? '#FFF' : '#11181C' }]}

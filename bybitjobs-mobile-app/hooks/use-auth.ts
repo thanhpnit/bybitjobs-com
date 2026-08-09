@@ -1485,10 +1485,12 @@ export function useAuth() {
         }
       }
 
+      const isEmpPremium = isPremiumEmployer(globalEmployerData);
       const jobId = `job-${Date.now()}`;
       const newJob = {
         ...job,
         id: jobId,
+        isPremium: isEmpPremium || (job as any).isPremium || false,
         createdAt: new Date().toISOString(),
         employerId: auth.currentUser?.uid || '',
         posterName: auth.currentUser?.displayName || globalEmployerData?.companyName || 'Nhà tuyển dụng',
