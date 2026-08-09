@@ -27,10 +27,10 @@ export default function RecruiterEditJobScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const { jobs, addJob, updateJob, userData, employerData } = useAuth();
 
-  const isNew = id === 'new';
+  const isNew = !id || id === 'new';
   const existingJob = jobs.find((j) => j.id === id);
   const [industryOptions, setIndustryOptions] = React.useState<string[]>(['Công nghệ thông tin', 'Khác']);
 

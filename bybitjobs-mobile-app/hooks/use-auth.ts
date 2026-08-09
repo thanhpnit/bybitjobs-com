@@ -1602,6 +1602,10 @@ export function useAuth() {
   };
 
   const updateJob = async (id: string, updatedFields: Partial<JobItem>) => {
+    if (!id || typeof id !== 'string') {
+      console.warn('Lỗi khi cập nhật việc làm: ID không hợp lệ hoặc bị thiếu (undefined).');
+      return;
+    }
     try {
       await updateDoc(doc(db, 'jobs', id), updatedFields);
     } catch (error) {
