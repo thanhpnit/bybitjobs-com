@@ -40,6 +40,37 @@ interface MarketJobItem {
 }
 
 
+function CompanyLogoAvatar({ logoUri, fallbackText, isDark }: { logoUri?: string; fallbackText?: string; isDark?: boolean }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (logoUri && String(logoUri).trim().length > 5 && !hasError) {
+    return (
+      <Image
+        source={{ uri: logoUri }}
+        style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
+        resizeMode="cover"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <View style={{
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: isDark ? '#334155' : '#E2E8F0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 6,
+    }}>
+      <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#F8FAFC' : '#475569' }}>
+        {fallbackText || 'TC'}
+      </Text>
+    </View>
+  );
+}
+
 export default function RecruiterDashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -745,33 +776,11 @@ export default function RecruiterDashboardScreen() {
                       </View>
 
                         <View style={styles.authorRow}>
-                          {(() => {
-                            const recLogo = employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar || (job as any)?.companyLogo || (job as any)?.logo;
-                            if (recLogo && String(recLogo).trim().length > 5) {
-                              return (
-                                <Image
-                                  source={{ uri: recLogo }}
-                                  style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
-                                  resizeMode="cover"
-                                />
-                              );
-                            }
-                            return (
-                              <View style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: 12,
-                                backgroundColor: isDark ? '#334155' : '#E2E8F0',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                marginRight: 6,
-                              }}>
-                                <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#F8FAFC' : '#475569' }}>
-                                  {job.author.avatar || 'TC'}
-                                </Text>
-                              </View>
-                            );
-                          })()}
+                          <CompanyLogoAvatar
+                            logoUri={(job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar) : null)}
+                            fallbackText={job.author.avatar || 'TC'}
+                            isDark={isDark}
+                          />
                           <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
                             {job.author.name}
                           </Text>

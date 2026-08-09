@@ -501,6 +501,37 @@ const checkIndustryMatch = (jobIndustry: string = '', jobTitle: string = '', sel
   return words.some((word: string) => cleanJobInd.includes(word) || cleanJobTitle.includes(word));
 };
 
+function CompanyLogoAvatar({ logoUri, fallbackText, isDark }: { logoUri?: string; fallbackText?: string; isDark?: boolean }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (logoUri && String(logoUri).trim().length > 5 && !hasError) {
+    return (
+      <Image
+        source={{ uri: logoUri }}
+        style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
+        resizeMode="cover"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <View style={{
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: isDark ? '#334155' : '#E2E8F0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 6,
+    }}>
+      <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#F8FAFC' : '#475569' }}>
+        {fallbackText || 'TC'}
+      </Text>
+    </View>
+  );
+}
+
 function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -1745,33 +1776,11 @@ function CandidateHomeScreen() {
 
                         {/* Author Info */}
                         <View style={styles.authorRow}>
-                          {(() => {
-                            const jobLogo = (job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar) : null);
-                            if (jobLogo && String(jobLogo).trim().length > 5) {
-                              return (
-                                <Image
-                                  source={{ uri: jobLogo }}
-                                  style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
-                                  resizeMode="cover"
-                                />
-                              );
-                            }
-                            return (
-                              <View style={{
-                                width: 24,
-                                height: 24,
-                                borderRadius: 12,
-                                backgroundColor: isDark ? '#334155' : '#E2E8F0',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                marginRight: 6,
-                              }}>
-                                <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#F8FAFC' : '#475569' }}>
-                                  {job.author.avatar || 'TC'}
-                                </Text>
-                              </View>
-                            );
-                          })()}
+                          <CompanyLogoAvatar
+                            logoUri={(job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar) : null)}
+                            fallbackText={job.author.avatar || 'TC'}
+                            isDark={isDark}
+                          />
                           <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
                             {job.author.name}
                           </Text>
