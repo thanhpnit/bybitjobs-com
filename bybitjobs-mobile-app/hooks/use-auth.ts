@@ -62,44 +62,78 @@ export interface UserData {
 
 export type PackageTier = 'PREMIUM' | 'PRO' | 'FREE';
 
-export const getEmployerPackageTier = (employerData: any): { tier: PackageTier; isExpired: boolean } => {
-  if (!employerData) return { tier: 'FREE', isExpired: false };
+export const getEmployerPackageTier = (employerData: any): { tier: PackageTier; isExpired: boolean; packageNameDisplay: string } => {
+  if (!employerData) return { tier: 'FREE', isExpired: false, packageNameDisplay: 'Gói Miễn phí' };
 
   // 1. Check expiration date
   const expiresAt = employerData.packageExpiresAt || employerData.expires_at || employerData.expiredAt;
   if (expiresAt) {
     const expTime = new Date(expiresAt).getTime();
     if (!isNaN(expTime) && expTime < Date.now()) {
-      return { tier: 'FREE', isExpired: true }; // Package expired -> Fallback to FREE
+      return { tier: 'FREE', isExpired: true, packageNameDisplay: 'Đã hết hạn' };
     }
   }
 
   // 2. Check explicitly cancelled or disabled status
   const pkgStatus = (employerData.packageStatus || employerData.status || '').toLowerCase();
   if (pkgStatus === 'cancelled' || pkgStatus === 'expired' || pkgStatus === 'disabled' || pkgStatus === 'hủy' || pkgStatus === 'từ chối') {
-    return { tier: 'FREE', isExpired: true };
+    return { tier: 'FREE', isExpired: true, packageNameDisplay: 'Đã bị hủy' };
   }
 
-  // 3. Match Package Tier Name
+  // 3. Match Package Tier Name cleanly
+  const rawPkgName = (
+    employerData.packageName ||
+    employerData.currentPackage ||
+    employerData.current_package ||
+    employerData.servicePackage ||
+    ''
+  ).trim();
+
   const packageText = [
-    employerData.current_package,
-    employerData.currentPackage,
-    employerData.packageName,
+    rawPkgName,
     employerData.servicePackage,
   ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
 
-  if (employerData.isPremium === true || packageText.includes('premium') || packageText.includes('diamond') || packageText.includes('vip')) {
-    return { tier: 'PREMIUM', isExpired: false };
+  // Tier 1: PREMIUM (Diamond / VIP / Premium / Kim Cương)
+  if (
+    employerData.isPremium === true ||
+    packageText.includes('premium') ||
+    packageText.includes('diamond') ||
+    packageText.includes('kim cương') ||
+    packageText.includes('vip')
+  ) {
+    return {
+      tier: 'PREMIUM',
+      isExpired: false,
+      packageNameDisplay: rawPkgName || 'Gói PREMIUM (VIP)',
+    };
   }
 
-  if (employerData.isPro === true || packageText.includes('pro') || packageText.includes('gold') || packageText.includes('silver') || packageText.includes('standard')) {
-    return { tier: 'PRO', isExpired: false };
+  // Tier 2: PRO (Gold / Pro / Standard / Silver / Vàng / Chuyên Nghiệp)
+  if (
+    employerData.isPro === true ||
+    packageText.includes('pro') ||
+    packageText.includes('gold') ||
+    packageText.includes('silver') ||
+    packageText.includes('standard') ||
+    packageText.includes('vàng')
+  ) {
+    return {
+      tier: 'PRO',
+      isExpired: false,
+      packageNameDisplay: rawPkgName || 'Gói PRO (Chuyên nghiệp)',
+    };
   }
 
-  return { tier: 'FREE', isExpired: false };
+  // Tier 3: FREE (Miễn phí / Starter / Basic)
+  return {
+    tier: 'FREE',
+    isExpired: false,
+    packageNameDisplay: rawPkgName || 'Gói Miễn phí',
+  };
 };
 
 export const isPremiumEmployer = (employerData: any) => {

@@ -730,8 +730,45 @@ export default function RecruiterDashboardScreen() {
                 </View>
               </View>
             );
+          } else {
+            return (
+              <View style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                padding: 14,
+                borderRadius: 16,
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                borderWidth: 1.5,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#A7F3D0' }}>
+                      <Ionicons name="leaf-outline" size={22} color="#059669" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>
+                          🌱 {tierInfo.packageNameDisplay || 'Gói Miễn Phí (Basic)'}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280', marginTop: 3 }}>
+                        Đăng bài tối đa 2 tin. Nâng cấp gói để kích hoạt Nhãn Ưu Tiên & Đẩy Bài Lên TOP!
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/recruiter/pricing')}
+                    style={{ backgroundColor: '#0084FF', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>Nâng cấp ngay</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
           }
-          return null;
         })()}
 
         {/* Recruiter AI HR Core Assistant Card */}
