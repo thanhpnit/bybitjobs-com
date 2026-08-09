@@ -27,7 +27,7 @@ export default function RecruiterCvDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { appId } = useLocalSearchParams<{ appId: string }>();
+  const { appId, candidateId } = useLocalSearchParams<{ appId?: string; candidateId?: string }>();
   const { applications, candidates, updateApplicationStatus, employerData } = useAuth();
   const [isCVPreviewVisible, setIsCVPreviewVisible] = React.useState(false);
 
@@ -42,10 +42,28 @@ export default function RecruiterCvDetailsScreen() {
   const [matchSummary, setMatchSummary] = React.useState<string | null>(null);
   const [isLoadingMatch, setIsLoadingMatch] = React.useState(false);
 
-  const application = applications.find((a) => a.id === appId);
-  const candidate = candidates.find((c) => c.id === application?.candidateId);
+  let application = applications.find((a) => a.id === appId);
+  let candidate = candidates.find((c) => c.id === (candidateId || application?.candidateId));
 
-  if (!application) {
+  if (!application && candidate) {
+    application = {
+      id: `headhunt_${candidate.id}`,
+      candidateId: candidate.id,
+      jobId: 'headhunt',
+      jobTitle: candidate.desiredJob || candidate.role || 'Ứng viên tiềm năng',
+      companyName: employerData?.companyName || 'Doanh nghiệp tuyển dụng',
+      applicantName: candidate.name,
+      applicantEmail: candidate.email || 'Chưa cập nhật email',
+      applicantPhone: candidate.phone || 'Chưa cập nhật số điện thoại',
+      cvName: candidate.cvName || `CV_${candidate.name.replace(/\s+/g, '_')}.pdf`,
+      cvUrl: candidate.cvUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      appliedAt: new Date().toISOString(),
+      status: 'Pending',
+      message: candidate.introduction || `Ứng viên ${candidate.name} có ${candidate.yearsOfExp || 1} năm kinh nghiệm vị trí ${candidate.role}.`,
+    } as any;
+  }
+
+  if (!application && !candidate) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
         <View style={styles.headerBar}>
@@ -398,22 +416,14 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
           
           <TouchableOpacity 
             activeOpacity={0.7}
-            onPress={() => {
-              if (candidateEmail && candidateEmail !== 'Chưa cập nhật email') {
-                Linking.openURL(`mailto:${candidateEmail}?subject=${encodeURIComponent(`Thư mời phỏng vấn - Vị trí ${candidateRole}`)}`).catch(() => {
-                  Alert.alert('Thông báo', 'Không thể mở ứng dụng Email trên thiết bị của bạn.');
-                });
-              } else {
-                Alert.alert('Thông báo', 'Ứng viên chưa cập nhật địa chỉ Email.');
-              }
-            }}
+            onPress={handleOpenEmailModal}
             style={styles.contactRow}
           >
-            <Ionicons name="mail-outline" size={16} color="#0084FF" style={styles.contactIcon} />
-            <Text style={[styles.contactValueText, { color: '#0084FF', textDecorationLine: 'underline', fontWeight: '600' }]}>{candidateEmail}</Text>
-            <View style={{ backgroundColor: '#E6F4FE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="paper-plane" size={12} color="#0084FF" />
-              <Text style={{ color: '#0084FF', fontSize: 11, fontWeight: '700' }}>Gửi Email</Text>
+            <Ionicons name="mail-outline" size={16} color="#2563EB" style={styles.contactIcon} />
+            <Text style={[styles.contactValueText, { color: '#2563EB', textDecorationLine: 'underline', fontWeight: '600' }]}>{candidateEmail}</Text>
+            <View style={{ backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#BFDBFE' }}>
+              <Ionicons name="paper-plane" size={12} color="#2563EB" />
+              <Text style={{ color: '#2563EB', fontSize: 11, fontWeight: '700' }}>Gửi Email</Text>
             </View>
           </TouchableOpacity>
 

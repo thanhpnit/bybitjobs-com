@@ -179,8 +179,13 @@ export default function RecruiterSearchCandidatesScreen() {
           </View>
         ) : (
           filteredCandidates.map((candidate) => (
-            <View
+            <TouchableOpacity
               key={candidate.id}
+              activeOpacity={0.88}
+              onPress={() => router.push({
+                pathname: '/recruiter/cv-details',
+                params: { candidateId: candidate.id }
+              })}
               style={[
                 styles.candidateSearchCard,
                 {
@@ -313,7 +318,7 @@ export default function RecruiterSearchCandidatesScreen() {
                 </TouchableOpacity>
               </View>
 
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
