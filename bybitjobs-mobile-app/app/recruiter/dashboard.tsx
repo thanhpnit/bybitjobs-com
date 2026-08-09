@@ -993,48 +993,48 @@ export default function RecruiterDashboardScreen() {
                       {isPremiumJob ? (
                         <View style={{
                           position: 'absolute',
-                          top: -8,
-                          right: -8,
+                          top: -4,
+                          right: -4,
                           backgroundColor: '#F59E0B',
                           borderRadius: 10,
-                          paddingHorizontal: 7,
-                          paddingVertical: 2,
+                          paddingHorizontal: 6,
+                          paddingVertical: 1.5,
                           borderWidth: 1.5,
                           borderColor: '#FFFFFF',
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 3,
+                          gap: 2,
                           elevation: 4,
                           shadowColor: '#F59E0B',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.4,
                           shadowRadius: 4,
                         }}>
-                          <Ionicons name="star" size={10} color="#FFF" />
-                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PREMIUM</Text>
+                          <Ionicons name="star" size={9} color="#FFF" />
+                          <Text style={{ color: '#FFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.3 }}>PREMIUM</Text>
                         </View>
                       ) : isProJob ? (
                         <View style={{
                           position: 'absolute',
-                          top: -8,
-                          right: -8,
+                          top: -4,
+                          right: -4,
                           backgroundColor: '#2563EB',
                           borderRadius: 10,
-                          paddingHorizontal: 7,
-                          paddingVertical: 2,
+                          paddingHorizontal: 6,
+                          paddingVertical: 1.5,
                           borderWidth: 1.5,
                           borderColor: '#FFFFFF',
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 3,
+                          gap: 2,
                           elevation: 4,
                           shadowColor: '#2563EB',
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.4,
                           shadowRadius: 4,
                         }}>
-                          <Ionicons name="flash" size={10} color="#FFF" />
-                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PRO</Text>
+                          <Ionicons name="flash" size={9} color="#FFF" />
+                          <Text style={{ color: '#FFF', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.3 }}>PRO</Text>
                         </View>
                       ) : null}
                     </View>
