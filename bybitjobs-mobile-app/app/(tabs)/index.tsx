@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -1187,22 +1188,16 @@ function CandidateHomeScreen() {
 
 
   return (
-    <View style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
-      {/* Background Header */}
-      <View style={styles.gradientHeaderBg} />
-
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F172A" />
-          }
-        >
+    <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8FAFC' }]}>
+      {/* Sticky Blue Header fixed at the top */}
+      <SafeAreaView style={{ backgroundColor: '#2563EB' }} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+        <View style={styles.heroBlueBanner}>
           {/* Top Bar Header */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftGroup}>
               <Text style={styles.brandTitle}>BybitJobs</Text>
+              <Text style={styles.brandSubtitle}>Tìm việc làm nhanh chóng</Text>
             </View>
 
             <View style={styles.headerRightGroup}>
@@ -1211,7 +1206,7 @@ function CandidateHomeScreen() {
                 onPress={() => setIsSearchModalVisible(true)}
                 style={styles.iconButton}
               >
-                <Ionicons name="search-outline" size={22} color="#0F172A" />
+                <Ionicons name="search" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -1233,7 +1228,7 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="briefcase-outline"
                 size={15}
-                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#0084FF' : '#475569'}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#2563EB' : '#FFFFFF'}
               />
               <Text
                 style={[
@@ -1246,7 +1241,7 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="chevron-down"
                 size={12}
-                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#0084FF' : '#475569'}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#2563EB' : '#FFFFFF'}
               />
             </TouchableOpacity>
 
@@ -1261,7 +1256,7 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="location-outline"
                 size={15}
-                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#0084FF' : '#475569'}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#2563EB' : '#FFFFFF'}
               />
               <Text
                 style={[
@@ -1274,7 +1269,7 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="chevron-down"
                 size={12}
-                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#0084FF' : '#475569'}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#2563EB' : '#FFFFFF'}
               />
             </TouchableOpacity>
 
@@ -1289,7 +1284,7 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="cash-outline"
                 size={15}
-                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#0084FF' : '#475569'}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#2563EB' : '#FFFFFF'}
               />
               <Text
                 style={[
@@ -1302,10 +1297,21 @@ function CandidateHomeScreen() {
               <Ionicons
                 name="chevron-down"
                 size={12}
-                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#0084FF' : '#475569'}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#2563EB' : '#FFFFFF'}
               />
             </TouchableOpacity>
           </ScrollView>
+        </View>
+      </SafeAreaView>
+
+      {/* Main Body ScrollView */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
+        }
+      >
 
           {/* AI Advisor Banner */}
           <TouchableOpacity
@@ -1739,11 +1745,25 @@ function CandidateHomeScreen() {
 
                         {/* Author Info */}
                         <View style={styles.authorRow}>
-                          <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
-                            <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
-                              {job.author.avatar}
-                            </Text>
-                          </View>
+                          {(() => {
+                            const jobLogo = (job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar) : null);
+                            if (jobLogo && String(jobLogo).trim().length > 5) {
+                              return (
+                                <Image
+                                  source={{ uri: jobLogo }}
+                                  style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
+                                  resizeMode="cover"
+                                />
+                              );
+                            }
+                            return (
+                              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
+                                <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
+                                  {job.author.avatar}
+                                </Text>
+                              </View>
+                            );
+                          })()}
                           <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
                             {job.author.name}
                           </Text>
@@ -1830,7 +1850,6 @@ function CandidateHomeScreen() {
           {/* Safe padding bottom for scrolling */}
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
-      </SafeAreaView>
 
       {/* Company Details Modal */}
       <Modal
@@ -2624,15 +2643,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  gradientHeaderBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: Platform.OS === 'ios' ? 130 : 110,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+  heroBlueBanner: {
+    backgroundColor: '#2563EB',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 12,
+    marginBottom: 4,
   },
   safeArea: {
     flex: 1,
@@ -2646,27 +2662,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 8 : 12,
-    height: 54,
+    height: 58,
   },
   headerLeftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
   },
   brandTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
     letterSpacing: -0.5,
+  },
+  brandSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#E0F2FE',
+    marginTop: 1,
   },
   headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2687,7 +2709,7 @@ const styles = StyleSheet.create({
   },
   selectorsScrollContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2695,25 +2717,25 @@ const styles = StyleSheet.create({
   selectorDropdownPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 20,
     height: 38,
     paddingHorizontal: 14,
     gap: 6,
   },
   selectorDropdownPillActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#0084FF',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
   selectorTextPill: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
   },
   selectorTextPillActive: {
-    color: '#0084FF',
+    color: '#2563EB',
     fontWeight: '700',
   },
   overlapCard: {
@@ -2827,8 +2849,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chipItemActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   chipItemInactive: {
     backgroundColor: '#FFFFFF',

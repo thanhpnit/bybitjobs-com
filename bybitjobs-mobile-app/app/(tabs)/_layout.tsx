@@ -24,7 +24,7 @@ export default function TabLayout() {
       key={userRole || 'guest'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#0F172A',
+        tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
           height: tabBarHeight,
@@ -88,7 +88,7 @@ export default function TabLayout() {
                       style={[
                         styles.fabTabButton,
                         {
-                          backgroundColor: '#0F172A',
+                          backgroundColor: '#2563EB',
                           borderColor: '#FFFFFF',
                         }
                       ]}

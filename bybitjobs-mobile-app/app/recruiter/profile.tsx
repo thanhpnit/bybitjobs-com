@@ -64,6 +64,7 @@ export default function RecruiterProfileScreen() {
   const [industry, setIndustry] = React.useState(employerData?.industry || 'Sản xuất / Vận tải');
   
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
+  const [isScaleModalVisible, setIsScaleModalVisible] = React.useState(false);
   const [industryOptions, setIndustryOptions] = React.useState<string[]>(['Công nghệ thông tin', 'Khác']);
 
   React.useEffect(() => {
@@ -160,17 +161,7 @@ export default function RecruiterProfileScreen() {
   };
 
   const handleSelectScale = () => {
-    Alert.alert(
-      'Chọn Quy mô',
-      'Chọn quy mô nhân sự của công ty:',
-      [
-        { text: 'Dưới 10 nhân viên', onPress: () => setScale('Dưới 10 nhân viên') },
-        { text: '10-50 nhân viên', onPress: () => setScale('10-50 nhân viên') },
-        { text: '51-200 nhân viên', onPress: () => setScale('51-200 nhân viên') },
-        { text: '201-500 nhân viên', onPress: () => setScale('201-500 nhân viên') },
-        { text: 'Trên 500 nhân viên', onPress: () => setScale('Trên 500 nhân viên') },
-      ]
-    );
+    setIsScaleModalVisible(true);
   };
 
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
@@ -971,6 +962,83 @@ export default function RecruiterProfileScreen() {
                       </Text>
                       {checked && (
                         <Ionicons name="checkmark-circle" size={24} color="#0084FF" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Chọn Quy Mô Nhân Sự */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isScaleModalVisible}
+          onRequestClose={() => setIsScaleModalVisible(false)}
+        >
+          <View style={styles.bottomSheetOverlay}>
+            <View style={[styles.industrySheet, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.industrySheetHeader}>
+                <View style={styles.industrySheetTitleWrap}>
+                  <Text style={[styles.industrySheetTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    Chọn quy mô công ty
+                  </Text>
+                  <Text style={styles.industrySheetSubtitle}>
+                    Chọn số lượng nhân sự hiện tại của doanh nghiệp.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setIsScaleModalVisible(false)}
+                  style={[styles.sheetCloseBtn, { backgroundColor: isDark ? '#2C2C2E' : '#F2F4F7' }]}
+                >
+                  <Ionicons name="close" size={20} color={isDark ? '#FFF' : '#11181C'} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.industryOptionsContent}>
+                {[
+                  { label: 'Dưới 10 nhân viên', desc: 'Doanh nghiệp nhỏ / Startup mới thành lập' },
+                  { label: '10-50 nhân viên', desc: 'Doanh nghiệp vừa và nhỏ (SME)' },
+                  { label: '51-200 nhân viên', desc: 'Doanh nghiệp quy mô phát triển lớn' },
+                  { label: '201-500 nhân viên', desc: 'Công ty tầm trung nhiều chi nhánh' },
+                  { label: 'Trên 500 nhân viên', desc: 'Tập đoàn đa quốc gia / Tổng công ty' },
+                ].map((item) => {
+                  const checked = scale === item.label;
+                  return (
+                    <TouchableOpacity
+                      key={item.label}
+                      activeOpacity={0.75}
+                      onPress={() => {
+                        setScale(item.label);
+                        setIsScaleModalVisible(false);
+                      }}
+                      style={[
+                        styles.industryOption,
+                        {
+                          backgroundColor: checked
+                            ? (isDark ? '#0B2C4D' : '#EFF6FF')
+                            : (isDark ? '#151718' : '#F8FAFC'),
+                          borderColor: checked ? '#2563EB' : (isDark ? '#2C2C2E' : '#E5E7EB'),
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.industryOptionText,
+                            { color: checked ? '#2563EB' : (isDark ? '#FFF' : '#11181C'), fontWeight: '700' },
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{item.desc}</Text>
+                      </View>
+                      {checked && (
+                        <Ionicons name="checkmark-circle" size={24} color="#2563EB" />
                       )}
                     </TouchableOpacity>
                   );

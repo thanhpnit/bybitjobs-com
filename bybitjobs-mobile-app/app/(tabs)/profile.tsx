@@ -126,6 +126,9 @@ function CandidateProfileScreen() {
 
   // AI Extracted CV Summary Modal State
   const [isAISummaryModalVisible, setIsAISummaryModalVisible] = React.useState(false);
+  const [isAISuggestionModalVisible, setIsAISuggestionModalVisible] = React.useState(false);
+  const [aiSuggestedJobTitle, setAiSuggestedJobTitle] = React.useState('');
+  const [aiCvFileName, setAiCvFileName] = React.useState('');
   const [aiSummaryData, setAiSummaryData] = React.useState<{
     jobTitle?: string;
     skills?: string[];
@@ -395,23 +398,9 @@ function CandidateProfileScreen() {
       const data = await res.json();
       if (res.ok && data.suggestedJob) {
         const suggested = data.suggestedJob;
-        Alert.alert(
-          '✨ AI Gợi Ý Vị Trí Việc Làm',
-          `Dựa trên nội dung CV "${cvFile.fileName}", AI gợi ý vị trí chuyên môn phù hợp cho bạn là:\n\n🎯 "${suggested}"\n\nBạn có muốn cập nhật vị trí này vào Hồ sơ không?`,
-          [
-            { text: 'Bỏ qua', style: 'cancel' },
-            {
-              text: '✓ Cập nhật ngay',
-              onPress: async () => {
-                setEditJobInput(suggested);
-                if (updateDesiredJob) {
-                  await updateDesiredJob(suggested);
-                  Alert.alert('Thành công', `Đã cập nhật vị trí mong muốn thành "${suggested}"!`);
-                }
-              }
-            }
-          ]
-        );
+        setAiSuggestedJobTitle(suggested);
+        setAiCvFileName(cvFile.fileName || 'cv.pdf');
+        setIsAISuggestionModalVisible(true);
       } else {
         Alert.alert('Thông báo', 'Không thể bóc tách tên công việc từ tệp CV này.');
       }
@@ -2702,6 +2691,75 @@ function CandidateProfileScreen() {
                 <Text style={{ color: '#FFF', fontSize: 15, fontWeight: 'bold' }}>Xác nhận đổi mật khẩu</Text>
               )}
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom AI Position Suggestion Modal */}
+      <Modal
+        visible={isAISuggestionModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsAISuggestionModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: '100%', maxWidth: 360, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 24, padding: 24, elevation: 16, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16 }}>
+            
+            {/* Header Icon Circle */}
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#DBEAFE' }}>
+              <Ionicons name="sparkles" size={28} color="#2563EB" />
+            </View>
+
+            {/* Header Title */}
+            <Text style={{ fontSize: 19, fontWeight: '800', color: isDark ? '#FFF' : '#0F172A', textAlign: 'center', marginBottom: 6 }}>
+              AI Gợi Ý Vị Trí Việc Làm
+            </Text>
+            
+            {/* File Name Pill */}
+            <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
+                📄 Từ tệp CV "{aiCvFileName}"
+              </Text>
+            </View>
+
+            {/* Position Recommendation Card */}
+            <View style={{ backgroundColor: isDark ? '#151718' : '#EFF6FF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, color: '#2563EB', fontWeight: '600', marginBottom: 4 }}>
+                Vị trí chuyên môn đề xuất:
+              </Text>
+              <Text style={{ fontSize: 17, fontWeight: '800', color: '#1E40AF', letterSpacing: -0.3 }}>
+                🎯 "{aiSuggestedJobTitle}"
+              </Text>
+            </View>
+
+            <Text style={{ fontSize: 13, color: isDark ? '#AAA' : '#64748B', textAlign: 'center', marginBottom: 20, lineHeight: 18 }}>
+              Bạn có muốn tự động cập nhật vị trí mong muốn này vào Hồ sơ không?
+            </Text>
+
+            {/* CTA Buttons */}
+            <View style={{ gap: 10 }}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={async () => {
+                  setIsAISuggestionModalVisible(false);
+                  if (aiSuggestedJobTitle && updateDesiredJob) {
+                    await updateDesiredJob(aiSuggestedJobTitle);
+                    Alert.alert('Thành công', `Đã cập nhật vị trí mong muốn thành "${aiSuggestedJobTitle}"!`);
+                  }
+                }}
+                style={{ height: 48, borderRadius: 14, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+              >
+                <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 15 }}>✓ Cập nhật vào Hồ sơ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsAISuggestionModalVisible(false)}
+                style={{ height: 44, borderRadius: 12, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#64748B', fontWeight: '700', fontSize: 14 }}>Bỏ qua</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

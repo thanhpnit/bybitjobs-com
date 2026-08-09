@@ -744,15 +744,29 @@ export default function RecruiterDashboardScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      <View style={styles.authorRow}>
-                        <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
-                          <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
-                            {job.author.avatar}
+                        <View style={styles.authorRow}>
+                          {(() => {
+                            const recLogo = employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar || (job as any)?.companyLogo || (job as any)?.logo;
+                            if (recLogo && String(recLogo).trim().length > 5) {
+                              return (
+                                <Image
+                                  source={{ uri: recLogo }}
+                                  style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6 }}
+                                  resizeMode="cover"
+                                />
+                              );
+                            }
+                            return (
+                              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
+                                <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
+                                  {job.author.avatar}
+                                </Text>
+                              </View>
+                            );
+                          })()}
+                          <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
+                            {job.author.name}
                           </Text>
-                        </View>
-                        <Text style={[styles.authorName, { color: isDark ? '#ECEDEE' : '#333' }]}>
-                          {job.author.name}
-                        </Text>
                         {job.author.verified && (
                           <Ionicons
                             name="checkmark-circle"

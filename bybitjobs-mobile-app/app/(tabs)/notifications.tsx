@@ -45,13 +45,13 @@ export default function NotificationsScreen() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'job':
-        return { name: 'briefcase', color: '#0F172A', bg: '#F1F5F9' };
+        return { name: 'briefcase', color: '#2563EB', bg: '#EFF6FF' };
       case 'security':
         return { name: 'shield-checkmark', color: '#10B981', bg: '#ECFDF5' };
       case 'community':
         return { name: 'people', color: '#EC4899', bg: '#FDF2F8' };
       default:
-        return { name: 'notifications', color: '#F59E0B', bg: '#FEF3C7' };
+        return { name: 'notifications', color: '#2563EB', bg: '#EFF6FF' };
     }
   };
 
@@ -255,6 +255,42 @@ export default function NotificationsScreen() {
                       </Text>
                     </ScrollView>
 
+                    {/* Action Button to view job details */}
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        const targetJobId = selectedNotification.jobId || selectedNotification.targetId || 'job-1';
+                        const targetTitle = selectedNotification.jobTitle || selectedNotification.title;
+                        setSelectedNotification(null);
+                        router.push({
+                          pathname: '/job-details',
+                          params: {
+                            jobId: targetJobId,
+                            title: targetTitle,
+                          },
+                        });
+                      }}
+                      style={{
+                        backgroundColor: '#2563EB',
+                        borderRadius: 12,
+                        height: 46,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginTop: 12,
+                        marginBottom: 8,
+                        flexDirection: 'row',
+                        gap: 6,
+                        elevation: 3,
+                        shadowColor: '#2563EB',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 4,
+                      }}
+                    >
+                      <Ionicons name="briefcase-outline" size={18} color="#FFF" />
+                      <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>Xem chi tiết công việc</Text>
+                    </TouchableOpacity>
+
                     {/* Footer Close Button */}
                     <TouchableOpacity
                       activeOpacity={0.8}
@@ -343,7 +379,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   segmentTextActive: {
-    color: '#0F172A',
+    color: '#2563EB',
     fontWeight: '700',
   },
   segmentTextInactive: {
@@ -373,7 +409,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',
     borderLeftWidth: 4,
-    borderLeftColor: '#0F172A',
+    borderLeftColor: '#2563EB',
   },
   readCard: {
     backgroundColor: '#FFFFFF',
@@ -419,7 +455,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#2563EB',
     marginLeft: 8,
   },
   cardDesc: {
@@ -447,7 +483,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -466,7 +502,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   loginButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#2563EB',
     height: 46,
     borderRadius: 12,
     justifyContent: 'center',
@@ -474,9 +510,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     width: '100%',
-    shadowColor: '#0F172A',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3,
   },

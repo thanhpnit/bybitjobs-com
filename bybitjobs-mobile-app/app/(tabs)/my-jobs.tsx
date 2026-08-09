@@ -190,8 +190,21 @@ function CandidateMyJobsScreen() {
             candidateApps.map((app) => {
               const statusStyle = getStatusColor(app.status);
               return (
-                <View
+                <TouchableOpacity
                   key={app.id}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/job-details',
+                      params: {
+                        jobId: app.jobId || app.id,
+                        title: app.jobTitle,
+                        companyName: app.companyName,
+                        salary: app.jobSalary,
+                        location: app.jobLocation,
+                      },
+                    });
+                  }}
                   style={[styles.card, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}
                 >
                   <View style={styles.cardHeader}>
@@ -225,7 +238,7 @@ function CandidateMyJobsScreen() {
                       <Text style={styles.cvText} numberOfLines={1}>📄 {app.cvName}</Text>
                     )}
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )
@@ -389,14 +402,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabButtonActive: {
-    borderBottomColor: '#0F172A',
+    borderBottomColor: '#2563EB',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#0F172A',
+    color: '#2563EB',
     fontWeight: '700',
   },
   scrollContent: {
@@ -504,8 +517,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   acceptBtn: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   acceptBtnText: {
     color: '#FFF',
@@ -542,7 +555,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   loginButton: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#2563EB',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
