@@ -1100,8 +1100,15 @@ function CandidateHomeScreen() {
 
       return matchLocation && matchIndustry && matchSalary && matchCategory;
     }).sort((a, b) => {
-      if (a.isPremium !== b.isPremium) {
-        return a.isPremium ? -1 : 1;
+      const getRank = (item: any) => {
+        if (item.isPremium || item.packageTier === 'PREMIUM') return 3;
+        if (item.isPro || item.packageTier === 'PRO') return 2;
+        return 1;
+      };
+      const rankA = getRank(a);
+      const rankB = getRank(b);
+      if (rankA !== rankB) {
+        return rankB - rankA;
       }
       return getCreatedTime(b.createdAt) - getCreatedTime(a.createdAt);
     });
@@ -1727,7 +1734,8 @@ function CandidateHomeScreen() {
             ) : (
               filteredJobs.map((job) => {
                 const isBookmarked = bookmarkedJobs.includes(job.id);
-                const isPremiumJob = job.isPremium;
+                const isPremiumJob = job.isPremium || (job as any).packageTier === 'PREMIUM';
+                const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO');
                 return (
                   <TouchableOpacity
                     key={job.id}
@@ -1745,6 +1753,16 @@ function CandidateHomeScreen() {
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.25,
                         shadowRadius: 8,
+                      },
+                      isProJob && {
+                        borderColor: '#2563EB',
+                        borderWidth: 1.5,
+                        backgroundColor: isDark ? '#171E2E' : '#F0F7FF',
+                        elevation: 4,
+                        shadowColor: '#2563EB',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.15,
+                        shadowRadius: 6,
                       }
                     ]}
                   >
@@ -1759,7 +1777,7 @@ function CandidateHomeScreen() {
                             <Ionicons name="desktop-outline" size={24} color="#FF9800" />
                           </View>
                         )}
-                        {isPremiumJob && (
+                        {isPremiumJob ? (
                           <View style={{
                             position: 'absolute',
                             top: -8,
@@ -1782,12 +1800,35 @@ function CandidateHomeScreen() {
                             <Ionicons name="star" size={10} color="#FFF" />
                             <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PREMIUM</Text>
                           </View>
-                        )}
+                        ) : isProJob ? (
+                          <View style={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            backgroundColor: '#2563EB',
+                            borderRadius: 10,
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderWidth: 1.5,
+                            borderColor: '#FFFFFF',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 3,
+                            elevation: 4,
+                            shadowColor: '#2563EB',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 4,
+                          }}>
+                            <Ionicons name="flash" size={10} color="#FFF" />
+                            <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PRO</Text>
+                          </View>
+                        ) : null}
                       </View>
 
                       {/* Job Main Details */}
                       <View style={styles.jobDetails}>
-                        {isPremiumJob && (
+                        {isPremiumJob ? (
                           <View style={{
                             flexDirection: 'row',
                             alignItems: 'center',
@@ -1804,7 +1845,24 @@ function CandidateHomeScreen() {
                             <Ionicons name="sparkles" size={11} color="#D97706" />
                             <Text style={{ color: '#B45309', fontSize: 10, fontWeight: '800' }}>TIN ƯU TIÊN PREMIUM</Text>
                           </View>
-                        )}
+                        ) : isProJob ? (
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            backgroundColor: '#DBEAFE',
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 8,
+                            alignSelf: 'flex-start',
+                            marginBottom: 4,
+                            borderWidth: 1,
+                            borderColor: '#BFDBFE',
+                          }}>
+                            <Ionicons name="flash" size={11} color="#1D4ED8" />
+                            <Text style={{ color: '#1E40AF', fontSize: 10, fontWeight: '800' }}>TIN ƯU TIÊN PRO</Text>
+                          </View>
+                        ) : null}
                         <View style={styles.titleRow}>
                           <Text
                             style={[styles.jobTitle, { color: isDark ? '#FFF' : '#11181C' }]}

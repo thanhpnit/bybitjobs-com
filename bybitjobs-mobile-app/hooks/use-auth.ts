@@ -60,6 +60,56 @@ export interface UserData {
   avatar?: string;
 }
 
+export type PackageTier = 'PREMIUM' | 'PRO' | 'FREE';
+
+export const getEmployerPackageTier = (employerData: any): { tier: PackageTier; isExpired: boolean } => {
+  if (!employerData) return { tier: 'FREE', isExpired: false };
+
+  // 1. Check expiration date
+  const expiresAt = employerData.packageExpiresAt || employerData.expires_at || employerData.expiredAt;
+  if (expiresAt) {
+    const expTime = new Date(expiresAt).getTime();
+    if (!isNaN(expTime) && expTime < Date.now()) {
+      return { tier: 'FREE', isExpired: true }; // Package expired -> Fallback to FREE
+    }
+  }
+
+  // 2. Check explicitly cancelled or disabled status
+  const pkgStatus = (employerData.packageStatus || employerData.status || '').toLowerCase();
+  if (pkgStatus === 'cancelled' || pkgStatus === 'expired' || pkgStatus === 'disabled' || pkgStatus === 'hủy' || pkgStatus === 'từ chối') {
+    return { tier: 'FREE', isExpired: true };
+  }
+
+  // 3. Match Package Tier Name
+  const packageText = [
+    employerData.current_package,
+    employerData.currentPackage,
+    employerData.packageName,
+    employerData.servicePackage,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (employerData.isPremium === true || packageText.includes('premium') || packageText.includes('diamond') || packageText.includes('vip')) {
+    return { tier: 'PREMIUM', isExpired: false };
+  }
+
+  if (employerData.isPro === true || packageText.includes('pro') || packageText.includes('gold') || packageText.includes('silver') || packageText.includes('standard')) {
+    return { tier: 'PRO', isExpired: false };
+  }
+
+  return { tier: 'FREE', isExpired: false };
+};
+
+export const isPremiumEmployer = (employerData: any) => {
+  return getEmployerPackageTier(employerData).tier === 'PREMIUM';
+};
+
+export const isProEmployer = (employerData: any) => {
+  return getEmployerPackageTier(employerData).tier === 'PRO';
+};
+
 export interface JobItem {
   id: string;
   title: string;
@@ -81,6 +131,9 @@ export interface JobItem {
   authorName?: string;
   posterEmail?: string;
   status?: 'Chờ duyệt' | 'Hoạt động' | 'Bị từ chối';
+  packageTier?: PackageTier;
+  isPremium?: boolean;
+  isPro?: boolean;
 }
 
 export interface CandidateItem {
@@ -1485,12 +1538,14 @@ export function useAuth() {
         }
       }
 
-      const isEmpPremium = isPremiumEmployer(globalEmployerData);
+      const tierInfo = getEmployerPackageTier(globalEmployerData);
       const jobId = `job-${Date.now()}`;
       const newJob = {
         ...job,
         id: jobId,
-        isPremium: isEmpPremium || (job as any).isPremium || false,
+        packageTier: tierInfo.tier,
+        isPremium: tierInfo.tier === 'PREMIUM',
+        isPro: tierInfo.tier === 'PRO',
         createdAt: new Date().toISOString(),
         employerId: auth.currentUser?.uid || '',
         posterName: auth.currentUser?.displayName || globalEmployerData?.companyName || 'Nhà tuyển dụng',

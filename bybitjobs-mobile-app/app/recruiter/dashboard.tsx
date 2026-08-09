@@ -439,10 +439,15 @@ export default function RecruiterDashboardScreen() {
 
     return true;
   }).sort((a, b) => {
-    const aIsPrem = (a as any).isPremium || (a.employerId ? isPremiumEmployer(employerData) : false);
-    const bIsPrem = (b as any).isPremium || (b.employerId ? isPremiumEmployer(employerData) : false);
-    if (aIsPrem !== bIsPrem) {
-      return aIsPrem ? -1 : 1;
+    const getRank = (item: any) => {
+      if (item.isPremium || (item.employerId ? isPremiumEmployer(employerData) : false)) return 3;
+      if (item.isPro || item.packageTier === 'PRO' || (item.employerId ? isProEmployer(employerData) : false)) return 2;
+      return 1;
+    };
+    const rankA = getRank(a);
+    const rankB = getRank(b);
+    if (rankA !== rankB) {
+      return rankB - rankA;
     }
     return getCreatedTime((b as any).createdAt) - getCreatedTime((a as any).createdAt);
   });
@@ -557,6 +562,99 @@ export default function RecruiterDashboardScreen() {
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
+
+        {/* Dynamic Package Status Alert Banner */}
+        {(() => {
+          const tierInfo = getEmployerPackageTier(employerData);
+          if (tierInfo.isExpired) {
+            return (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push('/recruiter/pricing')}
+                style={{
+                  marginHorizontal: 16,
+                  marginTop: 12,
+                  padding: 12,
+                  borderRadius: 14,
+                  backgroundColor: '#FEF2F2',
+                  borderColor: '#FCA5A5',
+                  borderWidth: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <Ionicons name="warning-outline" size={20} color="#DC2626" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#991B1B' }}>
+                      ⚠️ Gói dịch vụ đã hết hạn hoặc bị hủy!
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#B91C1C', marginTop: 2 }}>
+                      Các tin tuyển dụng hiện ở chế độ Miễn phí. Gia hạn ngay để bật lại nhãn Ưu tiên TOP!
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: '#DC2626', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Gia hạn</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          } else if (tierInfo.tier === 'PREMIUM') {
+            return (
+              <View style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                backgroundColor: '#FEF3C7',
+                borderColor: '#FDE68A',
+                borderWidth: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="star" size={16} color="#D97706" />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#B45309' }}>
+                    👑 Gói Hiện Tại: PREMIUM (Đang bật ưu tiên TOP 1)
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/recruiter/pricing')}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#D97706', textDecorationLine: 'underline' }}>Nâng gói</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          } else if (tierInfo.tier === 'PRO') {
+            return (
+              <View style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 14,
+                backgroundColor: '#DBEAFE',
+                borderColor: '#BFDBFE',
+                borderWidth: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="flash" size={16} color="#1D4ED8" />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#1E40AF' }}>
+                    ⚡ Gói Hiện Tại: PRO (Đang bật ưu tiên TOP 2)
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/recruiter/pricing')}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#1D4ED8', textDecorationLine: 'underline' }}>Lên Premium</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          return null;
+        })()}
 
         {/* Recruiter AI HR Core Assistant Card */}
         <TouchableOpacity
@@ -727,6 +825,7 @@ export default function RecruiterDashboardScreen() {
             filteredJobs.map((job) => {
               const isBookmarked = bookmarkedJobs.includes(job.id);
               const isPremiumJob = (job as any).isPremium || (job.employerId ? isPremiumEmployer(employerData) : false);
+              const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO' || (job.employerId ? isProEmployer(employerData) : false));
               return (
                 <TouchableOpacity
                   key={job.id}
@@ -754,6 +853,16 @@ export default function RecruiterDashboardScreen() {
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.25,
                       shadowRadius: 8,
+                    },
+                    isProJob && {
+                      borderColor: '#2563EB',
+                      borderWidth: 1.5,
+                      backgroundColor: isDark ? '#171E2E' : '#F0F7FF',
+                      elevation: 4,
+                      shadowColor: '#2563EB',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 6,
                     }
                   ]}
                 >
@@ -766,7 +875,7 @@ export default function RecruiterDashboardScreen() {
                           <Ionicons name="desktop-outline" size={24} color="#FF9800" />
                         </View>
                       )}
-                      {isPremiumJob && (
+                      {isPremiumJob ? (
                         <View style={{
                           position: 'absolute',
                           top: -8,
@@ -789,11 +898,34 @@ export default function RecruiterDashboardScreen() {
                           <Ionicons name="star" size={10} color="#FFF" />
                           <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PREMIUM</Text>
                         </View>
-                      )}
+                      ) : isProJob ? (
+                        <View style={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          backgroundColor: '#2563EB',
+                          borderRadius: 10,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                          borderWidth: 1.5,
+                          borderColor: '#FFFFFF',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                          elevation: 4,
+                          shadowColor: '#2563EB',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.4,
+                          shadowRadius: 4,
+                        }}>
+                          <Ionicons name="flash" size={10} color="#FFF" />
+                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PRO</Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={styles.jobDetails}>
-                      {isPremiumJob && (
+                      {isPremiumJob ? (
                         <View style={{
                           flexDirection: 'row',
                           alignItems: 'center',
@@ -810,7 +942,24 @@ export default function RecruiterDashboardScreen() {
                           <Ionicons name="sparkles" size={11} color="#D97706" />
                           <Text style={{ color: '#B45309', fontSize: 10, fontWeight: '800' }}>TIN ƯU TIÊN PREMIUM</Text>
                         </View>
-                      )}
+                      ) : isProJob ? (
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          backgroundColor: '#DBEAFE',
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 8,
+                          alignSelf: 'flex-start',
+                          marginBottom: 4,
+                          borderWidth: 1,
+                          borderColor: '#BFDBFE',
+                        }}>
+                          <Ionicons name="flash" size={11} color="#1D4ED8" />
+                          <Text style={{ color: '#1E40AF', fontSize: 10, fontWeight: '800' }}>TIN ƯU TIÊN PRO</Text>
+                        </View>
+                      ) : null}
                       <View style={styles.titleRow}>
                         <Text
                           style={[styles.jobTitle, { color: isDark ? '#FFF' : '#11181C' }]}
