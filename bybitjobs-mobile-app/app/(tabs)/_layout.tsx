@@ -106,14 +106,6 @@ export default function TabLayout() {
                 ),
               }
         }
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            if (userRole === 'employer') {
-              e.preventDefault();
-              router.push({ pathname: '/recruiter/edit-job', params: { id: 'new' } });
-            }
-          },
-        })}
       />
       <Tabs.Screen
         name="community"

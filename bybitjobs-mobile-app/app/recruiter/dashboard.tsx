@@ -411,86 +411,115 @@ export default function RecruiterDashboardScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
-      <View style={styles.gradientHeaderBg} />
-      <View style={styles.headerBar}>
-        <View style={styles.headerLeftGroup}>
-          <View style={styles.iconBtn} />
-          <Text style={styles.headerBarTitle}>BybitJobs</Text>
-        </View>
-        <View style={styles.headerRightGroup}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
-            <Ionicons name="search-outline" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
-            style={styles.iconBtn}
-            onPress={() => router.push('/(tabs)/notifications')}
+    <View style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F4F5F7' }]}>
+      {/* Sticky Blue Header fixed at top */}
+      <SafeAreaView style={{ backgroundColor: '#2563EB' }} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+        <View style={styles.heroBlueBanner}>
+          <View style={styles.headerBar}>
+            <View style={styles.headerLeftGroup}>
+              <Text style={styles.headerBarTitle}>BybitJobs</Text>
+            </View>
+            <View style={styles.headerRightGroup}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => setIsSearchModalVisible(true)}>
+                <Ionicons name="search-outline" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                style={styles.iconBtn}
+                onPress={() => router.push('/(tabs)/notifications')}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFF" />
+                {unreadNotificationsCount > 0 && (
+                  <View style={styles.badgeContainer}>
+                    <Text style={styles.badgeText}>
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Selectors / Dropdowns Row */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.selectorsScrollContainer}
           >
-            <Ionicons name="notifications-outline" size={22} color="#FFF" />
-            {unreadNotificationsCount > 0 && (
-              <View style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>
-                  {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsIndustryModalVisible(true)}
+              style={[
+                styles.selectorDropdownPill,
+                selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' && styles.selectorDropdownPillActive
+              ]}
+            >
+              <Ionicons
+                name="briefcase-outline"
+                size={14}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#2563EB' : '#FFF'}
+              />
+              <Text style={[styles.selectorTextPill, selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' && styles.selectorTextPillActive]}>
+                {selectedIndustry}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' ? '#2563EB' : '#FFF'}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsLocationModalVisible(true)}
+              style={[
+                styles.selectorDropdownPill,
+                selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' && styles.selectorDropdownPillActive
+              ]}
+            >
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#2563EB' : '#FFF'}
+              />
+              <Text style={[styles.selectorTextPill, selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' && styles.selectorTextPillActive]}>
+                {selectedLocation}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' ? '#2563EB' : '#FFF'}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsSalaryModalVisible(true)}
+              style={[
+                styles.selectorDropdownPill,
+                selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorDropdownPillActive
+              ]}
+            >
+              <Ionicons
+                name="cash-outline"
+                size={14}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#2563EB' : '#FFF'}
+              />
+              <Text style={[styles.selectorTextPill, selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorTextPillActive]}>
+                {selectedSalary}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' ? '#2563EB' : '#FFF'}
+              />
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-      </View>
+      </SafeAreaView>
 
       <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
-        {/* Selectors / Dropdowns Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.selectorsScrollContainer}
-        >
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setIsIndustryModalVisible(true)}
-            style={[
-              styles.selectorDropdownPill,
-              selectedIndustry !== 'Chọn lĩnh vực' && selectedIndustry !== 'Tất cả lĩnh vực' && styles.selectorDropdownPillActive
-            ]}
-          >
-            <Ionicons name="briefcase-outline" size={14} color="#FFF" />
-            <Text style={styles.selectorTextPill}>
-              {selectedIndustry}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color="#FFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setIsLocationModalVisible(true)}
-            style={[
-              styles.selectorDropdownPill,
-              selectedLocation !== 'Chọn địa điểm' && selectedLocation !== 'Tất cả địa điểm' && styles.selectorDropdownPillActive
-            ]}
-          >
-            <Ionicons name="location-outline" size={14} color="#FFF" />
-            <Text style={styles.selectorTextPill}>
-              {selectedLocation}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color="#FFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setIsSalaryModalVisible(true)}
-            style={[
-              styles.selectorDropdownPill,
-              selectedSalary !== 'Chọn mức lương' && selectedSalary !== 'Tất cả mức lương' && styles.selectorDropdownPillActive
-            ]}
-          >
-            <Ionicons name="cash-outline" size={14} color="#FFF" />
-            <Text style={styles.selectorTextPill}>
-              {selectedSalary}
-            </Text>
-            <Ionicons name="chevron-down" size={12} color="#FFF" />
-          </TouchableOpacity>
-        </ScrollView>
 
         {/* Recruiter AI HR Core Assistant Card */}
         <TouchableOpacity
@@ -558,36 +587,6 @@ export default function RecruiterDashboardScreen() {
               <View>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{receivedAppsCount}</Text>
                 <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Hồ sơ đã nhận</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              onPress={() => router.push('/recruiter/search-candidates')}
-              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
-            >
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons name="sparkles-outline" size={18} color="#7C3AED" />
-              </View>
-              <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#7C3AED' }}>{highMatchAppsCount}</Text>
-                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>🔥 Ứng viên tiềm năng (&gt;80%)</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              onPress={() => router.push('/recruiter/jobs')}
-              style={{ flex: 1, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: isDark ? '#2C2C2E' : '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 10 }}
-            >
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons name="eye-outline" size={18} color="#E65100" />
-              </View>
-              <View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#11181C' }}>{totalViewsCount}</Text>
-                <Text style={{ fontSize: 11, color: isDark ? '#9CA3AF' : '#6B7280' }}>Lượt xem tin</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1119,7 +1118,7 @@ export default function RecruiterDashboardScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
