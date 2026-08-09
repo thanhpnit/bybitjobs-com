@@ -563,9 +563,37 @@ export default function RecruiterDashboardScreen() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: isIphoneWithNotch ? 130 : 110 }} showsVerticalScrollIndicator={false}>
 
-        {/* Dynamic Package Status Alert Banner */}
+        {/* Dynamic Package Status Alert Banner with Expiration Date & Remaining Days */}
         {(() => {
           const tierInfo = getEmployerPackageTier(employerData);
+
+          // Calculate Expiration Date & Remaining Days
+          const rawExpiresAt = employerData?.packageExpiresAt || employerData?.expires_at || employerData?.expiredAt;
+          let expiresDateStr = '';
+          let daysLeft: number | null = null;
+
+          if (rawExpiresAt) {
+            const expDate = new Date(rawExpiresAt);
+            if (!isNaN(expDate.getTime())) {
+              const day = String(expDate.getDate()).padStart(2, '0');
+              const month = String(expDate.getMonth() + 1).padStart(2, '0');
+              const year = expDate.getFullYear();
+              expiresDateStr = `${day}/${month}/${year}`;
+              
+              const diffTime = expDate.getTime() - Date.now();
+              daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+            }
+          } else {
+            // Default fallback display for active packages if date not yet set in DB
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 30);
+            const day = String(futureDate.getDate()).padStart(2, '0');
+            const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+            const year = futureDate.getFullYear();
+            expiresDateStr = `${day}/${month}/${year}`;
+            daysLeft = 30;
+          }
+
           if (tierInfo.isExpired) {
             return (
               <TouchableOpacity
@@ -574,29 +602,33 @@ export default function RecruiterDashboardScreen() {
                 style={{
                   marginHorizontal: 16,
                   marginTop: 12,
-                  padding: 12,
-                  borderRadius: 14,
+                  padding: 14,
+                  borderRadius: 16,
                   backgroundColor: '#FEF2F2',
                   borderColor: '#FCA5A5',
-                  borderWidth: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  borderWidth: 1.5,
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                  <Ionicons name="warning-outline" size={20} color="#DC2626" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#991B1B' }}>
-                      ⚠️ Gói dịch vụ đã hết hạn hoặc bị hủy!
-                    </Text>
-                    <Text style={{ fontSize: 11, color: '#B91C1C', marginTop: 2 }}>
-                      Các tin tuyển dụng hiện ở chế độ Miễn phí. Gia hạn ngay để bật lại nhãn Ưu tiên TOP!
-                    </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FEE2E2', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="alert-circle" size={24} color="#DC2626" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#991B1B' }}>
+                        ⚠️ Gói dịch vụ đã HẾT HẠN!
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#B91C1C', marginTop: 2 }}>
+                        Ngày hết hạn: {expiresDateStr} (Đã quá hạn)
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#DC2626', marginTop: 2 }}>
+                        Các bài đăng tuyển hiện ở chế độ Miễn phí. Gia hạn ngay để bật lại Nhãn Ưu Tiên TOP!
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <View style={{ backgroundColor: '#DC2626', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>Gia hạn</Text>
+                  <View style={{ backgroundColor: '#DC2626', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}>
+                    <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '800' }}>Gia hạn</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -605,25 +637,48 @@ export default function RecruiterDashboardScreen() {
               <View style={{
                 marginHorizontal: 16,
                 marginTop: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                backgroundColor: '#FEF3C7',
-                borderColor: '#FDE68A',
-                borderWidth: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                padding: 14,
+                borderRadius: 16,
+                backgroundColor: '#FFFDF5',
+                borderColor: '#F59E0B',
+                borderWidth: 1.5,
+                elevation: 3,
+                shadowColor: '#F59E0B',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 4,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="star" size={16} color="#D97706" />
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#B45309' }}>
-                    👑 Gói Hiện Tại: PREMIUM (Đang bật ưu tiên TOP 1)
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FDE68A' }}>
+                      <Ionicons name="star" size={22} color="#D97706" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#92400E' }}>
+                          👑 Gói PREMIUM (VIP)
+                        </Text>
+                        <View style={{ backgroundColor: '#D97706', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '800' }}>TOP 1</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#B45309', marginTop: 3 }}>
+                        📅 Hạn sử dụng: <Text style={{ fontWeight: '800' }}>{expiresDateStr}</Text> {daysLeft !== null && `(Còn ${daysLeft} ngày)`}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#D97706', marginTop: 2 }}>
+                        Đang bật Nhãn Vàng + Ưu tiên hiển thị trên cùng Trang Chủ!
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/recruiter/pricing')}
+                    style={{ backgroundColor: '#D97706', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>Nâng gói</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/recruiter/pricing')}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#D97706', textDecorationLine: 'underline' }}>Nâng gói</Text>
-                </TouchableOpacity>
               </View>
             );
           } else if (tierInfo.tier === 'PRO') {
@@ -631,25 +686,48 @@ export default function RecruiterDashboardScreen() {
               <View style={{
                 marginHorizontal: 16,
                 marginTop: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 14,
-                backgroundColor: '#DBEAFE',
-                borderColor: '#BFDBFE',
-                borderWidth: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                padding: 14,
+                borderRadius: 16,
+                backgroundColor: '#F0F7FF',
+                borderColor: '#2563EB',
+                borderWidth: 1.5,
+                elevation: 3,
+                shadowColor: '#2563EB',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 4,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Ionicons name="flash" size={16} color="#1D4ED8" />
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#1E40AF' }}>
-                    ⚡ Gói Hiện Tại: PRO (Đang bật ưu tiên TOP 2)
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#DBEAFE', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#BFDBFE' }}>
+                      <Ionicons name="flash" size={22} color="#1D4ED8" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E40AF' }}>
+                          ⚡ Gói PRO (Chuyên nghiệp)
+                        </Text>
+                        <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '800' }}>TOP 2</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#1D4ED8', marginTop: 3 }}>
+                        📅 Hạn sử dụng: <Text style={{ fontWeight: '800' }}>{expiresDateStr}</Text> {daysLeft !== null && `(Còn ${daysLeft} ngày)`}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#2563EB', marginTop: 2 }}>
+                        Đang bật Nhãn PRO + Ưu tiên hiển thị vị trí 2!
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push('/recruiter/pricing')}
+                    style={{ backgroundColor: '#2563EB', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>Lên Premium</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/recruiter/pricing')}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#1D4ED8', textDecorationLine: 'underline' }}>Lên Premium</Text>
-                </TouchableOpacity>
               </View>
             );
           }
