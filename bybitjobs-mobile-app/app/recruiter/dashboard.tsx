@@ -787,7 +787,7 @@ export default function RecruiterDashboardScreen() {
                           shadowRadius: 4,
                         }}>
                           <Ionicons name="crown" size={10} color="#FFF" />
-                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PRE</Text>
+                          <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>PREMIUM</Text>
                         </View>
                       )}
                     </View>
@@ -808,7 +808,7 @@ export default function RecruiterDashboardScreen() {
                           borderColor: '#FDE68A',
                         }}>
                           <Ionicons name="sparkles" size={11} color="#D97706" />
-                          <Text style={{ color: '#B45309', fontSize: 10, fontWeight: '800' }}>👑 TIN ƯU TIÊN VIP (PRE)</Text>
+                          <Text style={{ color: '#B45309', fontSize: 10, fontWeight: '800' }}>👑 TIN ƯU TIÊN PREMIUM</Text>
                         </View>
                       )}
                       <View style={styles.titleRow}>
