@@ -32,8 +32,67 @@ export default function RecruiterPricingScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
 
-  const [packages, setPackages] = React.useState<PackageItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const defaultPackages: PackageItem[] = [
+    {
+      id: 'free',
+      name: 'Gói MIỄN PHÍ',
+      price: '0 VNĐ',
+      priceNum: 0,
+      duration: 'Vĩnh viễn',
+      tag: 'CƠ BẢN STARTER',
+      subTag: 'MIỄN PHÍ',
+      features: [
+        'Đăng tối đa 5 tin tuyển dụng',
+        'Mở khóa 10 CV ứng viên',
+        'Hiển thị bài đăng tiêu chuẩn',
+        'Quản lý hồ sơ ứng viên tự động',
+      ],
+      isPopular: false,
+      isVip: false,
+    },
+    {
+      id: 'pro',
+      name: 'Gói PRO (Phổ Biến ⭐)',
+      price: '299,000đ',
+      priceNum: 299000,
+      duration: '30 ngày',
+      tag: 'BÁN CHẠY NHẤT ⭐',
+      subTag: 'TIẾT KIỆM 40%',
+      features: [
+        'Đăng 15 tin tuyển dụng hoạt động cùng lúc',
+        'Mở khóa 50 CV ứng viên đầy đủ SĐT & Email',
+        '⚡ Ghim bài vị trí ƯU TIÊN TOP 2 trên Trang chủ',
+        '⚡ Huy hiệu ⚡ PRO phát sáng Xanh Royal',
+        '⚡ Thẻ "TIN ƯU TIÊN PRO" nổi bật từng bài',
+        '⚡ Đánh giá AI độ phù hợp CV ứng viên',
+      ],
+      isPopular: true,
+      isVip: false,
+    },
+    {
+      id: 'premium',
+      name: 'Gói PREMIUM (VIP 👑)',
+      price: '799,000đ',
+      priceNum: 799000,
+      duration: '30 ngày',
+      tag: 'ĐỘC QUYỀN TOP 1 👑',
+      subTag: 'TIẾT KIỆM 47%',
+      features: [
+        '🔥 KHÔNG GIỚI HẠN số lượng tin tuyển dụng',
+        '🔥 KHÔNG GIỚI HẠN xem & mở khóa CV ứng viên',
+        '👑 Ghim bài vị trí ĐỘC QUYỀN TOP 1 trên cùng Trang chủ',
+        '👑 Huy hiệu ★ PREMIUM Vàng Amber Hoàng Gia',
+        '👑 Thẻ "TIN ƯU TIÊN PREMIUM" lấp lánh',
+        '👑 Trợ lý AI HR: Soạn JD + Phỏng vấn AI + Email 1-click',
+        '👑 Hiển thị Logo nổi bật mục Công ty Hàng đầu',
+      ],
+      isPopular: false,
+      isVip: true,
+    },
+  ];
+
+  const [packages, setPackages] = React.useState<PackageItem[]>(defaultPackages);
+  const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
     let intervalId: any = null;
@@ -41,40 +100,55 @@ export default function RecruiterPricingScreen() {
     const fetchPackages = async () => {
       try {
         const res = await fetch('http://160.250.246.119:4000/api/packages');
-        if (!res.ok) throw new Error('API response was not ok');
-        const rawData = await res.json();
-        const data: PackageItem[] = [];
-        
-        rawData.forEach((pkg: any) => {
-          data.push({
-            id: pkg.id,
-            name: pkg.name,
-            price: pkg.price,
-            priceNum: pkg.priceNum || 0,
-            duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
-            tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
-            features: [
-              `Số lượng: ${pkg.posts || ''}`,
-              `Lượt nhận CV: ${pkg.cvs || ''}`,
-            ],
-            isPopular: pkg.isPopular,
-            isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
-          });
-        });
+        if (res.ok) {
+          const rawData = await res.json();
+          if (Array.isArray(rawData) && rawData.length > 0) {
+            const data: PackageItem[] = rawData.map((pkg: any) => {
+              const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
+              const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
+              const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí');
+              
+              let postsText = '15 tin tuyển dụng';
+              let cvsText = '50 CV ứng viên';
+              if (isFree) {
+                postsText = '5 tin tuyển dụng';
+                cvsText = '10 CV ứng viên';
+              } else if (isVip) {
+                postsText = 'KHÔNG GIỚI HẠN tin đăng';
+                cvsText = 'KHÔNG GIỚI HẠN mở khóa CV';
+              }
 
-        // Sort by priceNum to keep them in order
-        data.sort((a, b) => a.priceNum - b.priceNum);
-        setPackages(data);
-        setLoading(false);
+              return {
+                id: pkg.id,
+                name: pkg.name,
+                price: pkg.price || (pkg.priceNum ? `${pkg.priceNum.toLocaleString('vi-VN')}đ` : '0 VNĐ'),
+                priceNum: pkg.priceNum || 0,
+                duration: pkg.period ? pkg.period.replace('/', '').trim() : '30 ngày',
+                tag: isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER',
+                subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
+                features: [
+                  `Đăng tối đa: ${postsText}`,
+                  `Lượt xem & Mở khóa: ${cvsText}`,
+                  isVip ? '👑 Ghim ĐỘC QUYỀN TOP 1 Trang Chủ' : isPopular ? '⚡ Ghim ƯU TIÊN TOP 2 Trang Chủ' : 'Hiển thị bài đăng tiêu chuẩn',
+                  isVip ? '👑 Huy hiệu ★ PREMIUM Vàng Hoàng Gia' : isPopular ? '⚡ Huy hiệu ⚡ PRO Xanh Royal' : 'Quản lý ứng viên tự động',
+                  isVip ? '👑 Trợ lý AI HR Soạn JD & Phỏng vấn' : isPopular ? '⚡ Đánh giá AI độ phù hợp CV' : 'Hỗ trợ tuyển dụng 24/7',
+                ],
+                isPopular,
+                isVip,
+              };
+            });
+
+            data.sort((a, b) => a.priceNum - b.priceNum);
+            setPackages(data);
+          }
+        }
       } catch (err) {
-        console.log('Lỗi fetch packages:', err);
-        setLoading(false);
+        console.log('Dùng danh sách gói mặc định:', err);
       }
     };
 
     fetchPackages();
-    // Poll every 5s in case admin updates prices
-    intervalId = setInterval(fetchPackages, 5000);
+    intervalId = setInterval(fetchPackages, 8000);
 
     return () => clearInterval(intervalId);
   }, []);

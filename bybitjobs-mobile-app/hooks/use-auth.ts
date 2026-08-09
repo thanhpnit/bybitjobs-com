@@ -1546,10 +1546,9 @@ export function useAuth() {
 
         if (!limit) {
            const cp = currentPackage.toLowerCase();
-           if (cp.includes('starter') || cp.includes('basic')) limit = 2;
-           else if (cp.includes('pro') || cp.includes('standard')) limit = 5;
-           else if (cp.includes('premium')) limit = 9999;
-           else limit = 1; // Default
+           if (cp.includes('pro') || cp.includes('gold') || cp.includes('standard') || cp.includes('vàng')) limit = 15;
+           else if (cp.includes('premium') || cp.includes('diamond') || cp.includes('vip') || cp.includes('kim cương')) limit = 9999;
+           else limit = 5; // Default Free: 5 posts limit
         }
 
         if (used >= limit) {
