@@ -757,9 +757,17 @@ export default function RecruiterDashboardScreen() {
                               );
                             }
                             return (
-                              <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#3C3C3E' : '#ECEFF1' }]}>
-                                <Text style={[styles.avatarText, { color: isDark ? '#FFF' : '#37474F' }]}>
-                                  {job.author.avatar}
+                              <View style={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: 12,
+                                backgroundColor: isDark ? '#334155' : '#E2E8F0',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                marginRight: 6,
+                              }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? '#F8FAFC' : '#475569' }}>
+                                  {job.author.avatar || 'TC'}
                                 </Text>
                               </View>
                             );
