@@ -61,25 +61,6 @@ export interface FeaturedCompany {
 const DEFAULT_COMPANY_LOGO = 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60';
 const DEFAULT_COMPANY_COVER = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60';
 
-const isPremiumEmployer = (employerData: any) => {
-  const packageText = [
-    employerData?.current_package,
-    employerData?.currentPackage,
-    employerData?.packageName,
-    employerData?.servicePackage,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  return (
-    employerData?.isPremium === true ||
-    packageText.includes('premium') ||
-    packageText.includes('diamond') ||
-    packageText.includes('vip')
-  );
-};
-
 const buildFeaturedCompany = (employerData: any, employerId: string, fallbackName?: string): FeaturedCompany => {
   const companyName =
     employerData?.companyName ||
