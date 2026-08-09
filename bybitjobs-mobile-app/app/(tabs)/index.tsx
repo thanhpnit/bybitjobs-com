@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
-import { useAuth, checkIsJobExpired, formatDeadlineDisplay } from '@/hooks/use-auth';
+import { useAuth, checkIsJobExpired, formatDeadlineDisplay, getEmployerPackageTier, isPremiumEmployer, isProEmployer } from '@/hooks/use-auth';
 
 
 

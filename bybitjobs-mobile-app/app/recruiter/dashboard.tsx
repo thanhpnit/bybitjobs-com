@@ -16,7 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth, checkIsJobExpired, formatDeadlineDisplay } from '@/hooks/use-auth';
+import { useAuth, checkIsJobExpired, formatDeadlineDisplay, getEmployerPackageTier, isPremiumEmployer, isProEmployer } from '@/hooks/use-auth';
 
 interface MarketJobItem {
   id: string;
