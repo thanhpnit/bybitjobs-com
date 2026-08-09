@@ -59,13 +59,14 @@ const sortNewestFirst = (items: any[]) => [...items].sort((a, b) => getItemTime(
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Version check: khi cập nhật mock data, tăng version để force refresh localStorage
-  const DATA_VERSION = '2026-06-19';
+  const DATA_VERSION = '2026-08-09-v3';
   const storedVersion = localStorage.getItem('bybitjobs_data_version');
   if (storedVersion !== DATA_VERSION) {
     // Xóa tất cả dữ liệu cũ để load lại từ mock data mới
     localStorage.removeItem('bybitjobs_users');
     localStorage.removeItem('bybitjobs_employers');
     localStorage.removeItem('bybitjobs_jobPosts');
+    localStorage.removeItem('bybitjobs_packages');
     localStorage.removeItem('bybitjobs_industries');
     localStorage.removeItem('bybitjobs_reports');
     localStorage.removeItem('bybitjobs_reviews');
@@ -98,35 +99,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const fetchRealUsers = () => {
       fetch(`http://${apiHost}:4000/api/users`)
-        .then(res => res.json())
-        .then(data => {
-          const usersArray = Array.isArray(data) ? data : data.users;
-          if (Array.isArray(usersArray)) {
-            setUsersState(sortNewestFirst(usersArray));
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setUsersState(sortNewestFirst(data));
           }
         })
-        .catch(err => console.error('Error fetching real users in DataContext:', err));
-    };
-
-    const fetchRealEmployers = () => {
-      fetch(`http://${apiHost}:4000/api/employers`)
-        .then(res => res.json())
-        .then(data => {
-          const employersArray = Array.isArray(data) ? data : data.employers;
-          if (Array.isArray(employersArray)) {
-            setEmployersState(sortNewestFirst(employersArray));
-          }
-        })
-        .catch(err => console.error('Error fetching real employers in DataContext:', err));
+        .catch((err) => console.log('Lỗi fetch users API:', err));
     };
 
     fetchRealUsers();
-    fetchRealEmployers();
-  }, []);
 
-  // Listen to Firestore packages, jobs, reports, applications (reviews), employers
-  useEffect(() => {
-    // 1. Employers (Real-time sync from Firestore)
+    // 1. Employers
     const unsubEmployers = onSnapshot(collection(db, 'employers'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
@@ -154,9 +138,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubPackages = onSnapshot(collection(db, 'packages'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(d => data.push(d.data()));
-      if (data.length === 0) {
+      
+      const hasFree = data.some(p => p.id === 'free' || (p.priceNum === 0 && p.posts?.includes('5')));
+      const hasPro = data.some(p => p.id === 'pro' || p.priceNum === 299000);
+      const hasPremium = data.some(p => p.id === 'premium' || p.priceNum === 799000);
+
+      if (data.length === 0 || !hasFree || !hasPro || !hasPremium) {
         initialPackages.forEach(async (pkg) => {
-          await setDoc(doc(db, 'packages', pkg.id), pkg);
+          await setDoc(doc(db, 'packages', pkg.id), pkg, { merge: true });
         });
         setPackagesState(initialPackages);
       } else {
