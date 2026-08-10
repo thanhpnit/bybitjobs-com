@@ -435,41 +435,55 @@ export default function RecruiterProfileScreen() {
   const [servicePackages, setServicePackages] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    let intervalId: any = null;
-    const fetchPackages = async () => {
-      try {
-        const res = await fetch('http://160.250.246.119:4000/api/packages');
-        if (!res.ok) throw new Error('API response was not ok');
-        const rawData = await res.json();
-        const data: any[] = [];
-
-        rawData.forEach((pkg: any) => {
-          data.push({
-            id: pkg.id,
-            name: pkg.name,
-            price: pkg.price,
-            priceNum: pkg.priceNum || 0,
-            duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
-            tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
-            features: [
-              `Số lượng: ${pkg.posts || ''}`,
-              `Lượt nhận CV: ${pkg.cvs || ''}`,
-            ],
-            isPopular: pkg.isPopular,
-            isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
-          });
+    const unsub = onSnapshot(
+      collection(db, 'packages'),
+      (snapshot) => {
+        const dataFromDb: any[] = [];
+        snapshot.forEach((docSnap) => {
+          dataFromDb.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        data.sort((a, b) => a.priceNum - b.priceNum);
-        setServicePackages(data);
-      } catch (err) {
-        console.log('Lỗi fetch packages in profile:', err);
-      }
-    };
+        const mapByTier: Record<string, any> = {};
 
-    fetchPackages();
-    intervalId = setInterval(fetchPackages, 5000);
-    return () => clearInterval(intervalId);
+        dataFromDb.forEach((pkg: any) => {
+          const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
+          const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
+          const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí') || pkg.name?.toLowerCase().includes('starter');
+
+          let key = 'free';
+          if (isVip) key = 'premium';
+          else if (isPopular) key = 'pro';
+
+          let displayPrice = isVip ? '799,000đ' : isPopular ? '299,000đ' : '0 VNĐ';
+          let priceNum = isVip ? 799000 : isPopular ? 299000 : 0;
+
+          let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
+          let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
+
+          mapByTier[key] = {
+            id: key,
+            name: isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ',
+            price: displayPrice,
+            priceNum: priceNum,
+            duration: isFree ? 'Vĩnh viễn' : '30 ngày',
+            tag: isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER',
+            subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
+            features: [
+              `Đăng tối đa: ${postsText}`,
+              `Lượt xem & Mở khóa: ${cvsText}`,
+            ],
+            isPopular,
+            isVip,
+          };
+        });
+
+        const mapped = Object.values(mapByTier).sort((a, b) => a.priceNum - b.priceNum);
+        setServicePackages(mapped);
+      },
+      (err) => console.log('Lỗi fetch packages in profile:', err)
+    );
+
+    return () => unsub();
   }, []);
 
   const benefits = [
@@ -1284,18 +1298,38 @@ export default function RecruiterProfileScreen() {
           </View>
 
           {/* 6. Pricing Packages Section */}
-          <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 28, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>
-            Nâng cấp gói dịch vụ
-          </Text>
+          <View style={{ paddingHorizontal: 16, marginTop: 28, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={[styles.empSectionTitle, { paddingHorizontal: 0, marginTop: 0, marginBottom: 0, color: isDark ? '#FFF' : '#11181C' }]}>
+              Nâng cấp gói dịch vụ
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/recruiter/pricing')}>
+              <Text style={{ color: '#0084FF', fontSize: 13, fontWeight: '700' }}>Xem tất cả →</Text>
+            </TouchableOpacity>
+          </View>
 
           {servicePackages.map((pkg) => {
+            const currentPkgInfo = getEmployerPackageTier(employerData);
+            const currentTier = (currentPkgInfo?.tier || 'FREE').toUpperCase();
+            const isExpired = currentPkgInfo?.isExpired;
+            
+            let isCurrentActivePkg = false;
+            if (!isExpired) {
+              if (pkg.id === 'premium' || pkg.isVip) isCurrentActivePkg = currentTier === 'PREMIUM';
+              else if (pkg.id === 'pro' || pkg.isPopular) isCurrentActivePkg = currentTier === 'PRO';
+              else if (pkg.id === 'free' || pkg.priceNum === 0) isCurrentActivePkg = currentTier === 'FREE';
+            }
+
             let cardBg = isDark ? '#1C1C1E' : '#FFFFFF';
             let textColor = isDark ? '#FFF' : '#11181C';
             let descColor = isDark ? '#9BA1A6' : '#687076';
             let buttonBg = isDark ? '#2C2C2E' : '#ECEFF1';
             let buttonText = isDark ? '#FFF' : '#11181C';
 
-            if (pkg.isPopular) {
+            if (isCurrentActivePkg) {
+              cardBg = isDark ? '#064E3B' : '#ECFDF5';
+              buttonBg = '#10B981';
+              buttonText = '#FFFFFF';
+            } else if (pkg.isPopular) {
               cardBg = isDark ? '#1A2E44' : '#F0F8FF';
               buttonBg = '#0084FF';
               buttonText = '#FFFFFF';
@@ -1303,8 +1337,8 @@ export default function RecruiterProfileScreen() {
               cardBg = '#091E35';
               textColor = '#FFFFFF';
               descColor = '#A8C5E5';
-              buttonBg = '#FFFFFF';
-              buttonText = '#091E35';
+              buttonBg = '#F59E0B';
+              buttonText = '#FFFFFF';
             }
 
             return (
@@ -1312,8 +1346,9 @@ export default function RecruiterProfileScreen() {
                 key={pkg.id}
                 style={[
                   styles.empPkgCard,
-                  { backgroundColor: cardBg, borderColor: pkg.isPopular ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E7EB') },
-                  pkg.isPopular && styles.empPkgCardPopular
+                  { backgroundColor: cardBg, borderColor: isCurrentActivePkg ? '#10B981' : pkg.isPopular ? '#0084FF' : (isDark ? '#2C2C2E' : '#E5E7EB') },
+                  isCurrentActivePkg && { borderWidth: 2 },
+                  pkg.isPopular && !isCurrentActivePkg && styles.empPkgCardPopular
                 ]}
               >
                 <View style={styles.empPkgTagsRow}>
@@ -1321,31 +1356,37 @@ export default function RecruiterProfileScreen() {
                     style={[
                       styles.empPkgTagBubble,
                       {
-                        backgroundColor: pkg.isVip
-                          ? '#FF9500'
-                          : pkg.isPopular
-                            ? '#0084FF'
-                            : isDark
-                              ? '#2C2C2E'
-                              : '#ECEFF1',
+                        backgroundColor: isCurrentActivePkg
+                          ? '#10B981'
+                          : pkg.isVip
+                            ? '#FF9500'
+                            : pkg.isPopular
+                              ? '#0084FF'
+                              : isDark
+                                ? '#2C2C2E'
+                                : '#ECEFF1',
                       },
                     ]}
                   >
                     <Text
                       style={[
                         styles.empPkgTagText,
-                        { color: pkg.isVip || pkg.isPopular ? '#FFF' : (isDark ? '#9BA1A6' : '#5E6E7A') },
+                        { color: isCurrentActivePkg || pkg.isVip || pkg.isPopular ? '#FFF' : (isDark ? '#9BA1A6' : '#5E6E7A') },
                       ]}
                     >
-                      {pkg.tag}
+                      {isCurrentActivePkg ? '✓ GÓI CỦA BẠN' : pkg.tag}
                     </Text>
                   </View>
 
-                  {pkg.subTag && (
+                  {isCurrentActivePkg ? (
+                    <View style={[styles.empPkgSubTagBubble, { backgroundColor: '#10B981' }]}>
+                      <Text style={styles.empPkgSubTagText}>ĐANG KÍCH HOẠT ✓</Text>
+                    </View>
+                  ) : pkg.subTag ? (
                     <View style={[styles.empPkgSubTagBubble, { backgroundColor: pkg.isVip ? '#0084FF' : '#FF9800' }]}>
                       <Text style={styles.empPkgSubTagText}>{pkg.subTag}</Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
 
                 <View style={styles.empPkgPriceRow}>
@@ -1353,37 +1394,38 @@ export default function RecruiterProfileScreen() {
                   <Text
                     style={[
                       styles.empPkgPrice,
-                      { color: pkg.isPopular ? '#0084FF' : pkg.isVip ? '#FFF' : '#0084FF' },
+                      { color: isCurrentActivePkg ? '#10B981' : pkg.isPopular ? '#0084FF' : pkg.isVip ? '#F59E0B' : '#0084FF' },
                     ]}
                   >
                     {pkg.price}
-                    {pkg.duration ? ` / ${pkg.duration}` : ''}
                   </Text>
                 </View>
 
                 <View style={{ marginBottom: 16 }}>
-                    {pkg.features.map((feature: string, idx: number) => (
-                      <View key={idx} style={styles.empPkgFeatureItem}>
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={16}
-                          color={pkg.isVip ? '#82C1F5' : '#4CAF50'}
-                          style={styles.empPkgFeatureIcon}
-                        />
-                        <Text style={[styles.empPkgFeatureText, { color: descColor }]}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => handleBuyPackage(pkg)}
-                    style={[styles.empPkgBuyBtn, { backgroundColor: buttonBg }]}
-                  >
-                    <Text style={[styles.empPkgBuyBtnText, { color: buttonText }]}>Mua ngay</Text>
-                  </TouchableOpacity>
+                  {pkg.features.map((feature: string, idx: number) => (
+                    <View key={idx} style={styles.empPkgFeatureItem}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={isCurrentActivePkg ? '#10B981' : pkg.isVip ? '#F59E0B' : '#4CAF50'}
+                        style={styles.empPkgFeatureIcon}
+                      />
+                      <Text style={[styles.empPkgFeatureText, { color: descColor }]}>{feature}</Text>
+                    </View>
+                  ))}
                 </View>
-                );
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/recruiter/pricing')}
+                  style={[styles.empPkgBuyBtn, { backgroundColor: buttonBg }]}
+                >
+                  <Text style={[styles.empPkgBuyBtnText, { color: buttonText, fontWeight: 'bold' }]}>
+                    {isCurrentActivePkg ? '✓ Gói Đang Sử Dụng' : 'Nâng cấp ngay'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
           })}
 
                 {/* 7. Benefits Section */}

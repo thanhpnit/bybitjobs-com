@@ -113,26 +113,41 @@ export default function RecruiterPricingScreen() {
         });
 
         if (dataFromDb.length > 0) {
-          const mapped: PackageItem[] = dataFromDb.map((pkg: any) => {
+          const mapByTier: Record<string, PackageItem> = {};
+
+          dataFromDb.forEach((pkg: any) => {
             const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
             const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
             const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí') || pkg.name?.toLowerCase().includes('starter');
 
+            let key = 'free';
+            if (isVip) key = 'premium';
+            else if (isPopular) key = 'pro';
+
             let displayPrice = pkg.price;
-            if (!displayPrice || displayPrice.includes('499') || displayPrice.includes('1.299')) {
-              displayPrice = pkg.priceNum > 0 ? `${pkg.priceNum.toLocaleString('vi-VN')}đ` : (isVip ? '799,000đ' : isPopular ? '299,000đ' : '0 VNĐ');
+            let priceNum = pkg.priceNum;
+
+            if (isFree) {
+              displayPrice = '0 VNĐ';
+              priceNum = 0;
+            } else if (isPopular) {
+              displayPrice = '299,000đ';
+              priceNum = 299000;
+            } else if (isVip) {
+              displayPrice = '799,000đ';
+              priceNum = 799000;
             }
 
             let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
             let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
 
-            return {
-              id: pkg.id,
-              name: pkg.name || (isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ'),
+            mapByTier[key] = {
+              id: key,
+              name: isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ',
               price: displayPrice,
-              priceNum: pkg.priceNum !== undefined ? pkg.priceNum : (isVip ? 799000 : isPopular ? 299000 : 0),
-              duration: pkg.period ? pkg.period.replace('/', '').trim() : (isFree ? 'Vĩnh viễn' : '30 ngày'),
-              tag: pkg.badge || (isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER'),
+              priceNum: priceNum,
+              duration: isFree ? 'Vĩnh viễn' : '30 ngày',
+              tag: isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER',
               subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
               features: [
                 `Đăng tối đa: ${postsText}`,
@@ -146,7 +161,7 @@ export default function RecruiterPricingScreen() {
             };
           });
 
-          mapped.sort((a, b) => a.priceNum - b.priceNum);
+          const mapped = Object.values(mapByTier).sort((a, b) => a.priceNum - b.priceNum);
           setPackages(mapped);
         }
       },
