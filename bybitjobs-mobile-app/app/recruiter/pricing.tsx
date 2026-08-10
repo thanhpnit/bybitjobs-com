@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../src/config/firebase';
+import { useAuth } from '../../hooks/use-auth';
 
 interface PackageItem {
   id: string;
@@ -31,6 +33,14 @@ export default function RecruiterPricingScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
+  const { employerData, getEmployerPackageTier } = useAuth();
+
+  const activePkgInfo = React.useMemo(() => {
+    if (getEmployerPackageTier) {
+      return getEmployerPackageTier(employerData);
+    }
+    return { tier: 'FREE', isExpired: false, packageNameDisplay: 'Gói MIỄN PHÍ' };
+  }, [employerData, getEmployerPackageTier]);
 
   const defaultPackages: PackageItem[] = [
     {
@@ -42,10 +52,11 @@ export default function RecruiterPricingScreen() {
       tag: 'CƠ BẢN STARTER',
       subTag: 'MIỄN PHÍ',
       features: [
-        'Đăng tối đa 5 tin tuyển dụng',
-        'Mở khóa 10 CV ứng viên',
+        'Đăng tối đa: 5 tin tuyển dụng',
+        'Mở khóa: 10 CV ứng viên',
         'Hiển thị bài đăng tiêu chuẩn',
         'Quản lý hồ sơ ứng viên tự động',
+        'Hỗ trợ tuyển dụng 24/7',
       ],
       isPopular: false,
       isVip: false,
@@ -59,11 +70,10 @@ export default function RecruiterPricingScreen() {
       tag: 'BÁN CHẠY NHẤT ⭐',
       subTag: 'TIẾT KIỆM 40%',
       features: [
-        'Đăng 15 tin tuyển dụng hoạt động cùng lúc',
-        'Mở khóa 50 CV ứng viên đầy đủ SĐT & Email',
-        '⚡ Ghim bài vị trí ƯU TIÊN TOP 2 trên Trang chủ',
-        '⚡ Huy hiệu ⚡ PRO phát sáng Xanh Royal',
-        '⚡ Thẻ "TIN ƯU TIÊN PRO" nổi bật từng bài',
+        'Đăng tối đa: 15 tin tuyển dụng',
+        'Mở khóa: 50 CV ứng viên',
+        '⚡ Ghim ƯU TIÊN TOP 2 Trang Chủ',
+        '⚡ Huy hiệu ⚡ PRO Xanh Royal phát sáng',
         '⚡ Đánh giá AI độ phù hợp CV ứng viên',
       ],
       isPopular: true,
@@ -80,10 +90,9 @@ export default function RecruiterPricingScreen() {
       features: [
         '🔥 KHÔNG GIỚI HẠN số lượng tin tuyển dụng',
         '🔥 KHÔNG GIỚI HẠN xem & mở khóa CV ứng viên',
-        '👑 Ghim bài vị trí ĐỘC QUYỀN TOP 1 trên cùng Trang chủ',
+        '👑 Ghim ĐỘC QUYỀN TOP 1 Trang Chủ',
         '👑 Huy hiệu ★ PREMIUM Vàng Amber Hoàng Gia',
-        '👑 Thẻ "TIN ƯU TIÊN PREMIUM" lấp lánh',
-        '👑 Trợ lý AI HR: Soạn JD + Phỏng vấn AI + Email 1-click',
+        '👑 Trợ lý AI HR Soạn JD & Phỏng vấn',
         '👑 Hiển thị Logo nổi bật mục Công ty Hàng đầu',
       ],
       isPopular: false,
@@ -92,65 +101,61 @@ export default function RecruiterPricingScreen() {
   ];
 
   const [packages, setPackages] = React.useState<PackageItem[]>(defaultPackages);
-  const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    let intervalId: any = null;
+    // 1. Real-time Listener tới Firestore collection 'packages'
+    const unsub = onSnapshot(
+      collection(db, 'packages'),
+      (snapshot) => {
+        const dataFromDb: any[] = [];
+        snapshot.forEach((docSnap) => {
+          dataFromDb.push({ id: docSnap.id, ...docSnap.data() });
+        });
 
-    const fetchPackages = async () => {
-      try {
-        const res = await fetch('http://160.250.246.119:4000/api/packages');
-        if (res.ok) {
-          const rawData = await res.json();
-          if (Array.isArray(rawData) && rawData.length > 0) {
-            const data: PackageItem[] = rawData.map((pkg: any) => {
-              const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
-              const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
-              const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí');
-              
-              let postsText = '15 tin tuyển dụng';
-              let cvsText = '50 CV ứng viên';
-              if (isFree) {
-                postsText = '5 tin tuyển dụng';
-                cvsText = '10 CV ứng viên';
-              } else if (isVip) {
-                postsText = 'KHÔNG GIỚI HẠN tin đăng';
-                cvsText = 'KHÔNG GIỚI HẠN mở khóa CV';
-              }
+        if (dataFromDb.length > 0) {
+          const mapped: PackageItem[] = dataFromDb.map((pkg: any) => {
+            const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
+            const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
+            const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí') || pkg.name?.toLowerCase().includes('starter');
 
-              return {
-                id: pkg.id,
-                name: pkg.name,
-                price: pkg.price || (pkg.priceNum ? `${pkg.priceNum.toLocaleString('vi-VN')}đ` : '0 VNĐ'),
-                priceNum: pkg.priceNum || 0,
-                duration: pkg.period ? pkg.period.replace('/', '').trim() : '30 ngày',
-                tag: isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER',
-                subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
-                features: [
-                  `Đăng tối đa: ${postsText}`,
-                  `Lượt xem & Mở khóa: ${cvsText}`,
-                  isVip ? '👑 Ghim ĐỘC QUYỀN TOP 1 Trang Chủ' : isPopular ? '⚡ Ghim ƯU TIÊN TOP 2 Trang Chủ' : 'Hiển thị bài đăng tiêu chuẩn',
-                  isVip ? '👑 Huy hiệu ★ PREMIUM Vàng Hoàng Gia' : isPopular ? '⚡ Huy hiệu ⚡ PRO Xanh Royal' : 'Quản lý ứng viên tự động',
-                  isVip ? '👑 Trợ lý AI HR Soạn JD & Phỏng vấn' : isPopular ? '⚡ Đánh giá AI độ phù hợp CV' : 'Hỗ trợ tuyển dụng 24/7',
-                ],
-                isPopular,
-                isVip,
-              };
-            });
+            let displayPrice = pkg.price;
+            if (!displayPrice || displayPrice.includes('499') || displayPrice.includes('1.299')) {
+              displayPrice = pkg.priceNum > 0 ? `${pkg.priceNum.toLocaleString('vi-VN')}đ` : (isVip ? '799,000đ' : isPopular ? '299,000đ' : '0 VNĐ');
+            }
 
-            data.sort((a, b) => a.priceNum - b.priceNum);
-            setPackages(data);
-          }
+            let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
+            let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
+
+            return {
+              id: pkg.id,
+              name: pkg.name || (isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ'),
+              price: displayPrice,
+              priceNum: pkg.priceNum !== undefined ? pkg.priceNum : (isVip ? 799000 : isPopular ? 299000 : 0),
+              duration: pkg.period ? pkg.period.replace('/', '').trim() : (isFree ? 'Vĩnh viễn' : '30 ngày'),
+              tag: pkg.badge || (isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER'),
+              subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
+              features: [
+                `Đăng tối đa: ${postsText}`,
+                `Lượt xem & Mở khóa: ${cvsText}`,
+                isVip ? '👑 Ghim ĐỘC QUYỀN TOP 1 Trang Chủ' : isPopular ? '⚡ Ghim ƯU TIÊN TOP 2 Trang Chủ' : 'Hiển thị bài đăng tiêu chuẩn',
+                isVip ? '👑 Huy hiệu ★ PREMIUM Vàng Hoàng Gia' : isPopular ? '⚡ Huy hiệu ⚡ PRO Xanh Royal' : 'Quản lý ứng viên tự động',
+                isVip ? '👑 Trợ lý AI HR Soạn JD & Phỏng vấn' : isPopular ? '⚡ Đánh giá AI độ phù hợp CV' : 'Hỗ trợ tuyển dụng 24/7',
+              ],
+              isPopular,
+              isVip,
+            };
+          });
+
+          mapped.sort((a, b) => a.priceNum - b.priceNum);
+          setPackages(mapped);
         }
-      } catch (err) {
-        console.log('Dùng danh sách gói mặc định:', err);
+      },
+      (error) => {
+        console.log('Lỗi lắng nghe packages Firestore:', error);
       }
-    };
+    );
 
-    fetchPackages();
-    intervalId = setInterval(fetchPackages, 8000);
-
-    return () => clearInterval(intervalId);
+    return () => unsub();
   }, []);
 
   const benefits = [
@@ -204,13 +209,33 @@ export default function RecruiterPricingScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Render Package Cards */}
         {packages.map((pkg) => {
+          const currentTier = (activePkgInfo?.tier || 'FREE').toUpperCase();
+          const isExpired = activePkgInfo?.isExpired;
+          
+          let isCurrentActivePkg = false;
+          if (!isExpired) {
+            if (pkg.id === 'premium' || pkg.isVip) isCurrentActivePkg = currentTier === 'PREMIUM';
+            else if (pkg.id === 'pro' || pkg.isPopular) isCurrentActivePkg = currentTier === 'PRO';
+            else if (pkg.id === 'free' || pkg.priceNum === 0) isCurrentActivePkg = currentTier === 'FREE';
+          }
+
+          let isLowerThanActivePkg = false;
+          if (!isExpired) {
+            if (currentTier === 'PREMIUM') isLowerThanActivePkg = pkg.id !== 'premium' && !pkg.isVip;
+            else if (currentTier === 'PRO') isLowerThanActivePkg = pkg.id === 'free' || pkg.priceNum === 0;
+          }
+
           let cardBg = isDark ? '#1C1C1E' : '#FFFFFF';
           let textColor = isDark ? '#FFF' : '#11181C';
           let descColor = isDark ? '#9BA1A6' : '#687076';
           let buttonBg = isDark ? '#2C2C2E' : '#E5E7EB';
           let buttonText = isDark ? '#FFF' : '#11181C';
 
-          if (pkg.isPopular) {
+          if (isCurrentActivePkg) {
+            cardBg = isDark ? '#064E3B' : '#ECFDF5';
+            buttonBg = '#10B981';
+            buttonText = '#FFFFFF';
+          } else if (pkg.isPopular) {
             cardBg = isDark ? '#1E2D3D' : '#F0F8FF';
             buttonBg = '#0084FF';
             buttonText = '#FFFFFF';
@@ -218,8 +243,8 @@ export default function RecruiterPricingScreen() {
             cardBg = '#0A1E36';
             textColor = '#FFFFFF';
             descColor = '#A9C6E2';
-            buttonBg = '#FFFFFF';
-            buttonText = '#0A1E36';
+            buttonBg = '#F59E0B';
+            buttonText = '#FFFFFF';
           }
 
           return (
@@ -228,7 +253,8 @@ export default function RecruiterPricingScreen() {
               style={[
                 styles.packageCard,
                 { backgroundColor: cardBg },
-                pkg.isPopular && styles.popularCard,
+                isCurrentActivePkg && { borderColor: '#10B981', borderWidth: 2.5 },
+                pkg.isPopular && !isCurrentActivePkg && styles.popularCard,
                 isDark && { shadowColor: '#000', shadowOpacity: 0.3 },
               ]}
             >
@@ -238,31 +264,39 @@ export default function RecruiterPricingScreen() {
                   style={[
                     styles.tagBubble,
                     {
-                      backgroundColor: pkg.isVip
-                        ? '#E65100'
-                        : pkg.isPopular
-                          ? '#0084FF'
-                          : isDark
-                            ? '#2C2C2E'
-                            : '#ECEFF1',
+                      backgroundColor: isCurrentActivePkg
+                        ? '#10B981'
+                        : pkg.isVip
+                          ? '#E65100'
+                          : pkg.isPopular
+                            ? '#0084FF'
+                            : isDark
+                              ? '#2C2C2E'
+                              : '#ECEFF1',
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.tagText,
-                      { color: pkg.isVip || pkg.isPopular ? '#FFF' : isDark ? '#9BA1A6' : '#5E6E7A' },
+                      { color: isCurrentActivePkg || pkg.isVip || pkg.isPopular ? '#FFF' : isDark ? '#9BA1A6' : '#5E6E7A' },
                     ]}
                   >
-                    {pkg.tag}
+                    {isCurrentActivePkg ? '✓ GÓI CỦA BẠN' : pkg.tag}
                   </Text>
                 </View>
 
-                {pkg.subTag && (
+                {isCurrentActivePkg ? (
+                  <View style={[styles.subTagBubble, { backgroundColor: '#10B981' }]}>
+                    <Text style={styles.subTagText}>
+                      {activePkgInfo.remainingDays !== undefined ? `CÒN ${activePkgInfo.remainingDays} NGÀY` : 'ĐANG KÍCH HOẠT ✓'}
+                    </Text>
+                  </View>
+                ) : pkg.subTag ? (
                   <View style={[styles.subTagBubble, { backgroundColor: pkg.isVip ? '#0084FF' : '#FF9800' }]}>
                     <Text style={styles.subTagText}>{pkg.subTag}</Text>
                   </View>
-                )}
+                ) : null}
               </View>
 
               {/* Title & Price */}
@@ -271,7 +305,7 @@ export default function RecruiterPricingScreen() {
                 <Text
                   style={[
                     styles.packagePrice,
-                    { color: pkg.isPopular ? '#0084FF' : pkg.isVip ? '#FFF' : '#0084FF' },
+                    { color: isCurrentActivePkg ? '#10B981' : pkg.isPopular ? '#0084FF' : pkg.isVip ? '#F59E0B' : '#0084FF' },
                   ]}
                 >
                   {pkg.price}
@@ -285,7 +319,7 @@ export default function RecruiterPricingScreen() {
                     <Ionicons
                       name="checkmark-circle"
                       size={18}
-                      color={pkg.isVip ? '#82C1F5' : '#4CAF50'}
+                      color={isCurrentActivePkg ? '#10B981' : pkg.isVip ? '#F59E0B' : '#4CAF50'}
                       style={styles.featureIcon}
                     />
                     <Text style={[styles.featureText, { color: descColor }]}>{feature}</Text>
@@ -293,14 +327,50 @@ export default function RecruiterPricingScreen() {
                 ))}
               </View>
 
-              {/* Purchase Button */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => handlePurchase(pkg)}
-                style={[styles.buyButton, { backgroundColor: buttonBg }]}
-              >
-                <Text style={[styles.buyButtonText, { color: buttonText }]}>Mua ngay</Text>
-              </TouchableOpacity>
+              {/* Purchase / Active Button */}
+              {isCurrentActivePkg ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (pkg.id === 'free') {
+                      Alert.alert('Thông báo', 'Bạn đang sử dụng Gói Miễn Phí mặc định.');
+                    } else {
+                      Alert.alert(
+                        'Đã Kích Hoạt',
+                        `Bạn đang sử dụng ${pkg.name}. Hạn dùng còn ${activePkgInfo.remainingDays || 30} ngày.\nBạn có muốn gia hạn thêm gói này không?`,
+                        [
+                          { text: 'Đóng', style: 'cancel' },
+                          { text: 'Gia hạn ngay', onPress: () => handlePurchase(pkg) }
+                        ]
+                      );
+                    }
+                  }}
+                  style={[styles.buyButton, { backgroundColor: '#10B981' }]}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                  <Text style={[styles.buyButtonText, { color: '#FFFFFF', fontWeight: '800' }]}>
+                    {pkg.id === 'free' ? '✓ Gói Đang Sử Dụng' : `✓ Đang Kích Hoạt (Gia Hạn)`}
+                  </Text>
+                </TouchableOpacity>
+              ) : isLowerThanActivePkg ? (
+                <View
+                  style={[styles.buyButton, { backgroundColor: isDark ? '#2C2C2E' : '#E5E7EB', opacity: 0.75 }]}
+                >
+                  <Text style={[styles.buyButtonText, { color: isDark ? '#9BA1A6' : '#64748B' }]}>
+                    Đã bao gồm trong gói {currentTier}
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => handlePurchase(pkg)}
+                  style={[styles.buyButton, { backgroundColor: buttonBg }]}
+                >
+                  <Text style={[styles.buyButtonText, { color: buttonText }]}>
+                    {pkg.isVip ? '👑 Mua Ngay Premium' : pkg.isPopular ? '⚡ Mua Ngay Pro' : 'Dùng Gói Này'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           );
         })}
