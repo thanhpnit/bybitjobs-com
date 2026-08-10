@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { Filter, Download, ArrowUpRight, MoreVertical } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
+import { DatePicker } from '../components/ui/DatePicker';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 
@@ -18,8 +19,18 @@ export const Payments: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [filterForm, setFilterForm] = useState({ company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' });
-  const [appliedFilters, setAppliedFilters] = useState({ company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' });
+  const [filterForm, setFilterForm] = useState({ company: '', minPrice: '', maxPrice: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ company: '', minPrice: '', maxPrice: '' });
+
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  });
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật
   const apiHost = '160.250.246.119';
@@ -57,44 +68,106 @@ export const Payments: React.FC = () => {
       .catch(err => console.error('Lỗi lấy danh sách giao dịch:', err));
   }, []);
 
-  const filteredTransactions = transactions.filter(item => {
-    // Basic search
-    const matchSearch = item.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.package.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchSearch) return false;
+  const dateFilteredTransactions = React.useMemo(() => {
+    const start = new Date(fromDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999);
+    return transactions.filter(item => item.rawDate >= start && item.rawDate <= end);
+  }, [transactions, fromDate, toDate]);
 
-    // Advanced filters
-    if (appliedFilters.company && !item.company.toLowerCase().includes(appliedFilters.company.toLowerCase())) return false;
-    
-    if (appliedFilters.minPrice) {
-      const min = parseInt(appliedFilters.minPrice, 10);
-      if (!isNaN(min) && item.rawPrice < min) return false;
-    }
-    
-    if (appliedFilters.maxPrice) {
-      const max = parseInt(appliedFilters.maxPrice, 10);
-      if (!isNaN(max) && item.rawPrice > max) return false;
-    }
-    
-    if (appliedFilters.startDate) {
-      const parts = appliedFilters.startDate.split('/');
-      if (parts.length === 3) {
-        const start = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-        if (!isNaN(start.getTime()) && item.rawDate < start) return false;
+  const filteredTransactions = React.useMemo(() => {
+    return dateFilteredTransactions.filter(item => {
+      // Basic search
+      const matchSearch = item.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.package.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchSearch) return false;
+
+      // Advanced filters
+      if (appliedFilters.company && !item.company.toLowerCase().includes(appliedFilters.company.toLowerCase())) return false;
+      
+      if (appliedFilters.minPrice) {
+        const min = parseInt(appliedFilters.minPrice, 10);
+        if (!isNaN(min) && item.rawPrice < min) return false;
       }
-    }
-    
-    if (appliedFilters.endDate) {
-      const parts = appliedFilters.endDate.split('/');
-      if (parts.length === 3) {
-        const end = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T23:59:59`);
-        if (!isNaN(end.getTime()) && item.rawDate > end) return false;
+      
+      if (appliedFilters.maxPrice) {
+        const max = parseInt(appliedFilters.maxPrice, 10);
+        if (!isNaN(max) && item.rawPrice > max) return false;
       }
+      
+      return true;
+    });
+  }, [dateFilteredTransactions, searchQuery, appliedFilters]);
+
+  const totalRevenue = React.useMemo(() => {
+    return dateFilteredTransactions
+      .filter(t => t.status === 'Completed')
+      .reduce((sum, t) => sum + t.rawPrice, 0);
+  }, [dateFilteredTransactions]);
+
+  const chartData = React.useMemo(() => {
+    const start = new Date(fromDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
+    
+    const labels = [];
+    const data = [];
+    for (let i = 0; i < daysDiff; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
+      
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const dailyRev = dateFilteredTransactions
+        .filter(t => t.status === 'Completed' && t.rawDate >= dayStart && t.rawDate <= dayEnd)
+        .reduce((sum, t) => sum + t.rawPrice, 0);
+      data.push(dailyRev);
     }
     
-    return true;
-  });
+    return { labels, data };
+  }, [dateFilteredTransactions, fromDate, toDate]);
+
+  const todayStats = React.useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(todayStart.getDate() - 1);
+    const yesterdayEnd = new Date(todayEnd);
+    yesterdayEnd.setDate(todayEnd.getDate() - 1);
+    
+    const todayCount = transactions.filter(t => t.rawDate >= todayStart && t.rawDate <= todayEnd).length;
+    const yesterdayCount = transactions.filter(t => t.rawDate >= yesterdayStart && t.rawDate <= yesterdayEnd).length;
+    
+    let growth = 0;
+    let growthText = "Không đổi";
+    if (yesterdayCount > 0) {
+      growth = ((todayCount - yesterdayCount) / yesterdayCount) * 100;
+      if (growth > 0) growthText = `Tăng ${growth.toFixed(1)}% so với hôm qua`;
+      else if (growth < 0) growthText = `Giảm ${Math.abs(growth).toFixed(1)}% so với hôm qua`;
+    } else if (todayCount > 0) {
+      growthText = `Tăng 100% so với hôm qua`;
+    }
+    
+    return { count: todayCount, growthText };
+  }, [transactions]);
+
+  const successRate = React.useMemo(() => {
+    if (dateFilteredTransactions.length === 0) return "0.0";
+    const successCount = dateFilteredTransactions.filter(t => t.status === 'Completed').length;
+    return ((successCount / dateFilteredTransactions.length) * 100).toFixed(1);
+  }, [dateFilteredTransactions]);
 
   const handleApplyFilter = () => {
     setAppliedFilters(filterForm);
@@ -102,7 +175,7 @@ export const Payments: React.FC = () => {
   };
 
   const handleClearFilter = () => {
-    const empty = { company: '', minPrice: '', maxPrice: '', startDate: '', endDate: '' };
+    const empty = { company: '', minPrice: '', maxPrice: '' };
     setFilterForm(empty);
     setAppliedFilters(empty);
     setIsFilterModalOpen(false);
@@ -110,23 +183,38 @@ export const Payments: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12, marginBottom: -8 }}>
+        <DatePicker 
+          label="Từ ngày" 
+          value={fromDate} 
+          onChange={setFromDate} 
+          style={{ width: 150 }} 
+        />
+        <DatePicker 
+          label="Đến ngày" 
+          value={toDate} 
+          onChange={setToDate} 
+          style={{ width: 150 }} 
+        />
+      </View>
+
       <View style={styles.topGrid}>
             <Card style={styles.chartCard}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
                 <View>
-                  <Typography variant="h3">Doanh thu 7 ngày qua</Typography>
-                  <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>Tổng cộng: 45.200.000 VNĐ</Typography>
+                  <Typography variant="h3">Doanh thu (Khoảng ngày chọn)</Typography>
+                  <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>Tổng cộng: {totalRevenue.toLocaleString()} VNĐ</Typography>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <ArrowUpRight color={colors.primaryColor} size={16} />
-                  <Typography variant="subtitle2" color="brand">+12.5%</Typography>
+                  <Typography variant="subtitle2" color="brand">Thực tế</Typography>
                 </View>
               </View>
               
               <MockChart
                 type="line"
-                labels={["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"]}
-                data={[15, 25, 45, 30, 60, 50, 70]}
+                labels={chartData.labels}
+                data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
                 height={220}
               />
             </Card>
@@ -134,17 +222,17 @@ export const Payments: React.FC = () => {
             <View style={styles.rightStats}>
               <Card style={[styles.statCardSolid, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
                 <Typography variant="subtitle2" style={{ color: 'rgba(255,255,255,0.8)' }}>Giao dịch hôm nay</Typography>
-                <Typography variant="h1" style={{ color: '#fff', marginVertical: 12 }}>128 Giao dịch</Typography>
+                <Typography variant="h1" style={{ color: '#fff', marginVertical: 12 }}>{todayStats.count} Giao dịch</Typography>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <ArrowUpRight color="#fff" size={16} />
-                  <Typography variant="body2" style={{ color: '#fff' }}>Tăng 8% so với hôm qua</Typography>
+                  <Typography variant="body2" style={{ color: '#fff' }}>{todayStats.growthText}</Typography>
                 </View>
               </Card>
 
               <Card style={styles.statCard}>
                 <Typography variant="subtitle2" color="secondary">Tỷ lệ thanh toán thành công</Typography>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                  <Typography variant="h1">98.4%</Typography>
+                  <Typography variant="h1">{successRate}%</Typography>
                   <View style={[styles.circleBadge, { borderColor: colors.successText }]}>
                     <Typography variant="caption" color="success" style={{ fontWeight: '700' }}>Safe</Typography>
                   </View>
@@ -249,24 +337,6 @@ export const Payments: React.FC = () => {
               placeholder="VD: 500000" 
               value={filterForm.maxPrice}
               onChangeText={(t) => setFilterForm({...filterForm, maxPrice: t})}
-            />
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Input 
-              label="Từ ngày (DD/MM/YYYY)" 
-              placeholder="VD: 01/05/2026" 
-              value={filterForm.startDate}
-              onChangeText={(t) => setFilterForm({...filterForm, startDate: t})}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Input 
-              label="Đến ngày (DD/MM/YYYY)" 
-              placeholder="VD: 31/05/2026" 
-              value={filterForm.endDate}
-              onChangeText={(t) => setFilterForm({...filterForm, endDate: t})}
             />
           </View>
         </View>
