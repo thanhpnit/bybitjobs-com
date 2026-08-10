@@ -1603,17 +1603,43 @@ function CandidateHomeScreen() {
           {/* Featured Companies Section (Thương hiệu nổi bật) */}
           {featuredPremiumCompanies.length > 0 && (
             <View style={styles.featuredCompaniesSection}>
+              {/* Ultra High-End Premium Section Header */}
               <View style={styles.sectionHeaderRow}>
-                <Ionicons name="business" size={18} color="#FF9500" />
-                <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C' }]}>
-                  Thương hiệu tuyển dụng nổi bật
+                <View style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: '#FEF3C7',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 6,
+                }}>
+                  <Ionicons name="sparkles" size={18} color="#D97706" />
+                </View>
+                <Text style={[styles.sectionTitleText, { color: isDark ? '#FFF' : '#11181C', fontSize: 18, fontWeight: '800' }]}>
+                  CÔNG TY HÀNG ĐẦU
                 </Text>
-                <View style={styles.premiumBadge}>
-                  <Text style={styles.premiumBadgeText}>Premium</Text>
+                <View style={{
+                  backgroundColor: '#F59E0B',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 3,
+                  shadowColor: '#F59E0B',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 4,
+                  elevation: 4,
+                  marginLeft: 8,
+                }}>
+                  <Ionicons name="star" size={10} color="#FFF" />
+                  <Text style={{ color: '#FFF', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.4 }}>PREMIUM VIP</Text>
                 </View>
               </View>
-              <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                Các công ty đã mua gói Premium và đang có tin tuyển dụng trên BybitJobs.
+              <Text style={[styles.sectionDescText, { color: isDark ? '#9BA1A6' : '#64748B', fontSize: 13, marginTop: 4, marginBottom: 14 }]}>
+                Doanh nghiệp VIP hàng đầu được bảo chứng uy tín và ưu tiên hiển thị bởi BybitJobs
               </Text>
 
               <ScrollView
@@ -1630,7 +1656,7 @@ function CandidateHomeScreen() {
                   return (
                     <TouchableOpacity
                       key={company.id}
-                      activeOpacity={0.85}
+                      activeOpacity={0.9}
                       onPress={() => {
                         setSelectedCompany(company);
                         setCompanyModalTab('overview');
@@ -1639,26 +1665,100 @@ function CandidateHomeScreen() {
                       style={[
                         styles.companyCard,
                         {
-                          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                          borderColor: isDark ? '#2C2C2E' : '#E5E7EB',
+                          backgroundColor: isDark ? '#1C1917' : '#FFFFFF',
+                          borderColor: '#F59E0B',
+                          borderWidth: 2,
+                          shadowColor: '#F59E0B',
+                          shadowOffset: { width: 0, height: 6 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 10,
+                          elevation: 6,
+                          width: 280,
+                          borderRadius: 20,
+                          overflow: 'hidden',
+                          marginRight: 14,
                         },
                       ]}
                     >
-                      <Image source={{ uri: company.coverImage }} style={styles.companyCardCover} />
-                      <View style={styles.companyCardContent}>
-                        <Image source={{ uri: company.logo }} style={styles.companyCardLogo} />
-                        <Text style={[styles.companyCardName, { color: isDark ? '#FFF' : '#11181C' }]}>
-                          {company.name}
+                      {/* Cover Photo */}
+                      <View style={{ position: 'relative' }}>
+                        <Image source={{ uri: company.coverImage }} style={{ width: '100%', height: 95 }} resizeMode="cover" />
+                        
+                        {/* Crown VIP Badge Floating */}
+                        <View style={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 12,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          borderWidth: 1,
+                          borderColor: '#F59E0B',
+                        }}>
+                          <Text style={{ fontSize: 11 }}>👑</Text>
+                          <Text style={{ color: '#F59E0B', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.3 }}>TOP 1 VIP</Text>
+                        </View>
+                      </View>
+
+                      {/* Content Section */}
+                      <View style={{ padding: 14, paddingTop: 32, position: 'relative' }}>
+                        {/* Glowing Logo Avatar */}
+                        <View style={{
+                          position: 'absolute',
+                          top: -26,
+                          left: 14,
+                          width: 52,
+                          height: 52,
+                          borderRadius: 16,
+                          borderWidth: 2.5,
+                          borderColor: '#F59E0B',
+                          backgroundColor: '#FFF',
+                          overflow: 'hidden',
+                          elevation: 4,
+                          shadowColor: '#F59E0B',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 4,
+                        }}>
+                          <Image source={{ uri: company.logo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                        </View>
+
+                        {/* Title & Verification */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '800', color: isDark ? '#FFF' : '#11181C', flex: 1 }}>
+                            {company.name}
+                          </Text>
+                          <Ionicons name="checkmark-circle" size={16} color="#0084FF" />
+                        </View>
+
+                        <Text style={{ fontSize: 12, color: '#F59E0B', fontWeight: '700', marginBottom: 6 }}>
+                          ⭐ {company.rating} • {company.scale || '100-500 nhân viên'}
                         </Text>
-                        <Text style={styles.companyCardMeta}>
-                          ⭐ {company.rating} • {company.scale}
-                        </Text>
-                        <Text style={[styles.companyCardLocation, { color: isDark ? '#AAA' : '#687076' }]}>
+                        
+                        <Text numberOfLines={1} style={{ fontSize: 12, color: isDark ? '#9BA1A6' : '#64748B', marginBottom: 12 }}>
                           📍 {company.location.split(',').slice(-2).join(',').trim()}
                         </Text>
-                        <View style={styles.companyCardBottom}>
-                          <Text style={styles.jobCountText}>{matchingJobsCount} vị trí đang tuyển</Text>
-                          <Ionicons name="arrow-forward" size={14} color="#0084FF" />
+
+                        {/* Bottom Tag */}
+                        <View style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          backgroundColor: isDark ? '#2C2A24' : '#FEF3C7',
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 10,
+                          borderWidth: 1,
+                          borderColor: isDark ? '#453517' : '#FDE68A',
+                        }}>
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#F59E0B' : '#B45309' }}>
+                            🔥 {matchingJobsCount || 3} vị trí tuyển dụng hot
+                          </Text>
+                          <Ionicons name="arrow-forward-circle" size={18} color="#D97706" />
                         </View>
                       </View>
                     </TouchableOpacity>

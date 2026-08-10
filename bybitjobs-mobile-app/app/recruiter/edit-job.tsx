@@ -17,11 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, canPostJob } from '@/hooks/use-auth';
 import { db } from '@/src/config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
-
-
 
 export default function RecruiterEditJobScreen() {
   const colorScheme = useColorScheme();
@@ -233,6 +231,23 @@ export default function RecruiterEditJobScreen() {
     if (!description.trim()) {
       Alert.alert('Cảnh báo', 'Mô tả công việc không được để trống.');
       return;
+    }
+
+    // Kiểm tra giới hạn số lượng tin tuyển dụng được phép đăng theo gói dịch vụ đang sở hữu
+    if (isNew) {
+      const recruiterActiveJobsCount = jobs.filter((j) => j.employerId === userData?.uid && j.isOpen).length;
+      const check = canPostJob(employerData, recruiterActiveJobsCount);
+      if (!check.allowed) {
+        Alert.alert(
+          'Đạt Giới Hạn Đăng Tin',
+          `${check.reason}\n\nBạn có muốn chuyển tới trang Nâng cấp dịch vụ ngay bây giờ không?`,
+          [
+            { text: 'Để sau', style: 'cancel' },
+            { text: 'Nâng cấp ngay', onPress: () => router.push('/recruiter/pricing') }
+          ]
+        );
+        return;
+      }
     }
 
     const jobData = {

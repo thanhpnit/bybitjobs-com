@@ -190,11 +190,48 @@ export const getEmployerPackageTier = (employerData: any): {
 };
 
 export const isPremiumEmployer = (employerData: any) => {
-  return getEmployerPackageTier(employerData).tier === 'PREMIUM';
+  const tierInfo = getEmployerPackageTier(employerData);
+  return tierInfo.tier === 'PREMIUM' && !tierInfo.isExpired;
 };
 
 export const isProEmployer = (employerData: any) => {
-  return getEmployerPackageTier(employerData).tier === 'PRO';
+  const tierInfo = getEmployerPackageTier(employerData);
+  return tierInfo.tier === 'PRO' && !tierInfo.isExpired;
+};
+
+export const getPackageLimits = (employerData: any) => {
+  const tierInfo = getEmployerPackageTier(employerData);
+  if (tierInfo.tier === 'PREMIUM') {
+    return { maxJobs: 9999, maxCvs: 9999, canAiJd: true, canAiScore: true, pinRank: 3 };
+  }
+  if (tierInfo.tier === 'PRO') {
+    return { maxJobs: 15, maxCvs: 50, canAiJd: false, canAiScore: true, pinRank: 2 };
+  }
+  return { maxJobs: 5, maxCvs: 10, canAiJd: false, canAiScore: false, pinRank: 1 };
+};
+
+export const canPostJob = (employerData: any, currentActiveJobsCount: number): { allowed: boolean; maxJobs: number; reason?: string } => {
+  const limits = getPackageLimits(employerData);
+  if (currentActiveJobsCount >= limits.maxJobs) {
+    return {
+      allowed: false,
+      maxJobs: limits.maxJobs,
+      reason: `Bạn đã đạt giới hạn tối đa ${limits.maxJobs} tin tuyển dụng của gói dịch vụ hiện tại. Vui lòng nâng cấp gói để đăng thêm tin mới.`,
+    };
+  }
+  return { allowed: true, maxJobs: limits.maxJobs };
+};
+
+export const canUnlockCV = (employerData: any, currentUnlockedCount: number): { allowed: boolean; maxCvs: number; reason?: string } => {
+  const limits = getPackageLimits(employerData);
+  if (currentUnlockedCount >= limits.maxCvs) {
+    return {
+      allowed: false,
+      maxCvs: limits.maxCvs,
+      reason: `Bạn đã sử dụng hết hạn mức ${limits.maxCvs} lượt mở khóa CV của gói hiện tại. Vui lòng nâng cấp lên gói dịch vụ cao hơn để xem tiếp.`,
+    };
+  }
+  return { allowed: true, maxCvs: limits.maxCvs };
 };
 
 export interface JobItem {
