@@ -95,6 +95,7 @@ export default function RecruiterProfileScreen() {
   // Logo & Banner state simulator
   const [logoColor, setLogoColor] = React.useState(employerData?.logo || '#0084FF');
   const [logoUploaded, setLogoUploaded] = React.useState(!!employerData?.logo);
+  const [logoImageFailed, setLogoImageFailed] = React.useState(false);
 
   // Dynamic branch list state
   const [branches, setBranches] = React.useState<BranchItem[]>(
@@ -182,9 +183,17 @@ export default function RecruiterProfileScreen() {
         base64: true,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0 && result.assets[0].base64) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setIsUploadingLogo(true);
-        const res = await updateAvatar(result.assets[0].base64, true);
+        const asset = result.assets[0];
+        let imageUri = asset.uri;
+        if (asset.base64) {
+          imageUri = asset.base64.startsWith('data:image') 
+            ? asset.base64 
+            : `data:image/jpeg;base64,${asset.base64}`;
+        }
+        setLogoImageFailed(false);
+        const res = await updateAvatar(imageUri, true);
         setIsUploadingLogo(false);
         if (res.success) {
           Alert.alert('Thành công', 'Đã cập nhật logo công ty mới!');
@@ -1095,18 +1104,34 @@ export default function RecruiterProfileScreen() {
                 />
               )}
               <View style={[styles.empLogoWrapper, { borderColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
-                  {(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url) && String(employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url).trim().length > 5 ? (
-                    <Image
-                      source={{ uri: employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url }}
-                      style={{ width: '100%', height: '100%' }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
-                      {getInitial(companyName)}
-                    </Text>
-                  )}
+                <View style={[styles.empLogoCircle, { backgroundColor: '#0084FF', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }]}>
+                  {(() => {
+                    const rawLogo = employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url;
+                    const hasLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.trim().length > 5 && !logoImageFailed;
+                    
+                    if (hasLogo) {
+                      let formattedUri = rawLogo.trim();
+                      if (!formattedUri.startsWith('http') && !formattedUri.startsWith('data:image') && !formattedUri.startsWith('file:')) {
+                        formattedUri = `data:image/jpeg;base64,${formattedUri}`;
+                      }
+                      return (
+                        <Image
+                          source={{ uri: formattedUri }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                          onError={() => setLogoImageFailed(true)}
+                        />
+                      );
+                    }
+
+                    return (
+                      <View style={{ width: '100%', height: '100%', backgroundColor: '#0084FF', justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}>
+                          {getInitial(companyName || employerData?.companyName || 'Công ty TNHH Campuchia')}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
                 {/* Edit overlay icon on logo to open editing form */}
                 <TouchableOpacity

@@ -1126,14 +1126,33 @@ function CandidateProfileScreen() {
                 resizeMode="cover"
               />
               <TouchableOpacity activeOpacity={0.8} onPress={() => handleUploadAvatar(true)} style={[styles.empLogoWrapper, { borderColor: isDark ? '#151718' : '#FFF' }]}>
-                <View style={[styles.empLogoCircle, { backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', overflow: 'hidden' }]}>
-                  {employerData?.logo ? (
-                    <Image source={{ uri: employerData.logo }} style={{ width: '100%', height: '100%' }} />
-                  ) : (
-                    <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0084FF' }}>
-                      {getInitial(employerData?.companyName || 'Công ty TNHH Giao Hàng Nhanh')}
-                    </Text>
-                  )}
+                <View style={[styles.empLogoCircle, { backgroundColor: '#0084FF', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }]}>
+                  {(() => {
+                    const rawLogo = employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url;
+                    const hasLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.trim().length > 5;
+                    
+                    if (hasLogo) {
+                      let formattedUri = rawLogo.trim();
+                      if (!formattedUri.startsWith('http') && !formattedUri.startsWith('data:image') && !formattedUri.startsWith('file:')) {
+                        formattedUri = `data:image/jpeg;base64,${formattedUri}`;
+                      }
+                      return (
+                        <Image
+                          source={{ uri: formattedUri }}
+                          style={{ width: '100%', height: '100%' }}
+                          resizeMode="cover"
+                        />
+                      );
+                    }
+
+                    return (
+                      <View style={{ width: '100%', height: '100%', backgroundColor: '#0084FF', justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 26, fontWeight: 'bold', color: '#FFFFFF' }}>
+                          {getInitial(employerData?.companyName || 'Công ty TNHH Giao Hàng Nhanh')}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
                 <View style={[styles.pencilOverlay, { bottom: 0, right: -5, backgroundColor: '#0084FF' }]}>
                   {isUploadingAvatar ? (
