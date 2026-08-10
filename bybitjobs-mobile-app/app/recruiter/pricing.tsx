@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../src/config/firebase';
-import { useAuth } from '../../hooks/use-auth';
+import { useAuth, getEmployerPackageTier } from '../../hooks/use-auth';
 
 interface PackageItem {
   id: string;
@@ -33,14 +33,11 @@ export default function RecruiterPricingScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { employerData, getEmployerPackageTier } = useAuth();
+  const { employerData } = useAuth();
 
   const activePkgInfo = React.useMemo(() => {
-    if (getEmployerPackageTier) {
-      return getEmployerPackageTier(employerData);
-    }
-    return { tier: 'FREE', isExpired: false, packageNameDisplay: 'Gói MIỄN PHÍ' };
-  }, [employerData, getEmployerPackageTier]);
+    return getEmployerPackageTier(employerData);
+  }, [employerData]);
 
   const defaultPackages: PackageItem[] = [
     {

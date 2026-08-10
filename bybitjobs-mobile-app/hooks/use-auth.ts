@@ -2420,5 +2420,6 @@ export function useAuth() {
     logout,
     switchRole,
     disableAccount,
+    getEmployerPackageTier: (overrideData?: any) => getEmployerPackageTier(overrideData || employerData),
   };
 }
