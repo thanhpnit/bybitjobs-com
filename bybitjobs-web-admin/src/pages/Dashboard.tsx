@@ -303,7 +303,7 @@ export const Dashboard: React.FC = () => {
           <Typography variant="h4" style={{ marginBottom: 24 }}>Xu hướng doanh thu (Ngày được chọn)</Typography>
           
           <MockChart
-            type="line"
+            type="bar"
             labels={chartData.labels}
             data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
             height={260}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, DimensionValue } from 'react-native';
+import { View, StyleSheet, DimensionValue, ScrollView } from 'react-native';
 import { Typography } from './Typography';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -19,37 +19,39 @@ export const MockChart: React.FC<MockChartProps> = ({ type, data, labels, height
   return (
     <View style={[styles.container, { height }]}>
       {/* Y Axis Guides */}
-      <View style={styles.guides}>
+      <View style={[styles.guides, { pointerEvents: 'none' }]}>
         {[4, 3, 2, 1, 0].map((step) => (
           <View key={step} style={[styles.guideLine, { borderBottomColor: colors.borderLight }]}>
             <Typography variant="caption" color="muted" style={styles.guideText}>
-              {Math.round((maxData / 4) * step)}
+              {Math.round((maxData / 4) * step).toLocaleString()}
             </Typography>
           </View>
         ))}
       </View>
 
-      {/* Chart Content */}
-      <View style={styles.chartArea}>
-        {data.map((value, index) => {
-          const heightPct = `${(value / maxData) * 100}%` as DimensionValue;
-          return (
-            <View key={index} style={styles.dataPoint}>
-              {type === 'bar' ? (
-                <View style={[styles.bar, { height: heightPct, backgroundColor: themeColor }]} />
-              ) : (
-                <View style={styles.lineColumn}>
-                  <View style={[styles.dot, { bottom: heightPct, backgroundColor: themeColor }]} />
-                  {/* Simplified line visualization using just dots for pure View implementation */}
-                  <View style={[styles.verticalLine, { height: heightPct, backgroundColor: themeColor, opacity: 0.2 }]} />
-                </View>
-              )}
-              <Typography variant="caption" color="secondary" style={styles.labelText}>
-                {labels[index]}
-              </Typography>
-            </View>
-          );
-        })}
+      {/* Chart Content (Scrollable) */}
+      <View style={styles.chartWrapper}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {data.map((value, index) => {
+            const heightPct = `${(value / maxData) * 100}%` as DimensionValue;
+            return (
+              <View key={index} style={styles.dataPoint}>
+                {type === 'bar' ? (
+                  <View style={[styles.bar, { height: heightPct, backgroundColor: themeColor }]} />
+                ) : (
+                  <View style={styles.lineColumn}>
+                    <View style={[styles.dot, { bottom: heightPct, backgroundColor: themeColor }]} />
+                    {/* Simplified line visualization using just dots for pure View implementation */}
+                    <View style={[styles.verticalLine, { height: heightPct, backgroundColor: themeColor, opacity: 0.2 }]} />
+                  </View>
+                )}
+                <Typography variant="caption" color="secondary" style={styles.labelText}>
+                  {labels[index]}
+                </Typography>
+              </View>
+            );
+          })}
+        </ScrollView>
       </View>
     </View>
   );
@@ -66,6 +68,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
     paddingBottom: 24, // Space for labels
+    zIndex: 0,
   },
   guideLine: {
     flex: 1,
@@ -77,23 +80,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     bottom: 4,
+    width: 60, // Fixed width for Y axis labels
   },
-  chartArea: {
+  chartWrapper: {
     flex: 1,
+    marginLeft: 60, // Space for Y axis labels
+    marginBottom: 24,
+    zIndex: 1,
+  },
+  scrollContent: {
+    minWidth: '100%',
+    flexGrow: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingLeft: 40, // Space for Y axis labels
-    paddingBottom: 24,
     justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
   dataPoint: {
     flex: 1,
+    minWidth: 40, // Ensure items don't squeeze too much when there are many days
     alignItems: 'center',
     justifyContent: 'flex-end',
     height: '100%',
   },
   bar: {
-    width: '60%',
+    width: 12,
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
   },
@@ -122,5 +133,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -24,
     textAlign: 'center',
+    width: 40,
   }
 });

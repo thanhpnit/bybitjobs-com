@@ -212,7 +212,7 @@ export const Payments: React.FC = () => {
               </View>
               
               <MockChart
-                type="line"
+                type="bar"
                 labels={chartData.labels}
                 data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
                 height={220}
