@@ -166,10 +166,229 @@ function CompanyDetailsContent({
             style={{
               position: 'absolute',
               top: 14,
-              )}
+              right: 14,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 20,
+              padding: 6,
+            }}
+          >
+            <Ionicons name="close" size={20} color="#FFF" />
+          </TouchableOpacity>
+
+          {/* VIP Crown Floating Badge */}
+          <View style={{
+            position: 'absolute',
+            top: 14,
+            left: 14,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            borderWidth: 1.5,
+            borderColor: '#F59E0B',
+          }}>
+            <Text style={{ fontSize: 13 }}>👑</Text>
+            <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>DOANH NGHIỆP VIP TOP 1</Text>
+          </View>
+        </View>
+
+        {/* Company Brief Header */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 34, position: 'relative', backgroundColor: isDark ? '#1C1917' : '#FFF' }}>
+          {/* Logo Avatar */}
+          <View style={{
+            position: 'absolute',
+            top: -30,
+            left: 16,
+            width: 60,
+            height: 60,
+            borderRadius: 18,
+            borderWidth: 2.5,
+            borderColor: '#F59E0B',
+            backgroundColor: '#FFF',
+            overflow: 'hidden',
+            elevation: 6,
+            shadowColor: '#F59E0B',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.35,
+            shadowRadius: 6,
+          }}>
+            <Image source={{ uri: selectedCompany.logo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#FFF' : '#11181C', flex: 1 }} numberOfLines={1}>
+              {selectedCompany.name}
+            </Text>
+            <Ionicons name="checkmark-circle" size={18} color="#0084FF" />
+          </View>
+          <Text style={{ fontSize: 12, color: '#F59E0B', fontWeight: '700', marginTop: 2 }}>{selectedCompany.industry || 'Thương hiệu Tuyển dụng Hàng đầu'}</Text>
+
+          {/* Quick Meta Row */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8, marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#2C2A24' : '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Ionicons name="people-outline" size={13} color="#D97706" />
+              <Text style={{ fontSize: 11, color: isDark ? '#F59E0B' : '#B45309', fontWeight: '700' }}>{selectedCompany.scale}</Text>
             </View>
-          )}
-        </ScrollView>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#252729' : '#F1F5F9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Ionicons name="location-outline" size={13} color="#64748B" />
+              <Text style={{ fontSize: 11, color: isDark ? '#CBD5E1' : '#475569', maxWidth: 160 }} numberOfLines={1}>
+                {selectedCompany.location.split(',').slice(-2).join(',').trim()}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#2C2A24' : '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+              <Ionicons name="star" size={13} color="#F59E0B" />
+              <Text style={{ fontSize: 11, color: '#F59E0B', fontWeight: '900' }}>
+                {selectedCompany.rating || 5.0} (Bảo chứng VIP 🏆)
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Sub-tabs Navigation */}
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', height: 44, borderBottomWidth: 1, borderBottomColor: isDark ? '#2C2C2E' : '#ECEFF1', backgroundColor: isDark ? '#1C1917' : '#FFFFFF' }}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setActiveSubTab('overview')}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: activeSubTab === 'overview' ? '#F59E0B' : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'overview' ? '#F59E0B' : (isDark ? '#9BA1A6' : '#687076') }}>
+                Môi trường & Về Doanh Nghiệp
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setActiveSubTab('jobs')}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: activeSubTab === 'jobs' ? '#F59E0B' : 'transparent',
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: activeSubTab === 'jobs' ? '#F59E0B' : (isDark ? '#9BA1A6' : '#687076') }}>
+                Vị trí tuyển dụng 🔥 ({matchingJobs.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+            {activeSubTab === 'overview' ? (
+              <View>
+                {/* VIP Commitment Banner */}
+                <View style={{
+                  padding: 12,
+                  borderRadius: 14,
+                  backgroundColor: isDark ? '#2C2A24' : '#FEF3C7',
+                  marginBottom: 14,
+                  borderWidth: 1,
+                  borderColor: isDark ? '#453517' : '#FDE68A',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <Text style={{ fontSize: 22 }}>👑</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: isDark ? '#F59E0B' : '#B45309' }}>
+                      DOANH NGHIỆP PREMIUM BẢO CHỨNG
+                    </Text>
+                    <Text style={{ fontSize: 11, color: isDark ? '#D97706' : '#92400E', marginTop: 2 }}>
+                      Môi trường làm việc đạt tiêu chuẩn chất lượng cao, quy trình phỏng vấn chuyên nghiệp và phản hồi nhanh chóng.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Description */}
+                <View style={{ padding: 14, borderRadius: 14, backgroundColor: isDark ? '#252320' : '#FFF', marginBottom: 14, borderWidth: 1, borderColor: isDark ? '#3D382E' : '#E5E7EB' }}>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 8 }}>
+                    🏢 Về doanh nghiệp
+                  </Text>
+                  <Text style={{ fontSize: 13, color: isDark ? '#CBD5E1' : '#475569', lineHeight: 19 }}>
+                    {selectedCompany.description}
+                  </Text>
+                </View>
+
+                {/* Address details */}
+                <View style={{ padding: 14, borderRadius: 14, backgroundColor: isDark ? '#252320' : '#FFF', marginBottom: 14, borderWidth: 1, borderColor: isDark ? '#3D382E' : '#E5E7EB' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#FFF' : '#11181C', marginBottom: 4 }}>
+                    📍 ĐỊA CHỈ TRỤ SỞ CHÍNH
+                  </Text>
+                  <Text style={{ fontSize: 12, color: isDark ? '#CBD5E1' : '#475569' }}>
+                    {selectedCompany.location}
+                  </Text>
+                </View>
+
+                {/* Benefits list */}
+                <View style={{ padding: 14, borderRadius: 14, backgroundColor: isDark ? '#252320' : '#FFF', borderWidth: 1, borderColor: isDark ? '#3D382E' : '#E5E7EB' }}>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', marginBottom: 10 }}>
+                    🎁 Quyền lợi & Chế độ đãi ngộ VIP
+                  </Text>
+                  {selectedCompany.benefits.map((benefit, index) => (
+                    <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', marginVertical: 5, gap: 8 }}>
+                      <Ionicons name="checkmark-circle" size={16} color="#F59E0B" style={{ marginTop: 1 }} />
+                      <Text style={{ flex: 1, fontSize: 12, color: isDark ? '#ECEDEE' : '#333', lineHeight: 17 }}>
+                        {benefit}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {matchingJobs.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                    <Ionicons name="briefcase-outline" size={44} color="#8E8E93" />
+                    <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 10, textAlign: 'center' }}>
+                      Hiện tại doanh nghiệp chưa đăng tuyển vị trí mới nào.
+                    </Text>
+                  </View>
+                ) : (
+                  matchingJobs.map((job) => (
+                    <TouchableOpacity
+                      key={job.id}
+                      activeOpacity={0.88}
+                      onPress={() => {
+                        setIsCompanyModalVisible(false);
+                        openJobDetails(job);
+                      }}
+                      style={{
+                        padding: 14,
+                        borderRadius: 14,
+                        backgroundColor: isDark ? '#252320' : '#FFF',
+                        borderWidth: 1.5,
+                        borderColor: '#F59E0B',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: isDark ? '#FFF' : '#11181C', flex: 1, marginRight: 8 }}>
+                          {job.title}
+                        </Text>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#F59E0B' }}>
+                          {job.price}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#64748B' }}>📍 {job.location}</Text>
+                        <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#64748B' }}>•</Text>
+                        <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#64748B' }}>{job.timeLeft.split(':')[1]?.trim() || job.timeLeft}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </View>
       </View>
     </View>
   );
