@@ -36,15 +36,17 @@ export const MockChart: React.FC<MockChartProps> = ({ type, data, labels, height
             const heightPct = `${(value / maxData) * 100}%` as DimensionValue;
             return (
               <View key={index} style={styles.dataPoint}>
-                {type === 'bar' ? (
-                  <View style={[styles.bar, { height: heightPct, backgroundColor: themeColor }]} />
-                ) : (
-                  <View style={styles.lineColumn}>
-                    <View style={[styles.dot, { bottom: heightPct, backgroundColor: themeColor }]} />
-                    {/* Simplified line visualization using just dots for pure View implementation */}
-                    <View style={[styles.verticalLine, { height: heightPct, backgroundColor: themeColor, opacity: 0.2 }]} />
-                  </View>
-                )}
+                <View style={styles.chartGraphics}>
+                  {type === 'bar' ? (
+                    <View style={[styles.bar, { height: heightPct, backgroundColor: themeColor }]} />
+                  ) : (
+                    <View style={styles.lineColumn}>
+                      <View style={[styles.dot, { bottom: heightPct, backgroundColor: themeColor }]} />
+                      {/* Simplified line visualization using just dots for pure View implementation */}
+                      <View style={[styles.verticalLine, { height: heightPct, backgroundColor: themeColor, opacity: 0.2 }]} />
+                    </View>
+                  )}
+                </View>
                 <Typography variant="caption" color="secondary" style={styles.labelText}>
                   {labels[index]}
                 </Typography>
@@ -62,12 +64,12 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 0,
   },
   guides: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
-    paddingBottom: 24, // Space for labels
+    paddingBottom: 28, // Space for labels (was 24)
     zIndex: 0,
   },
   guideLine: {
@@ -85,7 +87,6 @@ const styles = StyleSheet.create({
   chartWrapper: {
     flex: 1,
     marginLeft: 60, // Space for Y axis labels
-    marginBottom: 24,
     zIndex: 1,
   },
   scrollContent: {
@@ -98,10 +99,17 @@ const styles = StyleSheet.create({
   },
   dataPoint: {
     flex: 1,
-    minWidth: 40, // Ensure items don't squeeze too much when there are many days
+    minWidth: 40,
     alignItems: 'center',
     justifyContent: 'flex-end',
     height: '100%',
+  },
+  chartGraphics: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 8, // space between bar and label
   },
   bar: {
     width: 12,
@@ -130,9 +138,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 2,
   },
   labelText: {
-    position: 'absolute',
-    bottom: -24,
     textAlign: 'center',
-    width: 40,
+    width: '100%',
+    height: 20, // fixed height so chartGraphics takes the rest
   }
 });
