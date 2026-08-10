@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { useTheme } from '../context/ThemeContext';
 import { Wallet, Users as UsersIcon, FileText, AlertCircle, Star, CheckCircle2 } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
+import { DatePicker } from '../components/ui/DatePicker';
 import { useData } from '../context/DataContext';
 
 const screenWidth = Dimensions.get('window').width;
@@ -15,13 +16,24 @@ export const Dashboard: React.FC = () => {
   const isDark = theme === 'dark';
   const { users, jobPosts, reports, reviews } = useData();
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     fetch('http://160.250.246.119:4000/api/orders')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const mapped = data.slice(0, 5).map((item: any) => {
+          const mapped = data.map((item: any) => {
             const dateObj = new Date(item.createdAt);
             const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
             
@@ -34,17 +46,64 @@ export const Dashboard: React.FC = () => {
             return {
               id: `#TXN-${item.orderCode}`,
               date: dateStr,
+              rawDate: dateObj,
               name: item.companyName || 'Không xác định',
+              rawAmount: Number(item.price || 0),
               amount: `${Number(item.price || 0).toLocaleString()}đ`,
               method: 'PayOS',
               status: finalStatus === 'success' ? 'success' : (finalStatus === 'pending' ? 'warning' : 'danger')
             };
           });
-          setRecentTransactions(mapped);
+          setAllTransactions(mapped);
+          setRecentTransactions(mapped.slice(0, 5));
         }
       })
       .catch(err => console.error('Lỗi lấy giao dịch gần đây:', err));
   }, []);
+
+  const filteredTransactions = React.useMemo(() => {
+    const start = new Date(fromDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999);
+    
+    return allTransactions.filter(t => t.rawDate >= start && t.rawDate <= end);
+  }, [allTransactions, fromDate, toDate]);
+
+  const totalRevenue = React.useMemo(() => {
+    return filteredTransactions
+      .filter(t => t.status === 'success')
+      .reduce((sum, t) => sum + t.rawAmount, 0);
+  }, [filteredTransactions]);
+
+  const chartData = React.useMemo(() => {
+    const start = new Date(fromDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
+    
+    const labels = [];
+    const data = [];
+    for (let i = 0; i < daysDiff; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
+      
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const dailyRev = filteredTransactions
+        .filter(t => t.status === 'success' && t.rawDate >= dayStart && t.rawDate <= dayEnd)
+        .reduce((sum, t) => sum + t.rawAmount, 0);
+      data.push(dailyRev);
+    }
+    
+    return { labels, data };
+  }, [filteredTransactions, fromDate, toDate]);
 
   const parseDDMMYYYY = (str: string) => {
     if (!str) return new Date();
@@ -170,11 +229,27 @@ export const Dashboard: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Typography variant="h2">Tổng quan hệ thống</Typography>
-        <Typography variant="body1" color="secondary">
-          Chào mừng quay trở lại, đây là dữ liệu cập nhật mới nhất cho BybitJobs
-        </Typography>
+      <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }]}>
+        <View>
+          <Typography variant="h2">Tổng quan hệ thống</Typography>
+          <Typography variant="body1" color="secondary">
+            Chào mừng quay trở lại, đây là dữ liệu cập nhật mới nhất cho BybitJobs
+          </Typography>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <DatePicker 
+            label="Từ ngày" 
+            value={fromDate} 
+            onChange={setFromDate} 
+            style={{ width: 150 }} 
+          />
+          <DatePicker 
+            label="Đến ngày" 
+            value={toDate} 
+            onChange={setToDate} 
+            style={{ width: 150 }} 
+          />
+        </View>
       </View>
 
       <View style={styles.statsGrid}>
@@ -184,8 +259,8 @@ export const Dashboard: React.FC = () => {
           </View>
           <View style={styles.statInfo}>
             <Typography variant="body2" color="secondary">Tổng doanh thu</Typography>
-            <Typography variant="h3">128.500.000đ</Typography>
-            <Typography variant="caption" color="success">~ +12%</Typography>
+            <Typography variant="h3">{totalRevenue.toLocaleString()}đ</Typography>
+            <Typography variant="caption" color="success">~ Dữ liệu thực tế</Typography>
           </View>
         </Card>
         
@@ -225,12 +300,12 @@ export const Dashboard: React.FC = () => {
 
       <View style={styles.mainGrid}>
         <Card style={styles.chartSection}>
-          <Typography variant="h4" style={{ marginBottom: 24 }}>Xu hướng doanh thu (7 ngày qua)</Typography>
+          <Typography variant="h4" style={{ marginBottom: 24 }}>Xu hướng doanh thu (Ngày được chọn)</Typography>
           
           <MockChart
             type="line"
-            labels={["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"]}
-            data={[20, 25, 45, 30, 55, 40, 45]}
+            labels={chartData.labels}
+            data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
             height={260}
           />
         </Card>
