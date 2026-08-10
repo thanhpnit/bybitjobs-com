@@ -77,9 +77,19 @@ export const getEmployerPackageTier = (employerData: any): {
   // Nếu đã mua trả phí (PRO / PREMIUM) mà chưa có ngày hết hạn, mặc định tính 30 ngày từ ngày tạo/cập nhật
   if (!expiresAtRaw && (employerData.isPremium || employerData.isPro || employerData.packageTier)) {
     const startDate = employerData.packageStartDate || employerData.updatedAt || employerData.createdAt;
-    const startMs = startDate ? new Date(startDate).getTime() : Date.now();
+    let startMs = Date.now();
+    if (startDate) {
+      const parsedMs = new Date(startDate).getTime();
+      if (!isNaN(parsedMs)) {
+        startMs = parsedMs;
+      }
+    }
     const defaultExpMs = startMs + 30 * 24 * 60 * 60 * 1000;
-    expiresAtRaw = new Date(defaultExpMs).toISOString();
+    try {
+      expiresAtRaw = new Date(defaultExpMs).toISOString();
+    } catch (e) {
+      expiresAtRaw = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
   }
 
   let isExpired = false;
@@ -87,20 +97,24 @@ export const getEmployerPackageTier = (employerData: any): {
   let expiryDateStr: string | undefined = undefined;
 
   if (expiresAtRaw) {
-    const expTime = new Date(expiresAtRaw).getTime();
-    if (!isNaN(expTime)) {
-      const diffMs = expTime - Date.now();
-      if (diffMs <= 0) {
-        isExpired = true;
-        remainingDays = 0;
-      } else {
-        remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        const expDateObj = new Date(expTime);
-        const day = String(expDateObj.getDate()).padStart(2, '0');
-        const month = String(expDateObj.getMonth() + 1).padStart(2, '0');
-        const year = expDateObj.getFullYear();
-        expiryDateStr = `${day}/${month}/${year}`;
+    try {
+      const expTime = new Date(expiresAtRaw).getTime();
+      if (!isNaN(expTime)) {
+        const diffMs = expTime - Date.now();
+        if (diffMs <= 0) {
+          isExpired = true;
+          remainingDays = 0;
+        } else {
+          remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          const expDateObj = new Date(expTime);
+          const day = String(expDateObj.getDate()).padStart(2, '0');
+          const month = String(expDateObj.getMonth() + 1).padStart(2, '0');
+          const year = expDateObj.getFullYear();
+          expiryDateStr = `${day}/${month}/${year}`;
+        }
       }
+    } catch (err) {
+      console.warn('Lỗi xử lý ngày hết hạn gói:', err);
     }
   }
 
