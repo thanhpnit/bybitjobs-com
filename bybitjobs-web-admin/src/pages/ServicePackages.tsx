@@ -63,7 +63,7 @@ export const ServicePackages: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let maxPosts = 0;
     if (formData.posts.toLowerCase().includes('không giới hạn')) maxPosts = 9999;
     else maxPosts = parseInt(formData.posts.replace(/[^0-9]/g, ''), 10) || 0;
@@ -74,18 +74,26 @@ export const ServicePackages: React.FC = () => {
 
     const dataToSave = { ...formData, maxPosts, maxCVs };
 
-    if (editingId) {
-      setPackages(packages.map(i => i.id === editingId ? { ...i, ...dataToSave } : i));
-    } else {
-      const newId = `pkg-${Math.floor(Math.random() * 1000)}`;
-      setPackages([...packages, { 
-        id: newId, 
-        users: '0', 
-        iconName: 'Award', 
-        badge: 'MỚI', 
-        color: '#10B981', 
-        ...dataToSave 
-      }]);
+    try {
+      const targetId = editingId || `pkg-${Date.now()}`;
+      const existingItem = packages.find(i => i.id === targetId) || {};
+      const finalPkg = {
+        ...existingItem,
+        ...dataToSave,
+        id: targetId,
+      };
+
+      // 1. Lưu trực tiếp vào Firebase Firestore để đồng bộ vĩnh viễn
+      await setDoc(doc(db, 'packages', targetId), finalPkg, { merge: true });
+
+      // 2. Cập nhật state Web Admin ngay lập tức
+      if (editingId) {
+        setPackages(packages.map(i => i.id === editingId ? { ...i, ...finalPkg } : i));
+      } else {
+        setPackages([...packages, finalPkg]);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lưu gói dịch vụ vào Firebase:', error);
     }
     setIsModalOpen(false);
   };

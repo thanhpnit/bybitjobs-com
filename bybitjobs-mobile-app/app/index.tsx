@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Animated,
   StatusBar,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -119,10 +120,11 @@ export default function WelcomeScreen() {
           </Animated.View>
           
           <Animated.View style={[styles.logoIconWrapper, { transform: [{ scale: logoScale }] }]}>
-            <View style={styles.premiumLogoBg}>
-              <Ionicons name="sparkles" size={32} color="#FFF" style={styles.logoSpark} />
-              <Ionicons name="flash" size={44} color="#FFF" />
-            </View>
+            <Image 
+              source={require('../assets/images/icon.png')} 
+              style={{ width: 88, height: 88, borderRadius: 22 }} 
+              resizeMode="contain" 
+            />
           </Animated.View>
 
           {/* Stylized Brand Name */}
@@ -146,9 +148,11 @@ export default function WelcomeScreen() {
         {/* Onboarding Header with logo */}
         <View style={styles.header}>
           <View style={styles.miniLogoRow}>
-            <View style={styles.miniLogo}>
-              <Ionicons name="flash" size={16} color="#FFF" />
-            </View>
+            <Image 
+              source={require('../assets/images/icon.png')} 
+              style={{ width: 28, height: 28, borderRadius: 7, marginRight: 8 }} 
+              resizeMode="contain" 
+            />
             <Text style={[styles.miniBrandFirst, { color: isDark ? '#FFF' : '#0B0F19' }]}>ByBit</Text>
             <Text style={styles.miniBrandLast}>Jobs</Text>
           </View>

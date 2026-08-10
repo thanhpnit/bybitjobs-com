@@ -1215,8 +1215,15 @@ function CandidateHomeScreen() {
           {/* Top Bar Header */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftGroup}>
-              <Text style={styles.brandTitle}>BybitJobs</Text>
-              <Text style={styles.brandSubtitle}>Tìm việc làm nhanh chóng</Text>
+              <Image 
+                source={require('../../assets/images/icon.png')} 
+                style={{ width: 34, height: 34, borderRadius: 8, marginRight: 10 }} 
+                resizeMode="contain" 
+              />
+              <View>
+                <Text style={styles.brandTitle}>BybitJobs</Text>
+                <Text style={styles.brandSubtitle}>Tìm việc làm nhanh chóng</Text>
+              </View>
             </View>
 
             <View style={styles.headerRightGroup}>
@@ -2772,8 +2779,8 @@ const styles = StyleSheet.create({
     height: 58,
   },
   headerLeftGroup: {
-    flexDirection: 'column',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   brandTitle: {
     fontSize: 24,

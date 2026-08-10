@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMob
     <Animated.View style={sidebarStyles as any}>
       <View style={[styles.sidebarLogo, { borderBottomColor: colors.borderLight }]}>
         <View style={styles.logoWrapper}>
-          <View style={[styles.logoIcon, { backgroundColor: colors.primaryColor }]} />
+          <img src="/logo.png" alt="BybitJobs Logo" style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10, objectFit: 'contain' }} />
           <View style={styles.logoTextContainer}>
             <Text style={[styles.logoTitle, { color: colors.primaryColor }]}>BybitJobs</Text>
             <Text style={[styles.logoSubtitle, { color: colors.textMuted }]}>HỆ THỐNG QUẢN TRỊ</Text>

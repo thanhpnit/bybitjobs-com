@@ -39,8 +39,8 @@ export const Login: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.bgSecondary }]}>
       <View style={[styles.loginBox, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}>
         <View style={styles.header}>
-          <View style={[styles.logoIcon, { backgroundColor: colors.primaryColor }]} />
-          <Typography variant="h2" style={{ marginTop: 16 }}>Đăng nhập Quản trị</Typography>
+          <img src="/logo.png" alt="BybitJobs Logo" style={{ width: 64, height: 64, borderRadius: 16, marginBottom: 8, objectFit: 'contain' }} />
+          <Typography variant="h2" style={{ marginTop: 8 }}>Đăng nhập Quản trị</Typography>
           <Typography variant="body2" color="secondary" style={{ marginTop: 8 }}>
             Hệ thống quản trị BybitJobs
           </Typography>
