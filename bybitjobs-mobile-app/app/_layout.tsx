@@ -90,6 +90,67 @@ function ToastNotificationWrapper() {
   );
 }
 
+import { GlobalAppModal, showAppModal } from '@/components/custom-modal';
+import { Alert } from 'react-native';
+
+// Overriding standard Alert.alert globally with our high-end Custom Confirmation Popup Modal
+const nativeAlert = Alert.alert;
+Alert.alert = (title: string, message?: string, buttons?: any[], options?: any) => {
+  if (!buttons || buttons.length === 0) {
+    const textCombined = (title + (message || '')).toLowerCase();
+    const isSuccess = textCombined.includes('thành công') || textCombined.includes('đã cập nhật') || textCombined.includes('hoàn tất');
+    showAppModal({
+      type: isSuccess ? 'success' : 'info',
+      title: title || 'Thông báo',
+      message: message || '',
+      confirmText: 'Đã hiểu',
+      showCancel: false,
+    });
+    return;
+  }
+
+  if (buttons.length === 1) {
+    const btn = buttons[0];
+    const textCombined = (title + (message || '')).toLowerCase();
+    const isSuccess = textCombined.includes('thành công') || textCombined.includes('đã cập nhật') || textCombined.includes('hoàn tất');
+    showAppModal({
+      type: isSuccess ? 'success' : 'info',
+      title: title || 'Thông báo',
+      message: message || '',
+      confirmText: btn.text || 'Đồng ý',
+      showCancel: false,
+      onConfirm: btn.onPress,
+    });
+    return;
+  }
+
+  // Multiple buttons (Confirmation dialogs)
+  const cancelBtn = buttons.find((b) => b.style === 'cancel' || b.text?.toLowerCase().includes('hủy') || b.text?.toLowerCase().includes('đóng') || b.text?.toLowerCase().includes('thoát'));
+  const confirmBtn = buttons.find((b) => b !== cancelBtn) || buttons[1];
+
+  const textCombined = (title + (message || '')).toLowerCase();
+  let modalType: 'confirm' | 'success' | 'danger' | 'warning' | 'info' = 'confirm';
+
+  if (textCombined.includes('xóa') || textCombined.includes('hủy') || textCombined.includes('đăng xuất') || textCombined.includes('khóa') || confirmBtn?.style === 'destructive') {
+    modalType = 'danger';
+  } else if (textCombined.includes('cảnh báo') || textCombined.includes('lưu ý')) {
+    modalType = 'warning';
+  } else if (textCombined.includes('thành công') || textCombined.includes('kích hoạt')) {
+    modalType = 'success';
+  }
+
+  showAppModal({
+    type: modalType,
+    title: title || 'Xác nhận',
+    message: message || '',
+    cancelText: cancelBtn?.text || 'Hủy bỏ',
+    confirmText: confirmBtn?.text || 'Xác nhận',
+    showCancel: true,
+    onCancel: cancelBtn?.onPress,
+    onConfirm: confirmBtn?.onPress,
+  });
+};
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -103,6 +164,7 @@ export default function RootLayout() {
           </Stack>
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
           <ToastNotificationWrapper />
+          <GlobalAppModal />
         </NavigationThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

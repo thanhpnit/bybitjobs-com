@@ -15,6 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../src/config/firebase';
 import { useAuth, getEmployerPackageTier } from '../../hooks/use-auth';
+import CustomModal from '@/components/custom-modal';
 
 interface PackageItem {
   id: string;
@@ -34,6 +35,21 @@ export default function RecruiterPricingScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { employerData } = useAuth();
+
+  const [modalConfig, setModalConfig] = React.useState<{
+    visible: boolean;
+    type: 'confirm' | 'success' | 'warning' | 'info';
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    type: 'confirm',
+    title: '',
+    message: '',
+  });
 
   const activePkgInfo = React.useMemo(() => {
     return getEmployerPackageTier(employerData);
