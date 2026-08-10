@@ -67,22 +67,39 @@ export const getEmployerPackageTier = (employerData: any): {
   isExpired: boolean; 
   packageNameDisplay: string;
   remainingDays?: number;
+  expiryDateStr?: string;
 } => {
   if (!employerData) return { tier: 'FREE', isExpired: false, packageNameDisplay: 'Gói MIỄN PHÍ' };
 
-  // 1. Check expiration date ONLY IF packageExpiresAt / expires_at is set for paid package
-  const expiresAt = employerData.packageExpiresAt || employerData.expires_at || employerData.expiredAt || employerData.package_expires_at;
+  // 1. Lấy mốc thời gian hết hạn (nếu có lưu trong Firestore)
+  let expiresAtRaw = employerData.packageExpiresAt || employerData.expires_at || employerData.expiredAt || employerData.package_expires_at;
+
+  // Nếu đã mua trả phí (PRO / PREMIUM) mà chưa có ngày hết hạn, mặc định tính 30 ngày từ ngày tạo/cập nhật
+  if (!expiresAtRaw && (employerData.isPremium || employerData.isPro || employerData.packageTier)) {
+    const startDate = employerData.packageStartDate || employerData.updatedAt || employerData.createdAt;
+    const startMs = startDate ? new Date(startDate).getTime() : Date.now();
+    const defaultExpMs = startMs + 30 * 24 * 60 * 60 * 1000;
+    expiresAtRaw = new Date(defaultExpMs).toISOString();
+  }
+
   let isExpired = false;
   let remainingDays: number | undefined = undefined;
+  let expiryDateStr: string | undefined = undefined;
 
-  if (expiresAt) {
-    const expTime = new Date(expiresAt).getTime();
+  if (expiresAtRaw) {
+    const expTime = new Date(expiresAtRaw).getTime();
     if (!isNaN(expTime)) {
       const diffMs = expTime - Date.now();
       if (diffMs <= 0) {
         isExpired = true;
+        remainingDays = 0;
       } else {
         remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        const expDateObj = new Date(expTime);
+        const day = String(expDateObj.getDate()).padStart(2, '0');
+        const month = String(expDateObj.getMonth() + 1).padStart(2, '0');
+        const year = expDateObj.getFullYear();
+        expiryDateStr = `${day}/${month}/${year}`;
       }
     }
   }
@@ -94,7 +111,7 @@ export const getEmployerPackageTier = (employerData: any): {
   }
 
   if (isExpired) {
-    return { tier: 'FREE', isExpired: true, packageNameDisplay: 'Gói MIỄN PHÍ (Hết hạn)', remainingDays: 0 };
+    return { tier: 'FREE', isExpired: true, packageNameDisplay: 'Gói MIỄN PHÍ (Đã hết hạn)', remainingDays: 0, expiryDateStr: 'Đã hết hạn' };
   }
 
   // 3. Match Package Tier Name cleanly from ALL possible Firestore fields
@@ -138,6 +155,7 @@ export const getEmployerPackageTier = (employerData: any): {
       isExpired: false,
       packageNameDisplay: 'Gói PREMIUM (VIP 👑)',
       remainingDays: remainingDays !== undefined ? remainingDays : 30,
+      expiryDateStr,
     };
   }
 
@@ -157,6 +175,7 @@ export const getEmployerPackageTier = (employerData: any): {
       isExpired: false,
       packageNameDisplay: 'Gói PRO (Phổ Biến ⭐)',
       remainingDays: remainingDays !== undefined ? remainingDays : 30,
+      expiryDateStr,
     };
   }
 
@@ -166,6 +185,7 @@ export const getEmployerPackageTier = (employerData: any): {
     isExpired: false,
     packageNameDisplay: 'Gói MIỄN PHÍ',
     remainingDays: undefined,
+    expiryDateStr: undefined,
   };
 };
 
