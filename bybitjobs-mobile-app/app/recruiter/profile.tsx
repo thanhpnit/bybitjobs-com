@@ -18,7 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, getEmployerPackageTier } from '@/hooks/use-auth';
 import { db } from '@/src/config/firebase';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 
