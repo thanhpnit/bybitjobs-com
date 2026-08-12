@@ -158,12 +158,8 @@ export default function RecruiterRegisterScreen() {
       Alert.alert('Cảnh báo', 'Số điện thoại liên hệ không được để trống.');
       return;
     }
-    if (isLoadingCompanyAddress) {
-      Alert.alert('Cảnh báo', 'Vui lòng đợi hệ thống lấy địa chỉ công ty.');
-      return;
-    }
     if (!address.trim()) {
-      Alert.alert('Cảnh báo', 'Vui lòng chọn công ty từ danh sách gợi ý để tự lấy địa chỉ.');
+      Alert.alert('Cảnh báo', 'Vui lòng nhập địa chỉ trụ sở công ty.');
       return;
     }
 

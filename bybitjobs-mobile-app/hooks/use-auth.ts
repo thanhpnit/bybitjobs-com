@@ -1146,22 +1146,38 @@ export function useAuth() {
 
         const fetchEmployerData = async () => {
           try {
-            const empResponse = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
-            if (empResponse.ok) {
-              const empData = await empResponse.json();
+            let empData: any = null;
+            try {
+              const empResponse = await fetch(`http://160.250.246.119:4000/api/employers/${user.uid}`);
+              if (empResponse.ok) {
+                empData = await empResponse.json();
+              }
+            } catch (netErr) {
+              console.warn('API fetchEmployerData failed, attempting Firestore fallback:', netErr);
+            }
+
+            // Fallback to reading directly from Firestore if API call failed or returned null
+            if (!empData) {
+              const fsDoc = await getDoc(doc(db, 'employers', user.uid));
+              if (fsDoc.exists()) {
+                empData = fsDoc.data();
+              }
+            }
+
+            if (empData) {
               globalEmployerData = {
-                id: empData.id || empData.user_id,
-                companyName: empData.company_name || empData.company || '',
+                id: empData.id || empData.user_id || user.uid,
+                companyName: empData.company_name || empData.companyName || empData.company || '',
                 taxId: empData.tax_code || empData.taxId || '',
                 phoneNumber: empData.phone || empData.phoneNumber || '',
-                address: empData.address,
+                address: empData.address || '',
                 servicePackage: 'Free',
-                currentPackage: empData.current_package || 'basic',
+                currentPackage: empData.current_package || empData.currentPackage || 'basic',
                 status: empData.status || 'Chờ duyệt',
                 industry: empData.industry || 'Khác',
                 scale: empData.scale || '1-10 nhân viên',
                 description: empData.description || 'Chưa có mô tả',
-                logo: empData.logo_url || null,
+                logo: empData.logo_url || empData.logo || null,
                 email: user.email || '',
                 postsLimit: empData.postsLimit || '0/1'
               };
