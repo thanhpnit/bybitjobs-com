@@ -239,10 +239,24 @@ export const Notifications: React.FC = () => {
                 </View>
               ) : (
                 notifications.map((item) => {
-                  // Safe date check for serverTimestamp latency
-                  const dateStr = item.createdAt
-                    ? item.createdAt.toDate().toLocaleString('vi-VN')
-                    : 'Đang xử lý...';
+                  // Safe date check for serverTimestamp latency or string timestamps
+                  let dateStr = 'Đang xử lý...';
+                  if (item.createdAt) {
+                    try {
+                      if (typeof item.createdAt.toDate === 'function') {
+                        dateStr = item.createdAt.toDate().toLocaleString('vi-VN');
+                      } else if (typeof item.createdAt === 'string' || typeof item.createdAt === 'number') {
+                        const d = new Date(item.createdAt);
+                        if (!isNaN(d.getTime())) {
+                          dateStr = d.toLocaleString('vi-VN');
+                        }
+                      } else if (item.createdAt instanceof Date) {
+                        dateStr = item.createdAt.toLocaleString('vi-VN');
+                      }
+                    } catch (err) {
+                      dateStr = 'Đang xử lý...';
+                    }
+                  }
 
                   return (
                     <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
