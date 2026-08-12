@@ -2235,16 +2235,22 @@ export function useAuth() {
   const updateDesiredJob = async (newJob: string) => {
     if (firebaseUser) {
       try {
-        const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job: newJob })
-        });
-        if (!response.ok) {
-          throw new Error('Cập nhật thất bại từ Server');
+        // 1. Direct update to Firestore (Instant & Permanent)
+        await setDoc(doc(db, 'users', firebaseUser.uid), { desiredJob: newJob }, { merge: true });
+
+        // 2. Sync to Backend API
+        try {
+          await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/job`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job: newJob })
+          });
+        } catch (apiErr) {
+          console.warn('API sync job failed, saved in Firestore:', apiErr);
         }
+
         globalUserDataExtra = { ...globalUserDataExtra, desiredJob: newJob };
-        setUserDataExtra(globalUserDataExtra);
+        setUserDataExtra({ ...globalUserDataExtra });
         notifyAll();
       } catch (error) {
         console.error('Lỗi khi cập nhật công việc:', error);
@@ -2256,16 +2262,22 @@ export function useAuth() {
   const updateUserPhone = async (newPhone: string) => {
     if (firebaseUser) {
       try {
-        const response = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/phone`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: newPhone })
-        });
-        if (!response.ok) {
-          throw new Error('Cập nhật thất bại từ Server');
+        // 1. Direct update to Firestore (Instant & Permanent)
+        await setDoc(doc(db, 'users', firebaseUser.uid), { phone: newPhone, phoneNumber: newPhone }, { merge: true });
+
+        // 2. Sync to Backend API
+        try {
+          await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/phone`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: newPhone })
+          });
+        } catch (apiErr) {
+          console.warn('API sync phone failed, saved in Firestore:', apiErr);
         }
+
         globalUserDataExtra = { ...globalUserDataExtra, phone: newPhone };
-        setUserDataExtra(globalUserDataExtra);
+        setUserDataExtra({ ...globalUserDataExtra });
         notifyAll();
       } catch (error) {
         console.error('Lỗi khi cập nhật số điện thoại:', error);

@@ -38,12 +38,45 @@ export default function ApplyJobScreen() {
   const displayLocation = location || 'Chưa cập nhật địa điểm';
 
   // Form states
-  const [fullName, setFullName] = React.useState('');
-  const [phoneNumber, setPhoneNumber] = React.useState('');
-  const [email, setEmail] = React.useState('');
+  const [fullName, setFullName] = React.useState(userData?.fullName || '');
+  const [phoneNumber, setPhoneNumber] = React.useState(userData?.phone || (userData?.emailOrPhone?.match(/^[0-9+]+$/) ? userData?.emailOrPhone : '') || '');
+  const [email, setEmail] = React.useState(userData?.emailOrPhone || '');
   const [message, setMessage] = React.useState('');
-  const [cvUploaded, setCvUploaded] = React.useState(false);
-  const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string; url?: string } | null>(null);
+  const [cvUploaded, setCvUploaded] = React.useState(!!userData?.cvUrl);
+  const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string; url?: string } | null>(() => {
+    if (userData?.cvUrl) {
+      return {
+        name: userData.cvName || 'CV_Hoso.pdf',
+        size: userData.cvSize || 'Đã lưu',
+        uploadTime: userData.cvUploadTime || 'Đã cập nhật',
+        url: userData.cvUrl,
+      };
+    }
+    return null;
+  });
+
+  React.useEffect(() => {
+    if (userData) {
+      if (userData.fullName && !fullName) {
+        setFullName(userData.fullName);
+      }
+      if ((userData.phone || userData.emailOrPhone) && !phoneNumber) {
+        setPhoneNumber(userData.phone || (userData.emailOrPhone?.match(/^[0-9+]+$/) ? userData.emailOrPhone : ''));
+      }
+      if (userData.emailOrPhone && !email) {
+        setEmail(userData.emailOrPhone);
+      }
+      if (userData.cvUrl && !cvUploaded) {
+        setCvUploaded(true);
+        setCvFile({
+          name: userData.cvName || 'CV_Hoso.pdf',
+          size: userData.cvSize || 'Đã lưu',
+          uploadTime: userData.cvUploadTime || 'Đã cập nhật',
+          url: userData.cvUrl,
+        });
+      }
+    }
+  }, [userData]);
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = React.useState(false);
 
   const handleGenerateAICoverLetter = async () => {
