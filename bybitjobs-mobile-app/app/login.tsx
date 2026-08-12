@@ -22,7 +22,7 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { login, resetPassword, confirmResetPassword } = useAuth();
+  const { login, loginWithGoogle, resetPassword, confirmResetPassword } = useAuth();
 
   // Get dynamic redirect parameters and prefilled values if any
   const { redirectTitle, prefilledEmail, prefilledPassword } = useLocalSearchParams<{ 
@@ -43,6 +43,7 @@ export default function LoginScreen() {
   const [confirmNewPassword, setConfirmNewPassword] = React.useState('');
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [isResettingPassword, setIsResettingPassword] = React.useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
   // Auto-fill parameters when redirected from signup screen
   React.useEffect(() => {
@@ -183,8 +184,43 @@ export default function LoginScreen() {
     });
   };
 
-  const handleSocialLogin = (platform: 'Google' | 'Facebook') => {
-    Alert.alert('Đăng nhập', `Bắt đầu kết nối tài khoản thông qua ${platform}...`);
+  const handleSocialLogin = async (platform: 'Google' | 'Facebook') => {
+    if (platform === 'Google') {
+      setIsGoogleLoading(true);
+      const result = await loginWithGoogle();
+      setIsGoogleLoading(false);
+
+      if (!result.success) {
+        Alert.alert('Đăng nhập Google', result.message);
+        return;
+      }
+
+      Alert.alert(
+        'Thành công',
+        'Đăng nhập bằng Google thành công!',
+        [
+          {
+            text: 'Đồng ý',
+            onPress: () => {
+              if (redirectTitle) {
+                router.replace({
+                  pathname: '/apply-job',
+                  params: { title: redirectTitle }
+                });
+              } else {
+                if (router.canGoBack()) {
+                  router.dismissAll();
+                } else {
+                  router.replace('/(tabs)');
+                }
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert('Thông báo', `Tính năng đăng nhập qua ${platform} đang được cập nhật.`);
+    }
   };
 
   return (
@@ -307,6 +343,7 @@ export default function LoginScreen() {
                 {/* Google */}
                 <TouchableOpacity
                   activeOpacity={0.8}
+                  disabled={isGoogleLoading}
                   onPress={() => handleSocialLogin('Google')}
                   style={[
                     styles.socialButton,
@@ -316,8 +353,14 @@ export default function LoginScreen() {
                     },
                   ]}
                 >
-                  <Ionicons name="logo-google" size={16} color="#DB4437" style={styles.socialIcon} />
-                  <Text style={[styles.socialText, { color: isDark ? '#FFF' : '#11181C' }]}>Google</Text>
+                  {isGoogleLoading ? (
+                    <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 6 }} />
+                  ) : (
+                    <Ionicons name="logo-google" size={16} color="#DB4437" style={styles.socialIcon} />
+                  )}
+                  <Text style={[styles.socialText, { color: isDark ? '#FFF' : '#11181C' }]}>
+                    {isGoogleLoading ? 'Đang xử lý...' : 'Google'}
+                  </Text>
                 </TouchableOpacity>
 
                 {/* Facebook */}

@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, AlertCircle } from 'lucide-react-native';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 const { width } = Dimensions.get('window');
 
 export const Login: React.FC = () => {
   const { colors } = useTheme();
   const { login, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -88,7 +87,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
+    height: '100%' as any,
   },
   loginBox: {
     width: Math.min(width - 32, 400),

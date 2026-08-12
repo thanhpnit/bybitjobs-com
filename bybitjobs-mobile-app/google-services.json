@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "811135097267",
+    "project_id": "bybitjobs",
+    "storage_bucket": "bybitjobs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:811135097267:android:38c456640f5cc0c4cd93c6",
+        "android_client_info": {
+          "package_name": "com.daivn06.bybitjobsmobileapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwbr2itAf71ppr81tNyD9qd1iEHTQrofM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

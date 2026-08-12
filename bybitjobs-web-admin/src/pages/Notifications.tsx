@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Typography } from '../components/ui/Typography';
@@ -375,11 +375,6 @@ export const Notifications: React.FC = () => {
       </Modal>
     </View>
   );
-};
-
-// Custom standard react-native Text element helper inside badge
-const Text: React.FC<{ children: React.ReactNode; style?: any; numberOfLines?: number }> = ({ children, style, numberOfLines }) => {
-  return <Typography variant="body2" style={style} numberOfLines={numberOfLines}>{children}</Typography>;
 };
 
 const styles = StyleSheet.create({

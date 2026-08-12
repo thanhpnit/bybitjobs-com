@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.daivn06.bybitjobsmobileapp"
+      "package": "com.daivn06.bybitjobsmobileapp",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -28,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {
@@ -39,7 +41,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,9 +51,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "a9e7535d-7566-4081-b51a-89c331b622a7"
+        "projectId": "7f963e0b-b8f2-405e-97a8-02b06d0a5a27"
       }
     },
-    "owner": "iamnai2006"
+    "owner": "daivn06"
   }
 }

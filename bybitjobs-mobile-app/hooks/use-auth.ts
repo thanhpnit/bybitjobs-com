@@ -1,10 +1,10 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { auth, db } from '../src/config/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   updateProfile,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -12,8 +12,23 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
+  signInWithCredential,
+  GoogleAuthProvider,
   User as FirebaseUser
 } from 'firebase/auth';
+
+let GoogleSignin: any = null;
+try {
+  const GoogleModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = GoogleModule?.GoogleSignin;
+  if (GoogleSignin) {
+    GoogleSignin.configure({
+      webClientId: '811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com',
+    });
+  }
+} catch (e) {
+  console.warn('RNGoogleSignin native module is not available in current environment:', e);
+}
 import { doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, where, getDocs, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { registerForPushNotificationsAsync } from './use-push-notifications';
 
@@ -40,7 +55,9 @@ export interface EmployerData {
   description?: string;
   branches?: BranchItem[];
   logo?: string;
+  logoUrl?: string;
   coverImage?: string;
+  cover_image?: string;
   status?: string;
   postsLimit?: string;
   usedPosts?: number;
@@ -62,9 +79,9 @@ export interface UserData {
 
 export type PackageTier = 'PREMIUM' | 'PRO' | 'FREE';
 
-export const getEmployerPackageTier = (employerData: any): { 
-  tier: PackageTier; 
-  isExpired: boolean; 
+export const getEmployerPackageTier = (employerData: any): {
+  tier: PackageTier;
+  isExpired: boolean;
   packageNameDisplay: string;
   remainingDays?: number;
   expiryDateStr?: string;
@@ -385,7 +402,7 @@ export const formatDeadlineDisplay = (deadlineStr?: string): string => {
         if (p1 > 12) {
           day = p1;
           month = p2;
-        } 
+        }
         // If p2 > 12 -> p1 is Month, p2 is Day (MM/DD/YYYY -> convert to DD/MM/YYYY)
         else if (p2 > 12) {
           day = p2;
@@ -406,7 +423,7 @@ export const formatDeadlineDisplay = (deadlineStr?: string): string => {
       const mStr = String(parsed.getMonth() + 1).padStart(2, '0');
       return `${dStr}/${mStr}/${parsed.getFullYear()}`;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   return deadlineStr;
 };
@@ -686,7 +703,7 @@ let globalReadIds: string[] = [];
 let globalDeletedNotificationIds: string[] = [];
 let globalActiveToast: { id: string; title: string; description: string } | null = null;
 let globalSeqId = '000000';
-let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string } = {};
+let globalUserDataExtra: { desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string; avatar?: string; address?: string; companyName?: string } = {};
 let lastSubscribedUserId: string | null = null;
 const appStartTime = new Date();
 
@@ -761,7 +778,7 @@ export function useAuth() {
   const [firebaseUser, setFirebaseUser] = React.useState<FirebaseUser | null>(auth.currentUser);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [seqId, setSeqId] = React.useState<string>('000000');
-  
+
   const [userRole, setUserRole] = React.useState<UserRole>(globalUserRole);
   const [employerData, setEmployerData] = React.useState<EmployerData | null>(globalEmployerData);
   const [jobs, setJobs] = React.useState<JobItem[]>(globalJobs);
@@ -771,8 +788,8 @@ export function useAuth() {
   const [savedJobs, setSavedJobs] = React.useState<SavedJobItem[]>(globalSavedJobs);
   const [viewedJobs, setViewedJobs] = React.useState<ViewedJobItem[]>(globalViewedJobs);
   const [invitations, setInvitations] = React.useState<InvitationItem[]>(globalInvitations);
-  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string }>(globalUserDataExtra);
-  
+  const [userDataExtra, setUserDataExtra] = React.useState<{ desiredJob?: string; phone?: string; cvName?: string; cvSize?: string; cvUploadTime?: string; cvUrl?: string; avatar?: string }>(globalUserDataExtra);
+
   const [notifications, setNotifications] = React.useState<any[]>(globalNotifications);
   const [readIds, setReadIds] = React.useState<string[]>(globalReadIds);
   const [deletedNotificationIds, setDeletedNotificationIds] = React.useState<string[]>(globalDeletedNotificationIds);
@@ -783,7 +800,7 @@ export function useAuth() {
       setFirebaseUser(user);
       if (user) {
         if (!globalUserRole) globalUserRole = 'candidate';
-        
+
         // Guard check: only initialize if this is a new user session
         if (lastSubscribedUserId === user.uid) {
           // Sync states immediately for this hook instance
@@ -800,7 +817,7 @@ export function useAuth() {
           setIsInitializing(false);
           return;
         }
-        
+
         lastSubscribedUserId = user.uid;
 
         // Đăng ký thông báo đẩy và lưu token lên Firestore
@@ -822,15 +839,15 @@ export function useAuth() {
         } catch (err) {
           console.error('Lỗi lấy seqId:', err);
         }
-        
+
         // Fetch job from API instead of Firestore client SDK
         const fetchUserData = async () => {
           try {
             const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}`);
             if (response.ok) {
               const data = await response.json();
-              globalUserDataExtra = { 
-                desiredJob: data.job, 
+              globalUserDataExtra = {
+                desiredJob: data.job,
                 phone: data.phone,
                 cvName: data.cvName,
                 cvSize: data.cvSize,
@@ -1154,7 +1171,7 @@ export function useAuth() {
                 const qOrders = query(collection(db, 'orders'), where('employerId', '==', user.uid), orderBy('createdAt', 'desc'));
                 globalOrdersUnsubscribe = onSnapshot(qOrders, (snapshot) => {
                   globalOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderItem[];
-                  
+
                   // Auto update package if there is a successful order
                   const latestSuccessOrder = globalOrders.find(o => o.status === 'success');
                   if (globalEmployerData) {
@@ -1162,7 +1179,7 @@ export function useAuth() {
                       ...globalEmployerData,
                       currentPackage: latestSuccessOrder ? latestSuccessOrder.packageName : (globalEmployerData.currentPackage || 'basic')
                     };
-                    setEmployerData({...globalEmployerData});
+                    setEmployerData({ ...globalEmployerData });
                   }
                   setOrders([...globalOrders]);
                   notifyAll();
@@ -1170,7 +1187,7 @@ export function useAuth() {
                   console.error('Lỗi tải danh sách đơn hàng:', error);
                 });
               }
-              
+
               if (!globalUserRole) {
                 globalUserRole = 'candidate';
               }
@@ -1193,7 +1210,7 @@ export function useAuth() {
         };
 
         fetchEmployerData();
-        
+
         pollingInterval = setInterval(() => {
           if (!globalEmployerData || globalEmployerData.status === 'Chờ duyệt') {
             fetchEmployerData();
@@ -1304,7 +1321,7 @@ export function useAuth() {
           if (err.code === 'auth/user-disabled' || err.code === 'auth/user-not-found') {
             if (intervalId) clearInterval(intervalId);
             const title = err.code === 'auth/user-disabled' ? 'Tài khoản bị vô hiệu hóa hoặc khóa' : 'Tài khoản không tồn tại';
-            const msg = err.code === 'auth/user-disabled' 
+            const msg = err.code === 'auth/user-disabled'
               ? 'Tài khoản của bạn đã bị vô hiệu hóa hoặc bị khóa. Vui lòng liên hệ ban quản trị để được hỗ trợ.'
               : 'Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ ban quản trị để được hỗ trợ.';
             Alert.alert(
@@ -1347,6 +1364,84 @@ export function useAuth() {
         msg = 'Chưa bật tính năng Đăng nhập Email/Password trên Firebase!';
       }
       return { success: false, message: msg };
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<{ success: boolean; message: string }> => {
+    if (!GoogleSignin) {
+      return {
+        success: false,
+        message: 'Chức năng Đăng nhập Google yêu cầu bản build APK (npx expo run:android) hoặc Development Build. Ứng dụng Expo Go mặc định không chứa thư viện native Google Sign-In.'
+      };
+    }
+    try {
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+
+      const signInResult = await GoogleSignin.signIn();
+      let idToken = signInResult.data?.idToken;
+      if (!idToken && (signInResult as any).idToken) {
+        idToken = (signInResult as any).idToken;
+      }
+
+      if (!idToken) {
+        return {
+          success: false,
+          message: 'Không lấy được Token đăng nhập Google. Vui lòng đảm bảo đã cấu hình Web Client ID trên Firebase Console.'
+        };
+      }
+
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, googleCredential);
+      const user = userCredential.user;
+
+      if (user) {
+        // Tải/Tạo seqId từ backend server VPS
+        try {
+          const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/seq`);
+          if (response.ok) {
+            const data = await response.json();
+            globalSeqId = data.seqId;
+            setSeqId(data.seqId);
+          }
+        } catch (e) { }
+
+        // Kiểm tra & Cập nhật dữ liệu Firestore
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userDocRef);
+          if (!userSnap.exists()) {
+            await setDoc(userDocRef, {
+              email: user.email || '',
+              fullName: user.displayName || 'Người dùng Google',
+              avatar: user.photoURL || '',
+              authProvider: 'google',
+              role: globalUserRole || 'candidate',
+              createdAt: serverTimestamp(),
+            }, { merge: true });
+          }
+        } catch (fsErr) {
+          console.error('Lỗi khi lưu thông tin user Google vào Firestore:', fsErr);
+        }
+
+        setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+        notifyAll();
+      }
+
+      return { success: true, message: 'Đăng nhập bằng Google thành công!' };
+    } catch (error: any) {
+      console.error('Lỗi Đăng nhập Google:', error);
+      if (error.code === 'SIGN_IN_CANCELLED' || error.message?.includes('cancel') || error.message?.includes('Canceled')) {
+        return { success: false, message: 'Bạn đã hủy đăng nhập Google.' };
+      }
+      if (error.message?.includes('RNGoogleSignin') || error.message?.includes('null')) {
+        return {
+          success: false,
+          message: 'Chức năng Đăng nhập Google yêu cầu chạy trên thiết bị thực/bản build APK có tích hợp native SDK.'
+        };
+      }
+      return { success: false, message: error.message || 'Đăng nhập Google thất bại.' };
     }
   };
 
@@ -1433,7 +1528,7 @@ export function useAuth() {
           setSeqId(data.seqId);
           notifyAll();
         }
-      } catch {}
+      } catch { }
       return { success: true, message: 'Đăng ký tài khoản thành công!' };
     } catch (error: any) {
       let msg = `Đăng ký thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
@@ -1462,7 +1557,7 @@ export function useAuth() {
     try {
       const user = auth.currentUser;
       if (!user || !user.email) return { success: false, message: 'Chưa đăng nhập hoặc tài khoản thiếu email.' };
-      
+
       const response = await fetch('http://160.250.246.119:4000/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1475,7 +1570,7 @@ export function useAuth() {
       } catch (e) {
         console.warn('Phản hồi send-otp từ server không phải JSON:', responseText);
       }
-      
+
       return { success: response.ok, message: result.message || result.error || 'Lỗi gửi mã OTP qua Nodemailer. Vui lòng deploy server VPS.' };
     } catch (error: any) {
       console.error('Lỗi gọi API sendOtp Nodemailer:', error);
@@ -1489,14 +1584,14 @@ export function useAuth() {
       if (!user) {
         return { success: false, message: 'Chưa đăng nhập.' };
       }
-      
+
       const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ otp })
       });
       const result = await response.json();
-      
+
       if (response.ok) {
         await user.reload();
         setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
@@ -1514,7 +1609,7 @@ export function useAuth() {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('Chưa đăng nhập');
-      
+
       const payload = {
         company: data.companyName,
         industry: data.industry || 'Khác',
@@ -1530,7 +1625,7 @@ export function useAuth() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         globalUserRole = 'candidate';
@@ -1574,7 +1669,7 @@ export function useAuth() {
               logo: data.logoUrl || data.logo,
               ...payload
             }, { merge: true });
-          } catch (fsErr) {}
+          } catch (fsErr) { }
           notifyAll();
         }
       } catch (error) {
@@ -1619,9 +1714,9 @@ export function useAuth() {
         // Fallback backward compatibility for users still having postsLimit string
         let used = globalEmployerData.usedPosts || 0;
         if (globalEmployerData.postsLimit && globalEmployerData.postsLimit.includes('/')) {
-            used = parseInt(globalEmployerData.postsLimit.split('/')[0], 10) || 0;
+          used = parseInt(globalEmployerData.postsLimit.split('/')[0], 10) || 0;
         }
-        
+
         // 1. Check expiration
         if (globalEmployerData.packageExpiresAt) {
           const expiresAt = new Date(globalEmployerData.packageExpiresAt);
@@ -1649,10 +1744,10 @@ export function useAuth() {
         });
 
         if (!limit) {
-           const cp = currentPackage.toLowerCase();
-           if (cp.includes('pro') || cp.includes('gold') || cp.includes('standard') || cp.includes('vàng')) limit = 15;
-           else if (cp.includes('premium') || cp.includes('diamond') || cp.includes('vip') || cp.includes('kim cương')) limit = 9999;
-           else limit = 5; // Default Free: 5 posts limit
+          const cp = currentPackage.toLowerCase();
+          if (cp.includes('pro') || cp.includes('gold') || cp.includes('standard') || cp.includes('vàng')) limit = 15;
+          else if (cp.includes('premium') || cp.includes('diamond') || cp.includes('vip') || cp.includes('kim cương')) limit = 9999;
+          else limit = 5; // Default Free: 5 posts limit
         }
 
         if (used >= limit) {
@@ -1666,7 +1761,7 @@ export function useAuth() {
           );
           return false; // Not allowed
         }
-        
+
         // Cập nhật lượt đăng bài
         const newUsed = used + 1;
         globalEmployerData.usedPosts = newUsed;
@@ -1691,7 +1786,7 @@ export function useAuth() {
         status: 'Chờ duyệt'
       };
       await setDoc(doc(db, 'jobs', jobId), newJob);
-      
+
       // Kích hoạt AI gợi ý ứng viên (chạy ngầm)
       fetch(`http://160.250.246.119:4000/api/jobs/${jobId}/ai-match`, { method: 'POST' })
         .catch(err => console.log('Lỗi gọi AI Match:', err));
@@ -1767,7 +1862,7 @@ export function useAuth() {
         const job = globalJobs.find((j) => j.id === app.jobId);
         const jobTitle = app.jobTitle || job?.title || 'công việc';
         const companyName = app.companyName || job?.posterName || 'Nhà tuyển dụng';
-        
+
         const notifTitle = status === 'Approved' ? 'Hồ sơ được chấp nhận' : 'Hồ sơ bị từ chối';
         const notifBody = status === 'Approved'
           ? `Hồ sơ ứng tuyển của bạn cho công việc "${jobTitle}" tại "${companyName}" đã được duyệt.`
@@ -1816,7 +1911,7 @@ export function useAuth() {
     const job = globalJobs.find(j => j.id === jobId);
     if (job && job.employerId) {
       const jobAppsCount = globalApplications.filter((app) => app.jobId === jobId).length;
-      
+
       const empDoc = await getDoc(doc(db, 'employers', job.employerId));
       let currentPackage = 'Miễn phí';
       if (empDoc.exists()) {
@@ -1831,13 +1926,13 @@ export function useAuth() {
           maxCVs = pkg.maxCVs || 0;
         }
       });
-      
+
       if (!maxCVs) {
-         const cp = currentPackage.toLowerCase();
-         if (cp.includes('starter') || cp.includes('basic')) maxCVs = 10;
-         else if (cp.includes('pro') || cp.includes('standard')) maxCVs = 20;
-         else if (cp.includes('premium')) maxCVs = 99999;
-         else maxCVs = 5;
+        const cp = currentPackage.toLowerCase();
+        if (cp.includes('starter') || cp.includes('basic')) maxCVs = 10;
+        else if (cp.includes('pro') || cp.includes('standard')) maxCVs = 20;
+        else if (cp.includes('premium')) maxCVs = 99999;
+        else maxCVs = 5;
       }
 
       if (jobAppsCount >= maxCVs) {
@@ -2072,7 +2167,7 @@ export function useAuth() {
 
     try {
       await updateDoc(doc(db, 'invitations', invitationId), { status });
-      
+
       globalInvitations = globalInvitations.map(inv => {
         if (inv.id === invitationId) {
           return { ...inv, status };
@@ -2191,17 +2286,17 @@ export function useAuth() {
             } else {
               serverErrorMsg = errorObj.error || serverErrorMsg;
             }
-          } catch (e) {}
+          } catch (e) { }
           throw new Error(serverErrorMsg);
         }
       } catch (error) {
         console.warn('Lỗi khi cập nhật CV lên server (đang sử dụng chế độ offline/local state):', error);
       }
 
-      globalUserDataExtra = { 
-        ...globalUserDataExtra, 
-        cvName: cvName || undefined, 
-        cvSize: cvName ? cvSize : undefined, 
+      globalUserDataExtra = {
+        ...globalUserDataExtra,
+        cvName: cvName || undefined,
+        cvSize: cvName ? cvSize : undefined,
         cvUploadTime: cvName ? cvUploadTime : undefined,
         cvUrl: cvName ? cvUrl : undefined
       };
@@ -2235,10 +2330,10 @@ export function useAuth() {
           body: JSON.stringify({ logo: imageUrl, logoUrl: imageUrl, logo_url: imageUrl })
         });
         if (!res.ok) throw new Error('Lỗi lưu logo');
-        
+
         if (globalEmployerData) {
           globalEmployerData = { ...globalEmployerData, logo: imageUrl, logoUrl: imageUrl, logo_url: imageUrl } as any;
-          setEmployerData({ ...globalEmployerData });
+          setEmployerData({ ...globalEmployerData } as EmployerData);
         }
       } else {
         const res = await fetch(`http://160.250.246.119:4000/api/users/${firebaseUser.uid}/avatar`, {
@@ -2247,7 +2342,7 @@ export function useAuth() {
           body: JSON.stringify({ avatar: imageUrl })
         });
         if (!res.ok) throw new Error('Lỗi lưu avatar');
-        
+
         globalUserDataExtra = { ...globalUserDataExtra, avatar: imageUrl };
         setUserDataExtra(globalUserDataExtra);
       }
@@ -2281,7 +2376,7 @@ export function useAuth() {
 
       if (globalEmployerData) {
         globalEmployerData = { ...globalEmployerData, coverImage: imageUrl } as any;
-        setEmployerData({ ...globalEmployerData });
+        setEmployerData({ ...globalEmployerData } as EmployerData);
       }
       notifyAll();
       return { success: true, url: imageUrl };
@@ -2315,48 +2410,48 @@ export function useAuth() {
 
   const mergedNotifications = firebaseUser
     ? [...notifications, ...mockNotifications]
-        .filter((item) => {
-          // If explicit role is set, it must strictly match current userRole
-          if (item.role) {
-            return item.role === userRole;
-          }
+      .filter((item) => {
+        // If explicit role is set, it must strictly match current userRole
+        if (item.role) {
+          return item.role === userRole;
+        }
 
-          const title = (item.title || '').toLowerCase();
-          const desc = (item.description || '').toLowerCase();
-          const isJobApprovalNotif = title.includes('bài đăng') || title.includes('phê duyệt') || title.includes('từ chối') || desc.includes('bài đăng');
+        const title = (item.title || '').toLowerCase();
+        const desc = (item.description || '').toLowerCase();
+        const isJobApprovalNotif = title.includes('bài đăng') || title.includes('phê duyệt') || title.includes('từ chối') || desc.includes('bài đăng');
 
-          if (userRole === 'candidate') {
-            // Candidates MUST NOT see job approval notifications from admin
-            if (isJobApprovalNotif || item.target === 'RECRUITER') return false;
-          }
+        if (userRole === 'candidate') {
+          // Candidates MUST NOT see job approval notifications from admin
+          if (isJobApprovalNotif || item.target === 'RECRUITER') return false;
+        }
 
-          if (userRole === 'employer') {
-            if (item.target === 'USER') return false;
-            if (isJobApprovalNotif) return true;
-          }
+        if (userRole === 'employer') {
+          if (item.target === 'USER') return false;
+          if (isJobApprovalNotif) return true;
+        }
 
-          // Target check
-          if (item.target === 'ALL') return true;
-          if (item.target === 'RECRUITER') return userRole === 'employer';
-          if (item.target === 'USER') return userRole === 'candidate';
+        // Target check
+        if (item.target === 'ALL') return true;
+        if (item.target === 'RECRUITER') return userRole === 'employer';
+        if (item.target === 'USER') return userRole === 'candidate';
 
-          // Direct target match to user UID
-          if (item.target === firebaseUser.uid) {
-            if (isJobApprovalNotif) return userRole === 'employer';
-            return true;
-          }
+        // Direct target match to user UID
+        if (item.target === firebaseUser.uid) {
+          if (isJobApprovalNotif) return userRole === 'employer';
+          return true;
+        }
 
-          if (userRole === 'employer') {
-            return false;
-          }
+        if (userRole === 'employer') {
+          return false;
+        }
 
-          return item.target === 'candidate-1' || item.target === 'candidate-2';
-        })
-        .filter((item) => !deletedNotificationIds.includes(item.id))
-        .map((item) => ({
-          ...item,
-          isRead: readIds.includes(item.id) || !!item.isRead,
-        }))
+        return item.target === 'candidate-1' || item.target === 'candidate-2';
+      })
+      .filter((item) => !deletedNotificationIds.includes(item.id))
+      .map((item) => ({
+        ...item,
+        isRead: readIds.includes(item.id) || !!item.isRead,
+      }))
     : [];
 
   const unreadNotificationsCount = mergedNotifications.filter((n) => !n.isRead).length;
@@ -2428,9 +2523,9 @@ export function useAuth() {
     isInitializing,
     userRole,
     seqId, // Mã USER ID tuần tự 6 chữ số
-    userData: firebaseUser ? { 
+    userData: firebaseUser ? {
       uid: firebaseUser.uid,
-      emailOrPhone: firebaseUser.email || '', 
+      emailOrPhone: firebaseUser.email || '',
       fullName: firebaseUser.displayName || 'Người dùng',
       isVerified: firebaseUser.emailVerified,
       desiredJob: userDataExtra.desiredJob,
@@ -2478,6 +2573,7 @@ export function useAuth() {
       notifyAll();
     },
     login,
+    loginWithGoogle,
     signup,
     changePassword,
     resetPassword,

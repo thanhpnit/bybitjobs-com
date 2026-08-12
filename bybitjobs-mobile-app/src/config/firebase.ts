@@ -1,6 +1,6 @@
 import { FirebaseApp, initializeApp, getApp, getApps } from 'firebase/app';
 // @ts-ignore
-import { Auth, initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import { Auth, initializeAuth, getReactNativePersistence, getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -34,4 +34,5 @@ if (!getApps().length) {
   db = getFirestore(app);
 }
 
-export { app, auth, db };
+export { app, auth, db, GoogleAuthProvider };
+

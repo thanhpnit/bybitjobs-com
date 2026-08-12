@@ -58,7 +58,7 @@ export default function RecruiterEditJobScreen() {
   const [industry, setIndustry] = React.useState(existingJob?.industry || 'Công nghệ thông tin');
   const [salary, setSalary] = React.useState(existingJob?.salary || 'Thỏa thuận');
   const [location, setLocation] = React.useState(existingJob?.location || '');
-  const [experience, setExperience] = React.useState(existingJob?.experience || 'Không yêu cầu kinh nghiệm');
+  const [experience, setExperience] = React.useState((existingJob as any)?.experience || 'Không yêu cầu kinh nghiệm');
   const [description, setDescription] = React.useState(existingJob?.description || '');
   const [requirements, setRequirements] = React.useState(existingJob?.requirements || '');
   const getThirtyDaysFromNow = () => {
@@ -434,10 +434,10 @@ export default function RecruiterEditJobScreen() {
             <View style={styles.inputGroup}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={[styles.fieldLabel, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>ĐỊA ĐIỂM</Text>
-                {(employerData?.address || userData?.address) && (
+                {(employerData?.address || (userData as any)?.address) && (
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => setLocation(employerData?.address || userData?.address || '')}
+                    onPress={() => setLocation(employerData?.address || (userData as any)?.address || '')}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
                   >
                     <Ionicons name="location" size={13} color="#0084FF" />
@@ -546,7 +546,7 @@ export default function RecruiterEditJobScreen() {
                       }
                       Alert.alert(
                         `👀 Xem trước tin đăng: ${title}`,
-                        `🏢 Công ty: ${userData?.companyName || 'Doanh nghiệp'}\n📍 Địa điểm: ${location}\n💰 Lương: ${salary}\n\n📝 Mô tả:\n${description || 'Chưa có mô tả'}\n\n🎯 Yêu cầu:\n${requirements || 'Chưa có yêu cầu'}`
+                        `🏢 Công ty: ${(userData as any)?.companyName || 'Doanh nghiệp'}\n📍 Địa điểm: ${location}\n💰 Lương: ${salary}\n\n📝 Mô tả:\n${description || 'Chưa có mô tả'}\n\n🎯 Yêu cầu:\n${requirements || 'Chưa có yêu cầu'}`
                       );
                     }}
                     style={{
