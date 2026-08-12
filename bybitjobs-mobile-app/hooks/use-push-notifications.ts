@@ -5,6 +5,15 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../src/config/firebase';
 import Constants from 'expo-constants';
 
+// Configure notification presentation handler (banner, sound, badge) when received
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 export async function registerForPushNotificationsAsync(userId: string) {
   let token;
 
