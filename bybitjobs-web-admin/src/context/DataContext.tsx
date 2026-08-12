@@ -167,16 +167,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
+    // Helper to safely parse dates from Firestore Timestamp, object, number, string, or Date
+    const parseSafeDate = (val: any): Date => {
+      if (!val) return new Date();
+      if (typeof val?.toDate === 'function') {
+        try { return val.toDate(); } catch (e) {}
+      }
+      if (typeof val?.seconds === 'number') {
+        return new Date(val.seconds * 1000);
+      }
+      if (val instanceof Date) return val;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? new Date() : d;
+    };
+
     // 3. Job Posts (Jobs collection in Firestore)
     const unsubJobs = onSnapshot(collection(db, 'jobs'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
         const item = docSnap.data();
-        let formattedDate = 'Vừa xong';
-        if (item.createdAt) {
-          const dateObj = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
-          formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-        }
+        const dateObj = parseSafeDate(item.createdAt);
+        const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+        
         data.push({
           id: docSnap.id,
           title: item.title || 'Không có tiêu đề',
@@ -184,7 +196,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           company: item.companyName || 'Doanh nghiệp',
           companyStatus: item.employerId ? `ID: ${item.employerId.slice(0, 8)}...` : 'Chờ duyệt',
           date: formattedDate,
-          createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now()),
+          createdAt: dateObj,
           status: item.status || 'Chờ duyệt',
           employerId: item.employerId || '',
           salary: item.salary || 'Chưa cập nhật',
@@ -211,7 +223,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           user: item.reporterName || item.reporterEmail || 'Người dùng ẩn danh',
           target: item.targetName || item.jobTitle || 'Tin đăng / Công ty',
           reason: item.reason || item.desc || 'Báo cáo vi phạm',
-          date: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now()),
+          date: parseSafeDate(item.createdAt),
           status: item.status === 'accepted' ? 'Đã xử lý' : (item.status === 'rejected' ? 'Bác bỏ' : 'Chờ xử lý')
         });
       });

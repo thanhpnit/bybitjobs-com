@@ -44,8 +44,10 @@ export const Reports: React.FC = () => {
         const item = docSnap.data();
         let timeString = 'Vừa xong';
         if (item.createdAt) {
-          const date = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
-          timeString = date.toLocaleString('vi-VN');
+          const date = typeof item.createdAt?.toDate === 'function' ? item.createdAt.toDate() : new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : item.createdAt);
+          if (date && !isNaN(date.getTime())) {
+            timeString = date.toLocaleString('vi-VN');
+          }
         }
         return {
           id: docSnap.id,

@@ -243,8 +243,10 @@ export const Notifications: React.FC = () => {
                   let dateStr = 'Đang xử lý...';
                   if (item.createdAt) {
                     try {
-                      if (typeof item.createdAt.toDate === 'function') {
+                      if (typeof item.createdAt?.toDate === 'function') {
                         dateStr = item.createdAt.toDate().toLocaleString('vi-VN');
+                      } else if (typeof item.createdAt?.seconds === 'number') {
+                        dateStr = new Date(item.createdAt.seconds * 1000).toLocaleString('vi-VN');
                       } else if (typeof item.createdAt === 'string' || typeof item.createdAt === 'number') {
                         const d = new Date(item.createdAt);
                         if (!isNaN(d.getTime())) {
