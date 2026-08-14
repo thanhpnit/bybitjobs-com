@@ -26,6 +26,31 @@ const features = [
   { name: 'Trợ lý AI HR (Soạn JD & Phỏng vấn)', starter: false, pro: 'Đánh giá AI CV', premium: '👑 Trợ lý AI HR Độc quyền' },
 ];
 
+const parseFlexibleDate = (raw: any): Date => {
+  if (!raw) return new Date();
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? new Date() : raw;
+  if (typeof raw === 'number') return new Date(raw);
+  
+  const str = String(raw).trim();
+  const dStandard = new Date(str);
+  if (!isNaN(dStandard.getTime())) return dStandard;
+
+  const dateMatch = str.match(/(\d{1,4})[-/](\d{1,2})[-/](\d{1,4})/);
+  if (dateMatch) {
+    const p1 = Number(dateMatch[1]);
+    const p2 = Number(dateMatch[2]);
+    const p3 = Number(dateMatch[3]);
+    if (p1 > 1000) return new Date(p1, p2 - 1, p3);
+    return new Date(p3, p2 - 1, p1);
+  }
+  return new Date();
+};
+
+const formatDateVN = (d: Date): string => {
+  if (isNaN(d.getTime())) return '14/08/2026';
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+};
+
 export const ServicePackages: React.FC = () => {
   const { colors, theme } = useTheme();
   const { packages, setPackages, employers } = useData();
@@ -195,19 +220,13 @@ export const ServicePackages: React.FC = () => {
         isPro = true;
       }
 
-      let startDateStr = (latestOrder ? (latestOrder.date || latestOrder.createdAt) : null) || emp.date || '14/08/2026';
+      let startD = parseFlexibleDate((latestOrder ? (latestOrder.date || latestOrder.createdAt) : null) || emp.date || emp.createdAt);
+      let startDateStr = formatDateVN(startD);
       let expiryDateStr = 'Vĩnh viễn';
       let daysLeft = 999;
       let statusTag = 'Đang hoạt động';
 
       if (isVip || isPro) {
-        const parts = String(startDateStr).split(/[-/]/);
-        let startD = new Date();
-        if (parts.length === 3) {
-          if (parts[0].length === 4) startD = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-          else startD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-        }
-
         const expiryD = new Date(startD);
         expiryD.setDate(startD.getDate() + 30);
 
@@ -215,7 +234,7 @@ export const ServicePackages: React.FC = () => {
         const diffMs = expiryD.getTime() - now.getTime();
         daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-        expiryDateStr = `${expiryD.getDate().toString().padStart(2, '0')}/${(expiryD.getMonth() + 1).toString().padStart(2, '0')}/${expiryD.getFullYear()}`;
+        expiryDateStr = formatDateVN(expiryD);
 
         if (daysLeft < 0) statusTag = 'Đã hết hạn';
         else if (daysLeft <= 5) statusTag = 'Sắp hết hạn';
@@ -261,13 +280,8 @@ export const ServicePackages: React.FC = () => {
         isPro = true;
       }
 
-      let startDateStr = o.date || o.createdAt || '10/08/2026';
-      const parts = String(startDateStr).split(/[-/]/);
-      let startD = new Date();
-      if (parts.length === 3) {
-        if (parts[0].length === 4) startD = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        else startD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
+      let startD = parseFlexibleDate(o.date || o.createdAt);
+      let startDateStr = formatDateVN(startD);
 
       const expiryD = new Date(startD);
       expiryD.setDate(startD.getDate() + 30);
@@ -276,7 +290,7 @@ export const ServicePackages: React.FC = () => {
       const diffMs = expiryD.getTime() - now.getTime();
       const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-      const expiryDateStr = `${expiryD.getDate().toString().padStart(2, '0')}/${(expiryD.getMonth() + 1).toString().padStart(2, '0')}/${expiryD.getFullYear()}`;
+      const expiryDateStr = formatDateVN(expiryD);
 
       let statusTag = 'Đang hoạt động';
       if (daysLeft < 0) statusTag = 'Đã hết hạn';
