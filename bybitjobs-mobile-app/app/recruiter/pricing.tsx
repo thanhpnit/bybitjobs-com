@@ -137,26 +137,15 @@ export default function RecruiterPricingScreen() {
             if (isVip) key = 'premium';
             else if (isPopular) key = 'pro';
 
-            let displayPrice = pkg.price;
-            let priceNum = pkg.priceNum;
-
-            if (isFree) {
-              displayPrice = '0 VNĐ';
-              priceNum = 0;
-            } else if (isPopular) {
-              displayPrice = '299,000đ';
-              priceNum = 299000;
-            } else if (isVip) {
-              displayPrice = '799,000đ';
-              priceNum = 799000;
-            }
+            let displayPrice = pkg.price || (isFree ? '0 VNĐ' : isPopular ? '299,000đ' : '799,000đ');
+            let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isFree ? 0 : isPopular ? 299000 : 799000);
 
             let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
             let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
 
             mapByTier[key] = {
               id: key,
-              name: isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ',
+              name: pkg.name || (isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ'),
               price: displayPrice,
               priceNum: priceNum,
               duration: isFree ? 'Vĩnh viễn' : '30 ngày',
