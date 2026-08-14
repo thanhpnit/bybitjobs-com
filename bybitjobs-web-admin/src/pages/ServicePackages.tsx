@@ -163,24 +163,16 @@ export const ServicePackages: React.FC = () => {
     const isFree = pkgId === 'free' || nameLower.includes('miễn phí') || nameLower.includes('starter');
 
     if (isVip) {
-      const vipEmp = (employers || []).filter(e => (e.packageId || e.package || '').toLowerCase().includes('premium')).length;
-      const vipOrders = (orders || []).filter(o => (o.status === 'success' || o.status === 'Completed') && (o.packageName || o.package || '').toLowerCase().includes('premium')).length;
-      return Math.max(vipEmp, vipOrders);
+      return employerSubscriptions.filter(item => item.isVip).length;
     }
     if (isPro) {
-      const proEmp = (employers || []).filter(e => (e.packageId || e.package || '').toLowerCase().includes('pro')).length;
-      const proOrders = (orders || []).filter(o => (o.status === 'success' || o.status === 'Completed') && (o.packageName || o.package || '').toLowerCase().includes('pro')).length;
-      return Math.max(proEmp, proOrders);
+      return employerSubscriptions.filter(item => item.isPro).length;
     }
     if (isFree) {
-      const proCount = (employers || []).filter(e => (e.packageId || e.package || '').toLowerCase().includes('pro')).length;
-      const vipCount = (employers || []).filter(e => (e.packageId || e.package || '').toLowerCase().includes('premium')).length;
-      const totalEmp = (employers || []).length;
-      return Math.max(0, totalEmp - proCount - vipCount);
+      return employerSubscriptions.filter(item => !item.isVip && !item.isPro).length;
     }
 
-    const customCount = (employers || []).filter(e => (e.packageId || e.package || '').toLowerCase().includes(pkgId) || (e.packageId || e.package || '').toLowerCase().includes(nameLower)).length;
-    return customCount;
+    return employerSubscriptions.filter(item => item.packageName.toLowerCase().includes(pkgId) || item.packageName.toLowerCase().includes(nameLower)).length;
   };
 
   const employerSubscriptions = React.useMemo(() => {
