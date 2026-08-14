@@ -47,7 +47,8 @@ export const Users: React.FC = () => {
   // Luôn luôn kết nối trực tiếp tới IP VPS thật để vượt qua các bộ chặn cổng (như Cloudflare / Proxy của tên miền)
   const apiHost = '160.250.246.119';
 
-  const searchQuery = '';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -142,14 +143,49 @@ export const Users: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const filteredData = users.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.phone.includes(searchQuery)
-  ).sort((a, b) => getItemTime(b) - getItemTime(a));
+  const filteredData = users.filter(user => {
+    const nameStr = user.name || '';
+    const emailStr = user.email || '';
+    const phoneStr = user.phone || '';
+    const jobStr = user.job || '';
+
+    const matchesSearch = nameStr.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      emailStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      phoneStr.includes(searchQuery) ||
+      jobStr.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const userStatus = user.status || 'Đã xác minh';
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'verified' && (userStatus === 'Đã xác thực' || userStatus === 'Đã xác minh' || userStatus === 'Hoạt động')) ||
+      (statusFilter === 'pending' && userStatus === 'Chờ xác thực') ||
+      (statusFilter === 'blocked' && (userStatus === 'Bị khóa' || userStatus === 'Tự vô hiệu hóa'));
+
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => getItemTime(b) - getItemTime(a));
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const exportCSV = () => {
+    const headers = ['Mã ND', 'Họ tên', 'Công việc / Chức danh', 'Email', 'Số điện thoại', 'Trạng thái', 'Ngày đăng ký'];
+    const rows = filteredData.map((u, index) => [
+      u.id || `ND-${index + 1}`,
+      u.name || '',
+      u.job || '',
+      u.email || '',
+      u.phone || '',
+      u.status || 'Đã xác minh',
+      u.date || u.createdAt || ''
+    ]);
+
+    const csvContent = '\uFEFF' + [headers, ...rows].map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `danh_sach_nguoi_dung_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
 
   return (
     <View style={styles.container}>
@@ -160,28 +196,97 @@ export const Users: React.FC = () => {
             Quản lý danh sách cá nhân tìm việc trên hệ thống BybitJobs
           </Typography>
         </View>
+        <Button variant="outline" onPress={exportCSV}>Xuất danh sách CSV</Button>
       </View>
 
       <View style={[styles.filterSection, isMobile && { flexDirection: 'column' }]}>
         <Card style={styles.filterCard}>
-          <Typography variant="subtitle2" style={{ marginBottom: 12 }}>BỘ LỌC TÌM KIẾM</Typography>
+          <Typography variant="subtitle2" style={{ marginBottom: 12 }}>BỘ LỌC & TÌM KIẾM NGƯỜI DÙNG</Typography>
           <View style={[styles.filterInputs, isMobile && { flexDirection: 'column' }]}>
-            <View style={styles.inputGroup}>
-              <Typography variant="caption" color="secondary" style={styles.label}>Trạng thái tài khoản</Typography>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}>
-                <Typography variant="body2">Tất cả trạng thái</Typography>
+            <View style={[styles.inputGroup, { flex: 2 }]}>
+              <Typography variant="caption" color="secondary" style={styles.label}>Từ khóa tìm kiếm</Typography>
+              <TextInput
+                placeholder="Nhập tên, email, sĐT, công việc..."
+                value={searchQuery}
+                onChangeText={(text) => { setSearchQuery(text); setCurrentPage(1); }}
+                style={{
+                  height: 42,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.borderLight,
+                  paddingHorizontal: 12,
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgPrimary,
+                }}
+              />
+            </View>
+
+            <View style={[styles.inputGroup, { flex: 3 }]}>
+              <Typography variant="caption" color="secondary" style={styles.label}>Lọc theo trạng thái</Typography>
+              <View style={{ flexDirection: 'row', backgroundColor: colors.bgPrimary, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: colors.borderLight }}>
+                <TouchableOpacity
+                  onPress={() => { setStatusFilter('all'); setCurrentPage(1); }}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: statusFilter === 'all' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: statusFilter === 'all' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Tất cả
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { setStatusFilter('verified'); setCurrentPage(1); }}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: statusFilter === 'verified' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: statusFilter === 'verified' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Đã xác minh
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: statusFilter === 'pending' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: statusFilter === 'pending' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Chờ xác thực
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { setStatusFilter('blocked'); setCurrentPage(1); }}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: statusFilter === 'blocked' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: statusFilter === 'blocked' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Bị khóa
+                  </Typography>
+                </TouchableOpacity>
               </View>
             </View>
-            <View style={styles.inputGroup}>
-              <Typography variant="caption" color="secondary" style={styles.label}>Khoảng ngày đăng ký</Typography>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}>
-                <Typography variant="body2">mm/dd/yyyy</Typography>
+
+            {(searchQuery !== '' || statusFilter !== 'all') && (
+              <View style={styles.inputGroup}>
+                <Typography variant="caption" color="secondary" style={styles.label}>{' '}</Typography>
+                <Button variant="secondary" style={{ height: 42 }} onPress={() => { setSearchQuery(''); setStatusFilter('all'); setCurrentPage(1); }}>
+                  Xóa lọc
+                </Button>
               </View>
-            </View>
-            <View style={styles.inputGroup}>
-              <Typography variant="caption" color="secondary" style={styles.label}>{' '}</Typography>
-              <Button variant="secondary" style={{ height: 44 }}>Áp dụng bộ lọc</Button>
-            </View>
+            )}
           </View>
         </Card>
         

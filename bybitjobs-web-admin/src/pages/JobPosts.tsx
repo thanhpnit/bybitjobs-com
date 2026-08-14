@@ -44,6 +44,7 @@ export const JobPosts: React.FC = () => {
   const { jobPosts, setJobPosts, employers } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [selectedEmployer, setSelectedEmployer] = useState<any | null>(null);

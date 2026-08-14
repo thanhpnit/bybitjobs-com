@@ -50,6 +50,7 @@ export const Employers: React.FC = () => {
   const apiHost = '160.250.246.119';
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -179,12 +180,20 @@ export const Employers: React.FC = () => {
     }
   };
 
-  const filteredData = employers.filter(emp => 
-    (emp.company || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (emp.phone || '').includes(searchQuery) ||
-    (emp.industry || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => {
+  const filteredData = employers.filter(emp => {
+    const matchesSearch = (emp.company || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (emp.phone || '').includes(searchQuery) ||
+      (emp.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    const empStatus = emp.status || 'Chờ duyệt';
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && (empStatus === 'Xác thực' || empStatus === 'Đã xác thực' || empStatus === 'Đã xác minh' || empStatus === 'Đang hoạt động')) ||
+      (statusFilter === 'pending' && empStatus === 'Chờ duyệt') ||
+      (statusFilter === 'blocked' && (empStatus === 'Vô hiệu hóa' || empStatus === 'Tạm khóa' || empStatus === 'Bị khóa'));
+
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
     const aPending = (a.status === 'Chờ duyệt' || a.status === 'pending') ? 1 : 0;
     const bPending = (b.status === 'Chờ duyệt' || b.status === 'pending') ? 1 : 0;
     if (aPending !== bPending) return bPending - aPending;
@@ -229,8 +238,26 @@ export const Employers: React.FC = () => {
           <Button variant="outline" icon={<RefreshCcw color={colors.textSecondary} size={18} />} onPress={fetchEmployers}>
             Làm mới
           </Button>
-          <Button icon={<Plus color="#fff" size={18} />} onPress={handleOpenAdd}>
-            Thêm nhà tuyển dụng
+          <Button variant="outline" icon={<Download color={colors.textSecondary} size={18} />} onPress={() => {
+            const headers = ['Mã NTD', 'Tên công ty', 'Lĩnh vực', 'Email', 'Số điện thoại', 'Trạng thái', 'Ngày đăng ký'];
+            const rows = filteredData.map(e => [
+              e.id || '',
+              e.company || '',
+              e.industry || '',
+              e.email || '',
+              e.phone || '',
+              e.status || '',
+              e.date || e.createdAt || ''
+            ]);
+            const csvContent = '\uFEFF' + [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `danh_sach_nha_tuyen_dung_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+          }}>
+            Xuất danh sách CSV
           </Button>
         </View>
       </View>
@@ -286,30 +313,52 @@ export const Employers: React.FC = () => {
       </View>
 
       <Card style={styles.tableCard}>
-        <View style={[styles.filterBar, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
-          <View style={[styles.filterInputs, isMobile && { flexDirection: 'column' }]}>
-            <View style={[styles.searchBox, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}>
-              <Search size={20} color={colors.textSecondary} />
+        <View style={[styles.filterBar, isMobile && { flexDirection: 'column', alignItems: 'stretch', gap: 12 }]}>
+          <View style={[styles.filterInputs, isMobile && { flexDirection: 'column', gap: 12 }, { flexWrap: 'wrap', alignItems: 'center' }]}>
+            <View style={[styles.searchBox, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight, minWidth: 240 }]}>
+              <Search size={18} color={colors.textSecondary} />
               <TextInput 
                 placeholder="Tìm kiếm công ty, email, SĐT..." 
                 style={[styles.searchInput, { color: colors.textPrimary }]} 
                 placeholderTextColor={colors.textMuted}
                 value={searchQuery}
-                onChangeText={setSearchQuery}
+                onChangeText={(text) => { setSearchQuery(text); setCurrentPage(1); }}
               />
             </View>
-            <View style={styles.inputGroup}>
-              <Typography variant="caption" color="secondary" style={styles.label}>Ngành nghề</Typography>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}><Typography variant="body2">Tất cả</Typography></View>
+
+            <View style={{ flexDirection: 'row', backgroundColor: colors.bgPrimary, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: colors.borderLight }}>
+              <TouchableOpacity
+                onPress={() => { setStatusFilter('all'); setCurrentPage(1); }}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === 'all' ? colors.primaryColor : 'transparent' }}
+              >
+                <Typography variant="caption" style={{ color: statusFilter === 'all' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>Tất cả</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setStatusFilter('active'); setCurrentPage(1); }}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === 'active' ? colors.primaryColor : 'transparent' }}
+              >
+                <Typography variant="caption" style={{ color: statusFilter === 'active' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>Đang hoạt động</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === 'pending' ? colors.primaryColor : 'transparent' }}
+              >
+                <Typography variant="caption" style={{ color: statusFilter === 'pending' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>Chờ duyệt</Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setStatusFilter('blocked'); setCurrentPage(1); }}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: statusFilter === 'blocked' ? colors.primaryColor : 'transparent' }}
+              >
+                <Typography variant="caption" style={{ color: statusFilter === 'blocked' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>Bị khóa</Typography>
+              </TouchableOpacity>
             </View>
-            <View style={styles.inputGroup}>
-              <Typography variant="caption" color="secondary" style={styles.label}>Cấp độ</Typography>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.bgPrimary, borderColor: colors.borderLight }]}><Typography variant="body2">Tất cả</Typography></View>
-            </View>
+
+            {(searchQuery !== '' || statusFilter !== 'all') && (
+              <Button variant="secondary" size="sm" onPress={() => { setSearchQuery(''); setStatusFilter('all'); setCurrentPage(1); }}>
+                Xóa lọc
+              </Button>
+            )}
           </View>
-          <Button variant="outline" icon={<Filter size={18} color={colors.textSecondary} />}>
-            Lọc nâng cao
-          </Button>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -359,9 +408,6 @@ export const Employers: React.FC = () => {
                       <CheckCircle2 size={18} color={colors.successText} />
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity onPress={() => handleOpenEdit(item)}>
-                    <Edit2 size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => requestToggleDisable(item.id, item.status)}>
                     {item.status === 'Vô hiệu hóa' || item.status === 'Tạm khóa' ? (
                       <RotateCcw size={18} color={colors.successText || '#10B981'} />
