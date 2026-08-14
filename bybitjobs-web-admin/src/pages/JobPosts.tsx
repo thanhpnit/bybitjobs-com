@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Eye, FileText, CheckCircle2, AlertCircle, Ban, Filter, ArrowUpDown, Trash2, CheckSquare, XCircle, Building2, BriefcaseBusiness } from 'lucide-react-native';
+import { Eye, FileText, CheckCircle2, AlertCircle, Ban, Filter, ArrowUpDown, Trash2, CheckSquare, XCircle, Building2, BriefcaseBusiness, Download } from 'lucide-react-native';
 import { useState } from 'react';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
