@@ -18,7 +18,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth, formatDeadlineDisplay } from '@/hooks/use-auth';
 import { db } from '../src/config/firebase';
-import { collection, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
 
 const getFirstText = (...values: unknown[]) => {
   const value = values.find((item) => typeof item === 'string' && item.trim());
@@ -31,6 +31,8 @@ type EmployerProfileInfo = {
   phone: string;
   email: string;
   address: string;
+  rating?: number;
+  reviewCount?: number;
 };
 
 export default function JobDetailsScreen() {
@@ -42,6 +44,7 @@ export default function JobDetailsScreen() {
   const [employerInfoModalVisible, setEmployerInfoModalVisible] = useState(false);
   const [employerName, setEmployerName] = useState('Nhà tuyển dụng');
   const [employerInfo, setEmployerInfo] = useState<EmployerProfileInfo | null>(null);
+  const [approvedReviews, setApprovedReviews] = useState<any[]>([]);
   const [reportForm, setReportForm] = useState({
     reason: '',
     otherReason: '',
@@ -181,6 +184,8 @@ export default function JobDetailsScreen() {
             phone: getFirstText(employerData?.phoneNumber, employerData?.phone, apiUserData?.phone, apiUserData?.phoneNumber, 'Chưa cập nhật'),
             email: getFirstText(employerData?.email, apiUserData?.email, apiUserData?.emailOrPhone, 'Chưa cập nhật'),
             address: getFirstText(employerData?.address, employerData?.location, displayLocation, 'Chưa cập nhật'),
+            rating: employerData?.rating ? Number(employerData.rating) : undefined,
+            reviewCount: employerData?.reviewCount || employerData?.totalReviews,
           });
         }
       } catch (error) {
@@ -205,6 +210,46 @@ export default function JobDetailsScreen() {
       isActive = false;
     };
   }, [currentJob?.employerId, currentJob?.industry, displayLocation, storedPosterName]);
+
+  React.useEffect(() => {
+    const compName = employerInfo?.companyName || employerName;
+    if (!compName || compName === 'Nhà tuyển dụng') return;
+
+    const q = query(
+      collection(db, 'applications'),
+      where('reviewStatus', '==', 'Đã phê duyệt')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const val = docSnap.data();
+        const cName = val.companyName || val.company || '';
+        if (cName.toLowerCase().trim() === compName.toLowerCase().trim() && (val.companyRating > 0 || (val.companyComment && val.companyComment.trim().length > 0))) {
+          list.push({
+            id: docSnap.id,
+            applicantName: val.applicantName || val.candidateName || 'Ứng viên ẩn danh',
+            rating: Number(val.companyRating || 5),
+            comment: val.companyComment || '',
+            reviewedAt: val.reviewedAt || val.appliedAt || '',
+          });
+        }
+      });
+      list.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+      setApprovedReviews(list);
+    }, (err) => console.log('Lỗi tải đánh giá đã duyệt:', err));
+
+    return () => unsubscribe();
+  }, [employerInfo?.companyName, employerName]);
+
+  const companyRatingDisplay = React.useMemo(() => {
+    if (employerInfo?.rating) return Number(employerInfo.rating).toFixed(1);
+    if (approvedReviews.length > 0) {
+      const total = approvedReviews.reduce((sum, r) => sum + r.rating, 0);
+      return (total / approvedReviews.length).toFixed(1);
+    }
+    return '5.0';
+  }, [employerInfo?.rating, approvedReviews]);
 
   const handleSaveJob = async () => {
     if (!isLoggedIn) {
@@ -414,7 +459,7 @@ export default function JobDetailsScreen() {
                 </Text>
                 <View style={styles.companyRatingLine}>
                   <Ionicons name="star" size={14} color="#FFB300" />
-                  <Text style={[styles.companyRatingText, { color: isDark ? '#ECEDEE' : '#334155' }]}>4.8</Text>
+                  <Text style={[styles.companyRatingText, { color: isDark ? '#ECEDEE' : '#334155' }]}>{companyRatingDisplay}</Text>
                   <Text style={styles.companyMutedText}>• Nhà tuyển dụng đã xác thực</Text>
                 </View>
               </View>
@@ -615,7 +660,7 @@ export default function JobDetailsScreen() {
                   </View>
                   <View style={[styles.employerRatingPill, { backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF' }]}>
                     <Ionicons name="star" size={13} color="#FFB300" />
-                    <Text style={[styles.employerRatingPillText, { color: isDark ? '#ECEDEE' : '#11181C' }]}>4.8</Text>
+                    <Text style={[styles.employerRatingPillText, { color: isDark ? '#ECEDEE' : '#11181C' }]}>{companyRatingDisplay}</Text>
                   </View>
                 </View>
               </View>
@@ -650,6 +695,73 @@ export default function JobDetailsScreen() {
               {renderEmployerInfoRow('call-outline', 'Số điện thoại', employerInfo?.phone)}
               {renderEmployerInfoRow('mail-outline', 'Email', employerInfo?.email)}
               {renderEmployerInfoRow('location-outline', 'Địa chỉ', employerInfo?.address)}
+
+              {/* ĐÁNH GIÁ TỪ ỨNG VIÊN KHÁC (COMMUNITY REVIEWS) */}
+              <View style={{ marginTop: 20, marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text style={[styles.employerSectionTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 0 }]}>
+                    Đánh giá từ ứng viên khác ({approvedReviews.length})
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="star" size={16} color="#FFB300" />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                      {companyRatingDisplay}/5
+                    </Text>
+                  </View>
+                </View>
+
+                {approvedReviews.length === 0 ? (
+                  <View style={[styles.employerStatCard, { backgroundColor: isDark ? '#151718' : '#F8FAFC', padding: 16, alignItems: 'center' }]}>
+                    <Ionicons name="chatbox-ellipses-outline" size={24} color={isDark ? '#9BA1A6' : '#687076'} />
+                    <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#687076', marginTop: 6, textAlign: 'center' }}>
+                      Chưa có đánh giá được duyệt cho nhà tuyển dụng này.
+                    </Text>
+                  </View>
+                ) : (
+                  approvedReviews.map((rev) => (
+                    <View key={rev.id} style={{
+                      backgroundColor: isDark ? '#1C2A3A' : '#F8FAFC',
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: isDark ? '#2C3E50' : '#E2E8F0'
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#0084FF', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>
+                              {(rev.applicantName || 'U').charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: isDark ? '#FFF' : '#11181C' }}>
+                            {rev.applicantName}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= rev.rating ? 'star' : 'star-outline'}
+                              size={12}
+                              color={star <= rev.rating ? '#FFB300' : (isDark ? '#555' : '#CBD5E1')}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      {rev.comment ? (
+                        <Text style={{ fontSize: 13, color: isDark ? '#ECEDEE' : '#334155', lineHeight: 18, marginTop: 4 }}>
+                          "{rev.comment}"
+                        </Text>
+                      ) : null}
+                      <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#94A3B8', marginTop: 6 }}>
+                        {rev.reviewedAt ? new Date(rev.reviewedAt).toLocaleDateString('vi-VN') : ''}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
+
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => setEmployerInfoModalVisible(false)}
