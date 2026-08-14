@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ArrowRight, AlertTriangle, FileCheck2, Star, Trash2, CheckCircle2, XCircle, RotateCcw } from 'lucide-react-native';
 import { db } from '../config/firebase';
 import { collection, deleteField, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { Pagination } from '../components/ui/Pagination';
 
 interface ApprovedReview {
   id: string;
@@ -33,6 +34,8 @@ export const Reports: React.FC = () => {
   
   const [allReports, setAllReports] = useState<any[]>([]);
   const [reportFilter, setReportFilter] = useState<'pending' | 'accepted' | 'rejected' | 'all'>('pending');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [totalReports, setTotalReports] = useState(0);
   const [acceptedReports, setAcceptedReports] = useState(0);
   const [reviewData, setReviewData] = useState<ApprovedReview[]>([]);
@@ -248,61 +251,71 @@ export const Reports: React.FC = () => {
               </Typography>
             </Card>
           ) : (
-            filteredReports.map((item: any) => (
-              <Card key={item.id} style={styles.reportCard}>
-                <View style={styles.reportHeader}>
-                  <View style={[styles.chip, { backgroundColor: item.status === 'accepted' ? '#E8F5E9' : item.status === 'rejected' ? '#FFEBEE' : colors.dangerBg }]}>
-                    <Typography
-                      variant="caption"
-                      style={{
-                        fontWeight: '700',
-                        color: item.status === 'accepted' ? '#2E7D32' : item.status === 'rejected' ? '#C62828' : colors.dangerText,
-                      }}
-                    >
-                      {item.type} {item.status === 'accepted' ? '(Đã phê duyệt)' : item.status === 'rejected' ? '(Đã bác bỏ)' : ''}
-                    </Typography>
+            <>
+              {filteredReports.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any) => (
+                <Card key={item.id} style={styles.reportCard}>
+                  <View style={styles.reportHeader}>
+                    <View style={[styles.chip, { backgroundColor: item.status === 'accepted' ? '#E8F5E9' : item.status === 'rejected' ? '#FFEBEE' : colors.dangerBg }]}>
+                      <Typography
+                        variant="caption"
+                        style={{
+                          fontWeight: '700',
+                          color: item.status === 'accepted' ? '#2E7D32' : item.status === 'rejected' ? '#C62828' : colors.dangerText,
+                        }}
+                      >
+                        {item.type} {item.status === 'accepted' ? '(Đã phê duyệt)' : item.status === 'rejected' ? '(Đã bác bỏ)' : ''}
+                      </Typography>
+                    </View>
+                    <Typography variant="caption" color="muted">{item.time}</Typography>
                   </View>
-                  <Typography variant="caption" color="muted">{item.time}</Typography>
-                </View>
 
-                <Typography variant="body1" style={{ fontStyle: 'italic', marginVertical: 16 }}>{item.desc}</Typography>
+                  <Typography variant="body1" style={{ fontStyle: 'italic', marginVertical: 16 }}>{item.desc}</Typography>
 
-                <View style={[styles.targetBox, { backgroundColor: colors.bgPrimary }]}>
-                  <View style={[styles.targetIcon, { backgroundColor: colors.primaryColor }]} />
-                  <View style={{ flex: 1 }}>
-                    <Typography variant="subtitle2">{item.target}</Typography>
-                    <Typography variant="caption" color="secondary">{item.targetBy}</Typography>
+                  <View style={[styles.targetBox, { backgroundColor: colors.bgPrimary }]}>
+                    <View style={[styles.targetIcon, { backgroundColor: colors.primaryColor }]} />
+                    <View style={{ flex: 1 }}>
+                      <Typography variant="subtitle2">{item.target}</Typography>
+                      <Typography variant="caption" color="secondary">{item.targetBy}</Typography>
+                    </View>
                   </View>
-                </View>
 
-                {item.status === 'pending' ? (
-                  <View style={styles.actionRow}>
-                    <Button style={{ flex: 1 }} onPress={() => handleAcceptReport(item.id)}>Chấp nhận</Button>
-                    <Button variant="outline" style={{ flex: 1 }} onPress={() => handleRejectReport(item.id)}>Bác bỏ</Button>
-                  </View>
-                ) : (
-                  <View style={styles.actionRow}>
-                    <Button
-                      variant="outline"
-                      style={{ flex: 1 }}
-                      icon={<RotateCcw size={14} color={colors.primaryColor} />}
-                      onPress={() => handleResetReportStatus(item.id)}
-                    >
-                      Hoàn tác
-                    </Button>
-                    <Button
-                      variant="outline"
-                      style={{ flex: 1, borderColor: colors.dangerColor || '#EF4444' }}
-                      textStyle={{ color: colors.dangerColor || '#EF4444' }}
-                      icon={<Trash2 size={14} color={colors.dangerColor || '#EF4444'} />}
-                      onPress={() => handleDeleteReport(item.id)}
-                    >
-                      Xóa
-                    </Button>
-                  </View>
-                )}
-              </Card>
-            ))
+                  {item.status === 'pending' ? (
+                    <View style={styles.actionRow}>
+                      <Button style={{ flex: 1 }} onPress={() => handleAcceptReport(item.id)}>Chấp nhận</Button>
+                      <Button variant="outline" style={{ flex: 1 }} onPress={() => handleRejectReport(item.id)}>Bác bỏ</Button>
+                    </View>
+                  ) : (
+                    <View style={styles.actionRow}>
+                      <Button
+                        variant="outline"
+                        style={{ flex: 1 }}
+                        icon={<RotateCcw size={14} color={colors.primaryColor} />}
+                        onPress={() => handleResetReportStatus(item.id)}
+                      >
+                        Hoàn tác
+                      </Button>
+                      <Button
+                        variant="outline"
+                        style={{ flex: 1, borderColor: colors.dangerColor || '#EF4444' }}
+                        textStyle={{ color: colors.dangerColor || '#EF4444' }}
+                        icon={<Trash2 size={14} color={colors.dangerColor || '#EF4444'} />}
+                        onPress={() => handleDeleteReport(item.id)}
+                      >
+                        Xóa
+                      </Button>
+                    </View>
+                  )}
+                </Card>
+              ))}
+
+              <Pagination 
+                currentPage={currentPage}
+                totalItems={filteredReports.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                label="báo cáo"
+              />
+            </>
           )}
         </View>
 

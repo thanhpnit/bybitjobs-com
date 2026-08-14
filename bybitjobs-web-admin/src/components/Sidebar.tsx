@@ -8,6 +8,7 @@ import {
   FileText, 
   Package,
   Briefcase,
+  Award,
   CreditCard,
   AlertOctagon,
   MessageSquare,
@@ -26,6 +27,7 @@ const navItems = [
   { id: 'job-posts', label: 'Quản lý bài đăng', icon: FileText, path: '/job-posts' },
   { id: 'packages', label: 'Quản lý gói dịch vụ', icon: Package, path: '/service-packages' },
   { id: 'industries', label: 'Quản lý ngành nghề', icon: Briefcase, path: '/industries' },
+  { id: 'skills', label: 'Quản lý kỹ năng', icon: Award, path: '/skills' },
   { id: 'payments', label: 'Quản lý thanh toán', icon: CreditCard, path: '/payments' },
   { id: 'reports', label: 'Báo cáo vi phạm', icon: AlertOctagon, path: '/reports' },
   { id: 'reviews', label: 'Đánh giá công ty', icon: MessageSquare, path: '/reviews' },
@@ -51,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMob
       Animated.timing(slideAnim, {
         toValue: isOpen ? 0 : -260,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     } else {
       slideAnim.setValue(0);

@@ -25,7 +25,7 @@ export const DatePicker = forwardRef<any, DatePickerProps>(
         )}
         <View style={[styles.inputContainer, { 
           backgroundColor: isDark ? colors.bgSecondary : '#FFF',
-          borderColor: colors.borderLight 
+          borderColor: colors.borderColor 
         }]}>
           {createElement('input', {
             type: 'date',
@@ -34,14 +34,16 @@ export const DatePicker = forwardRef<any, DatePickerProps>(
             style: {
               width: '100%',
               height: 40,
-              padding: '0 12px',
+              padding: '0 8px',
               border: 'none',
               background: 'transparent',
               outline: 'none',
               color: colors.textPrimary,
               fontFamily: 'inherit',
               fontSize: 14,
+              boxSizing: 'border-box',
               colorScheme: isDark ? 'dark' : 'light',
+              cursor: 'pointer',
             },
           })}
         </View>

@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Search, Plus, Filter, MoreVertical, Edit2, Trash2, Building2, CheckCircle2, Clock, FileText, ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react-native';
+import { Search, Plus, Filter, MoreVertical, Edit2, Trash2, Building2, CheckCircle2, Clock, FileText, ChevronLeft, ChevronRight, Eye, RefreshCcw, Ban, RotateCcw } from 'lucide-react-native';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { useState } from 'react';
@@ -13,6 +13,10 @@ import { useState } from 'react';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 import { useEffect } from 'react';
+
+import { db } from '../config/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+import { Pagination } from '../components/ui/Pagination';
 
 const getItemTime = (item: any) => {
   const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
@@ -88,21 +92,44 @@ export const Employers: React.FC = () => {
     setSelectedEmployer(item);
   };
 
-  const requestDelete = (id: string) => {
+  const requestToggleDisable = (id: string, currentStatus: string) => {
+    const isCurrentlyDisabled = currentStatus === 'Vô hiệu hóa' || currentStatus === 'Tạm khóa';
+    const newStatus = isCurrentlyDisabled ? 'Xác thực' : 'Vô hiệu hóa';
+    const actionTitle = isCurrentlyDisabled ? 'Kích hoạt nhà tuyển dụng' : 'Vô hiệu hóa nhà tuyển dụng';
+    const actionMessage = isCurrentlyDisabled 
+      ? 'Bạn có chắc chắn muốn kích hoạt lại nhà tuyển dụng này không?' 
+      : 'Bạn có chắc chắn muốn vô hiệu hóa nhà tuyển dụng này không?';
+
     setConfirmProps({
       visible: true,
-      title: 'Xóa nhà tuyển dụng',
-      message: 'Bạn có chắc chắn muốn xóa nhà tuyển dụng này không? Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn.',
+      title: actionTitle,
+      message: actionMessage,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://${apiHost}:4000/api/employers/${id}`, {
-            method: 'DELETE'
+          const response = await fetch(`http://${apiHost}:4000/api/employers/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
           });
           if (response.ok) {
             fetchEmployers();
+            try {
+              await addDoc(collection(db, 'notifications'), {
+                title: isCurrentlyDisabled ? '✅ Tài khoản đã được kích hoạt lại' : '⚠️ Tài khoản đã bị tạm khóa',
+                body: isCurrentlyDisabled 
+                  ? 'Tài khoản doanh nghiệp của bạn đã được Admin kích hoạt trở lại.' 
+                  : 'Tài khoản doanh nghiệp của bạn đã bị Admin chuyển sang trạng thái Vô hiệu hóa.',
+                category: 'system',
+                target: id,
+                role: 'employer',
+                createdAt: new Date().toISOString(),
+              });
+            } catch (notifErr) {
+              console.error('Lỗi gửi thông báo:', notifErr);
+            }
           }
         } catch (error) {
-          console.error('Lỗi khi xóa:', error);
+          console.error('Lỗi khi cập nhật trạng thái:', error);
         }
       }
     });
@@ -117,6 +144,18 @@ export const Employers: React.FC = () => {
       });
       if (response.ok) {
         fetchEmployers();
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            title: '🎉 Tài khoản doanh nghiệp đã được xác thực',
+            body: 'Chúc mừng! Tài khoản doanh nghiệp của bạn đã được Admin phê duyệt xác thực thành công. Bạn có thể đăng bài tuyển dụng ngay bây giờ.',
+            category: 'system',
+            target: id,
+            role: 'employer',
+            createdAt: new Date().toISOString(),
+          });
+        } catch (notifErr) {
+          console.error('Lỗi gửi thông báo duyệt NTD:', notifErr);
+        }
       }
     } catch (error) {
       console.error('Lỗi duyệt:', error);
@@ -323,8 +362,12 @@ export const Employers: React.FC = () => {
                   <TouchableOpacity onPress={() => handleOpenEdit(item)}>
                     <Edit2 size={18} color={colors.textSecondary} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => requestDelete(item.id)}>
-                    <Trash2 size={18} color={colors.dangerColor || '#EF4444'} />
+                  <TouchableOpacity onPress={() => requestToggleDisable(item.id, item.status)}>
+                    {item.status === 'Vô hiệu hóa' || item.status === 'Tạm khóa' ? (
+                      <RotateCcw size={18} color={colors.successText || '#10B981'} />
+                    ) : (
+                      <Ban size={18} color={colors.dangerColor || '#EF4444'} />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -333,29 +376,13 @@ export const Employers: React.FC = () => {
           </View>
         </ScrollView>
 
-        <View style={styles.pagination}>
-          <Typography variant="body2" color="secondary">Hiển thị {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredData.length)} trên {filteredData.length} kết quả</Typography>
-          <View style={styles.pageNumbers}>
-            <TouchableOpacity 
-              style={[styles.pageBtn, { borderColor: colors.borderLight }, currentPage === 1 && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
-              <Typography variant="body2" style={{ color: '#fff' }}>{currentPage}</Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.pageBtn, { borderColor: colors.borderLight }, currentPage === totalPages && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              <ChevronRight size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredData.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          label="nhà tuyển dụng"
+        />
       </Card>
       <Modal 
         visible={isModalOpen} 

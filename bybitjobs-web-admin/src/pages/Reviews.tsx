@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { collection, deleteField, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { Pagination } from '../components/ui/Pagination';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -54,6 +55,8 @@ export const Reviews: React.FC = () => {
   const isMobile = width < 768;
   const [data, setData] = useState<CompanyReview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
@@ -191,74 +194,77 @@ export const Reviews: React.FC = () => {
               Khi người dùng đánh giá sao hoặc comment trong app, dữ liệu sẽ xuất hiện tại đây.
             </Typography>
           </Card>
-        ) : data.map((item) => (
-          <Card key={item.id} style={[styles.reviewCard, isMobile && { flexDirection: 'column' }]}>
-            <View style={styles.reviewContent}>
-              <View style={[styles.reviewHeader, isMobile && { flexDirection: 'column', gap: 12 }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                  <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-                  <View>
-                    <Typography variant="subtitle1">{item.name}</Typography>
-                    <Typography variant="caption" color="secondary">🏢 {item.company}</Typography>
-                    <Typography variant="caption" color="secondary">Việc: {item.jobTitle}</Typography>
+        ) : (
+          <>
+            {data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
+              <Card key={item.id} style={[styles.reviewCard, isMobile && { flexDirection: 'column' }]}>
+                <View style={styles.reviewContent}>
+                  <View style={[styles.reviewHeader, isMobile && { flexDirection: 'column', gap: 12 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                      <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                      <View>
+                        <Typography variant="subtitle1">{item.name}</Typography>
+                        <Typography variant="caption" color="secondary">🏢 {item.company}</Typography>
+                        <Typography variant="caption" color="secondary">Việc: {item.jobTitle}</Typography>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row' }}>
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={18} color={i < item.rating ? '#FACC15' : colors.borderLight} fill={i < item.rating ? '#FACC15' : 'transparent'} />
+                      ))}
+                    </View>
+                  </View>
+
+                  <Typography variant="body1" style={{ marginTop: 16, marginBottom: 24, lineHeight: 24 }}>
+                    {item.comment || 'Người dùng chỉ đánh giá sao, chưa để lại comment.'}
+                  </Typography>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Badge status={item.status === 'Bị báo cáo' ? 'danger' : item.status === 'Chờ duyệt' ? 'warning' : 'success'}>
+                      {item.status === 'Đã phê duyệt' ? '✓ Đã phê duyệt' : item.status === 'Chờ duyệt' ? '⏱ Chờ duyệt' : '⚑ Bị báo cáo'}
+                    </Badge>
+                    <Typography variant="body2" color="secondary">
+                      {formatDate(item.reviewedAt)} • Application ID: {item.id}
+                    </Typography>
                   </View>
                 </View>
-                <View style={{ flexDirection: 'row' }}>
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={18} color={i < item.rating ? '#FACC15' : colors.borderLight} fill={i < item.rating ? '#FACC15' : 'transparent'} />
-                  ))}
+
+                <View style={[styles.actionSidebar, { borderLeftColor: colors.borderLight }, isMobile && { borderLeftWidth: 0, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
+                  {item.status !== 'Đã phê duyệt' ? (
+                    <Button
+                      icon={<CheckCircle2 size={16} color="#fff" />}
+                      style={{ width: '100%', marginBottom: 12 }}
+                      onPress={() => handleApprove(item.id)}
+                    >Phê duyệt</Button>
+                  ) : (
+                    <Button variant="outline" icon={<CheckCircle2 size={16} color={colors.successText || '#10B981'} />} style={{ width: '100%', marginBottom: 12, borderColor: colors.successText || '#10B981' }}>Đã phê duyệt</Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    icon={<EyeOff size={16} color={colors.textSecondary} />}
+                    style={{ width: '100%', marginBottom: 12 }}
+                    onPress={() => handleHide(item.id)}
+                  >Ẩn đánh giá</Button>
+                  <Button
+                    variant="outline"
+                    icon={<Trash2 size={16} color={colors.dangerColor || '#EF4444'} />}
+                    style={{ width: '100%', borderColor: 'transparent' }}
+                    textStyle={{ color: colors.dangerColor || '#EF4444' }}
+                    onPress={() => handleDelete(item.id)}
+                  >Xóa đánh giá</Button>
                 </View>
-              </View>
+              </Card>
+            ))}
 
-              <Typography variant="body1" style={{ marginTop: 16, marginBottom: 24, lineHeight: 24 }}>
-                {item.comment || 'Người dùng chỉ đánh giá sao, chưa để lại comment.'}
-              </Typography>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Badge status={item.status === 'Bị báo cáo' ? 'danger' : item.status === 'Chờ duyệt' ? 'warning' : 'success'}>
-                  {item.status === 'Đã phê duyệt' ? '✓ Đã phê duyệt' : item.status === 'Chờ duyệt' ? '⏱ Chờ duyệt' : '⚑ Bị báo cáo'}
-                </Badge>
-                <Typography variant="body2" color="secondary">
-                  {formatDate(item.reviewedAt)} • Application ID: {item.id}
-                </Typography>
-              </View>
-            </View>
-
-            <View style={[styles.actionSidebar, { borderLeftColor: colors.borderLight }, isMobile && { borderLeftWidth: 0, borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
-              {item.status !== 'Đã phê duyệt' ? (
-                <Button
-                  icon={<CheckCircle2 size={16} color="#fff" />}
-                  style={{ width: '100%', marginBottom: 12 }}
-                  onPress={() => handleApprove(item.id)}
-                >Phê duyệt</Button>
-              ) : (
-                <Button variant="outline" icon={<CheckCircle2 size={16} color={colors.successText || '#10B981'} />} style={{ width: '100%', marginBottom: 12, borderColor: colors.successText || '#10B981' }}>Đã phê duyệt</Button>
-              )}
-              <Button
-                variant="outline"
-                icon={<EyeOff size={16} color={colors.textSecondary} />}
-                style={{ width: '100%', marginBottom: 12 }}
-                onPress={() => handleHide(item.id)}
-              >Ẩn đánh giá</Button>
-              <Button
-                variant="outline"
-                icon={<Trash2 size={16} color={colors.dangerColor || '#EF4444'} />}
-                style={{ width: '100%', borderColor: 'transparent' }}
-                textStyle={{ color: colors.dangerColor || '#EF4444' }}
-                onPress={() => handleDelete(item.id)}
-              >Xóa đánh giá</Button>
-            </View>
-          </Card>
-        ))}
-
-        <View style={styles.pagination}>
-          <Typography variant="body2" color="secondary">Hiển thị {data.length} đánh giá thật</Typography>
-          <View style={styles.pageNumbers}>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><ChevronLeft size={16} color={colors.textSecondary} /></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}><Typography variant="body2" style={{ color: '#fff' }}>1</Typography></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><ChevronRight size={16} color={colors.textSecondary} /></TouchableOpacity>
-          </View>
-        </View>
+            <Pagination
+              currentPage={currentPage}
+              totalItems={data.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              label="đánh giá"
+            />
+          </>
+        )}
       </View>
     </View>
   );

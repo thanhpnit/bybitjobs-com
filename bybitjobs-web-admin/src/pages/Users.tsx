@@ -12,6 +12,9 @@ import { useState } from 'react';
 
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
+import { db } from '../config/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+import { Pagination } from '../components/ui/Pagination';
 
 const getItemTime = (item: any) => {
   const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
@@ -82,11 +85,9 @@ export const Users: React.FC = () => {
     setEditingId(item.id);
     setIsModalOpen(true);
   };
-
-
-
   const requestToggleStatus = (id: string, currentStatus: string) => {
-    const isMockUser = id.startsWith('#US-');
+    const user = users.find(u => u.id === id || u.uid === id);
+    const targetUid = user?.uid || user?.id || id;
     const isBlockedOrDisabled = currentStatus === 'Bị khóa' || currentStatus === 'Tự vô hiệu hóa';
     const isBanning = !isBlockedOrDisabled;
 
@@ -95,14 +96,8 @@ export const Users: React.FC = () => {
       title: isBanning ? 'Khóa tài khoản' : 'Khôi phục tài khoản',
       message: `Bạn có chắc chắn muốn ${isBanning ? 'khóa' : 'khôi phục'} tài khoản này không?`,
       onConfirm: async () => {
-        if (isMockUser) {
-          setUsers(users.map(i => i.id === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
-          setConfirmProps(prev => ({ ...prev, visible: false }));
-          return;
-        }
-
         try {
-          const response = await fetch(`http://${apiHost}:4000/api/users/${id}/status`, {
+          const response = await fetch(`http://${apiHost}:4000/api/users/${targetUid}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ disabled: isBanning })
@@ -110,12 +105,26 @@ export const Users: React.FC = () => {
           const result = await response.json();
           if (response.ok) {
             fetchUsers();
+            try {
+              await addDoc(collection(db, 'notifications'), {
+                title: isBanning ? '⚠️ Tài khoản bị tạm khóa' : '✅ Tài khoản đã được khôi phục',
+                body: isBanning 
+                  ? 'Tài khoản ứng viên của bạn đã bị Admin tạm khóa do vi phạm chính sách.' 
+                  : 'Tài khoản ứng viên của bạn đã được Admin khôi phục hoạt động bình thường.',
+                category: 'system',
+                target: targetUid,
+                role: 'candidate',
+                createdAt: new Date().toISOString(),
+              });
+            } catch (notifErr) {
+              console.error('Lỗi tạo thông báo khóa/mở user:', notifErr);
+            }
           } else {
             alert(`Lỗi: ${result.error || 'Không thể cập nhật trạng thái tài khoản'}`);
           }
         } catch (error) {
           console.error('Lỗi khi gọi API cập nhật trạng thái người dùng:', error);
-          setUsers(users.map(i => (i.uid || i.id) === id ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
+          setUsers(users.map(i => (i.uid || i.id) === targetUid ? { ...i, status: isBanning ? 'Bị khóa' : 'Đã xác minh' } : i));
         }
         setConfirmProps(prev => ({ ...prev, visible: false }));
       }
@@ -151,9 +160,6 @@ export const Users: React.FC = () => {
             Quản lý danh sách cá nhân tìm việc trên hệ thống BybitJobs
           </Typography>
         </View>
-        <Button icon={<Plus color="#fff" size={18} />} onPress={handleOpenAdd}>
-          Tạo tài khoản mới
-        </Button>
       </View>
 
       <View style={[styles.filterSection, isMobile && { flexDirection: 'column' }]}>
@@ -181,8 +187,8 @@ export const Users: React.FC = () => {
         
         <Card style={[styles.statCard, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
           <Typography variant="subtitle2" style={{ color: 'rgba(255,255,255,0.8)' }}>TỔNG NGƯỜI TÌM VIỆC</Typography>
-          <Typography variant="h1" style={{ color: '#fff', marginVertical: 8 }}>12,840</Typography>
-          <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>~ +12% so với tháng trước</Typography>
+          <Typography variant="h1" style={{ color: '#fff', marginVertical: 8 }}>{users.length}</Typography>
+          <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.8)' }}>~ Dữ liệu thực tế</Typography>
         </Card>
       </View>
 
@@ -224,9 +230,6 @@ export const Users: React.FC = () => {
                 </View>
                 <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
                 <View style={[styles.colAction, styles.flexRow]}>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => handleOpenEdit(item)}>
-                    <Edit2 size={18} color={colors.textSecondary} />
-                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
                     {item.status === 'Bị khóa' || item.status === 'Tự vô hiệu hóa' ? (
                       <RotateCcw size={18} color={colors.successText || '#10B981'} />
@@ -241,67 +244,14 @@ export const Users: React.FC = () => {
           </View>
         </ScrollView>
 
-        <View style={[styles.pagination, { borderTopColor: colors.borderLight }]}>
-          <Typography variant="body2" color="secondary">Hiển thị {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredData.length)} trên tổng số {filteredData.length} người dùng</Typography>
-          <View style={styles.pageNumbers}>
-            <TouchableOpacity 
-              style={[styles.pageBtn, { borderColor: colors.borderLight }, currentPage === 1 && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.pageBtn, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}>
-              <Typography variant="body2" style={{ color: '#fff', fontWeight: '600' }}>{currentPage}</Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.pageBtn, { borderColor: colors.borderLight }, currentPage === totalPages && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              <ChevronRight size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={filteredData.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          label="người dùng"
+        />
       </Card>
-      <Modal 
-        visible={isModalOpen} 
-        title={editingId ? "Sửa tài khoản" : "Tạo tài khoản"} 
-        onClose={() => setIsModalOpen(false)}
-      >
-        <Input 
-          label="Họ và tên" 
-          placeholder="Nhập họ tên..." 
-          value={formData.name}
-          onChangeText={(text) => setFormData({...formData, name: text})}
-        />
-        <Input 
-          label="Công việc mong muốn" 
-          placeholder="Nhập công việc..." 
-          value={formData.job}
-          onChangeText={(text) => setFormData({...formData, job: text})}
-        />
-        <Input 
-          label="Email" 
-          placeholder="Nhập email..." 
-          value={formData.email}
-          onChangeText={(text) => setFormData({...formData, email: text})}
-        />
-        <Input 
-          label="Số điện thoại" 
-          placeholder="Nhập SĐT..." 
-          value={formData.phone}
-          onChangeText={(text) => setFormData({...formData, phone: text})}
-        />
-        <Button 
-          onPress={handleSubmit} 
-          style={{ marginTop: 16, width: '100%' }}
-        >
-          {editingId ? "Cập nhật" : "Lưu tài khoản"}
-        </Button>
-      </Modal>
 
       <ConfirmModal 
         visible={confirmProps.visible}

@@ -11,10 +11,12 @@ import { Employers } from './pages/Employers';
 import { JobPosts } from './pages/JobPosts';
 import { ServicePackages } from './pages/ServicePackages';
 import { Industries } from './pages/Industries';
+import { Skills } from './pages/Skills';
 import { Payments } from './pages/Payments';
 import { Reports } from './pages/Reports';
 import { Reviews } from './pages/Reviews';
 import { Notifications } from './pages/Notifications';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAuth();
@@ -26,29 +28,32 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <DataProvider>
-        <AuthProvider>
-          <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              <Route index element={<Dashboard />} />
-              <Route path="users" element={<Users />} />
-              <Route path="employers" element={<Employers />} />
-              <Route path="job-posts" element={<JobPosts />} />
-              <Route path="service-packages" element={<ServicePackages />} />
-              <Route path="industries" element={<Industries />} />
-              <Route path="payments" element={<Payments />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="reviews" element={<Reviews />} />
-              <Route path="notifications" element={<Notifications />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-        </AuthProvider>
-      </DataProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <DataProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="employers" element={<Employers />} />
+                  <Route path="job-posts" element={<JobPosts />} />
+                  <Route path="service-packages" element={<ServicePackages />} />
+                  <Route path="industries" element={<Industries />} />
+                  <Route path="skills" element={<Skills />} />
+                  <Route path="payments" element={<Payments />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="reviews" element={<Reviews />} />
+                  <Route path="notifications" element={<Notifications />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </DataProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

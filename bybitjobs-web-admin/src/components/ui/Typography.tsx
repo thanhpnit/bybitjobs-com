@@ -48,13 +48,13 @@ export const Typography: React.FC<TypographyProps> = ({
 };
 
 const styles = StyleSheet.create({
-  h1: { fontSize: 32, fontWeight: '700', fontFamily: 'Inter' },
-  h2: { fontSize: 24, fontWeight: '600', fontFamily: 'Inter' },
-  h3: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter' },
-  h4: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter' },
-  subtitle1: { fontSize: 16, fontWeight: '500', fontFamily: 'Inter' },
-  subtitle2: { fontSize: 14, fontWeight: '500', fontFamily: 'Inter' },
-  body1: { fontSize: 15, fontWeight: '400', fontFamily: 'Inter' },
-  body2: { fontSize: 14, fontWeight: '400', fontFamily: 'Inter' },
-  caption: { fontSize: 12, fontWeight: '400', fontFamily: 'Inter' },
+  h1: { fontSize: 32, fontWeight: '700', fontFamily: 'Inter, system-ui, sans-serif' },
+  h2: { fontSize: 24, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif' },
+  h3: { fontSize: 20, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif' },
+  h4: { fontSize: 18, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif' },
+  subtitle1: { fontSize: 16, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif' },
+  subtitle2: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif' },
+  body1: { fontSize: 15, fontWeight: '400', fontFamily: 'Inter, system-ui, sans-serif' },
+  body2: { fontSize: 14, fontWeight: '400', fontFamily: 'Inter, system-ui, sans-serif' },
+  caption: { fontSize: 12, fontWeight: '600', fontFamily: 'Inter, system-ui, sans-serif', letterSpacing: 0.3 },
 });

@@ -13,6 +13,7 @@ import { useData } from '../context/DataContext';
 import { db } from '../config/firebase';
 import { addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { Modal } from '../components/ui/Modal';
+import { Pagination } from '../components/ui/Pagination';
 
 const getItemTime = (item: any) => {
   const value = item?.createdAt || item?.created_at || item?.date || item?.updatedAt || item?.updated_at;
@@ -178,8 +179,8 @@ export const JobPosts: React.FC = () => {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <View style={[styles.iconWrapper, { backgroundColor: colors.bgPrimary }]}><FileText color={colors.textSecondary} size={20} /></View>
           </View>
-          <Typography variant="body2" color="secondary">Tổng bài đăng</Typography>
-          <Typography variant="h2" style={{ marginTop: 4 }}>1,341</Typography>
+          <Typography variant="body2" color="secondary">Đang hoạt động</Typography>
+          <Typography variant="h2" style={{ marginTop: 4 }}>{jobPosts.filter(j => j.status === 'Hoạt động').length}</Typography>
         </Card>
       </View>
 
@@ -279,32 +280,13 @@ export const JobPosts: React.FC = () => {
           </View>
         </ScrollView>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
-          <Typography variant="body2" color="secondary">
-            Hiển thị {paginatedData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredData.length)} trên tổng số {filteredData.length} bài đăng
-          </Typography>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <TouchableOpacity 
-              style={[{ padding: 8, borderWidth: 1, borderColor: colors.borderLight, borderRadius: 6 }, currentPage === 1 && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <Typography variant="body2" color="secondary">Trước</Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.primaryColor, borderRadius: 6 }}>
-              <Typography variant="body2" style={{ color: '#fff', fontWeight: '600' }}>{currentPage}</Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[{ padding: 8, borderWidth: 1, borderColor: colors.borderLight, borderRadius: 6 }, currentPage === totalPages && { opacity: 0.5 }]}
-              onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              <Typography variant="body2" color="secondary">Sau</Typography>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={filteredData.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          label="bài đăng"
+        />
       </Card>
 
       <ConfirmModal 

@@ -9,7 +9,8 @@ import {
   initialIndustries, 
   initialReports, 
   initialReviews,
-  initialPaymentMethods
+  initialPaymentMethods,
+  initialSkills
 } from '../data/mockData';
 
 interface DataContextType {
@@ -29,6 +30,8 @@ interface DataContextType {
   setReviews: (reviews: any[]) => void;
   paymentMethods: any[];
   setPaymentMethods: (paymentMethods: any[]) => void;
+  skills: any[];
+  setSkills: (skills: any[]) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -92,6 +95,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [reports, setReportsState] = useState<any[]>([]);
   const [reviews, setReviewsState] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethodsState] = useState(() => loadData('bybitjobs_paymentMethods', initialPaymentMethods));
+  const [skills, setSkillsState] = useState<any[]>([]);
 
   const apiHost = '160.250.246.119';
 
@@ -126,6 +130,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           industry: item.industry || 'Khác',
           status: item.status || 'Chờ duyệt',
           logo: item.logo_url || item.logo || '',
+          package: item.package || item.packageId || item.packageName || item.tier || 'free',
+          packageId: item.packageId || item.package || item.tier || 'free',
+          packageName: item.packageName || item.package || item.tier || '',
+          packageExpiry: item.packageExpiry || item.expiryDate || item.expiredAt || '',
+          isVip: item.isVip || (item.package || '').toLowerCase().includes('premium'),
+          isPro: item.isPro || (item.package || '').toLowerCase().includes('pro'),
           createdAt: item.createdAt?.toDate ? item.createdAt.toDate() : new Date(item.createdAt || Date.now())
         });
       });
@@ -138,12 +148,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubPackages = onSnapshot(collection(db, 'packages'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(d => data.push(d.data()));
-      
-      const hasFree = data.some(p => p.id === 'free' || (p.priceNum === 0 && p.posts?.includes('5')));
-      const hasPro = data.some(p => p.id === 'pro' || p.priceNum === 299000);
-      const hasPremium = data.some(p => p.id === 'premium' || p.priceNum === 799000);
 
-      if (data.length === 0 || !hasFree || !hasPro || !hasPremium) {
+      if (data.length === 0) {
         initialPackages.forEach(async (pkg) => {
           await setDoc(doc(db, 'packages', pkg.id), pkg, { merge: true });
         });
@@ -250,6 +256,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setReviewsState(data);
     });
 
+    // 6. Payment Methods
+    const unsubPaymentMethods = onSnapshot(collection(db, 'paymentMethods'), (snapshot) => {
+      const data: any[] = [];
+      snapshot.forEach(docSnap => {
+        data.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      if (data.length === 0) {
+        initialPaymentMethods.forEach(async (pm) => {
+          await setDoc(doc(db, 'paymentMethods', pm.id), pm);
+        });
+        setPaymentMethodsState(initialPaymentMethods);
+      } else {
+        setPaymentMethodsState(data);
+      }
+    });
+
+    // 7. Skills
+    const unsubSkills = onSnapshot(collection(db, 'skills'), (snapshot) => {
+      const data: any[] = [];
+      snapshot.forEach(docSnap => {
+        data.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      if (data.length === 0) {
+        initialSkills.forEach(async (sk) => {
+          await setDoc(doc(db, 'skills', sk.id), sk);
+        });
+        setSkillsState(initialSkills);
+      } else {
+        setSkillsState(data);
+      }
+    });
+
     return () => {
       unsubEmployers();
       unsubPackages();
@@ -257,6 +295,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubJobs();
       unsubReports();
       unsubReviews();
+      unsubPaymentMethods();
+      unsubSkills();
     };
   }, []);
 
@@ -295,7 +335,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   const setReports = (data: any[]) => { setReportsState(data); };
   const setReviews = (data: any[]) => { setReviewsState(data); };
-  const setPaymentMethods = (data: any[]) => { setPaymentMethodsState(data); localStorage.setItem('bybitjobs_paymentMethods', JSON.stringify(data)); };
+  const setPaymentMethods = async (data: any[]) => {
+    const oldIds = paymentMethods.map((i: any) => i.id);
+    const newIds = data.map((i: any) => i.id);
+    const deletedIds = oldIds.filter(id => !newIds.includes(id));
+    
+    setPaymentMethodsState(data);
+    try {
+      const batch = data.map(async (pm) => {
+        await setDoc(doc(db, 'paymentMethods', pm.id), pm);
+      });
+      const deletes = deletedIds.map(async (id) => {
+        await deleteDoc(doc(db, 'paymentMethods', id));
+      });
+      await Promise.all([...batch, ...deletes]);
+    } catch (e) {
+      console.error('Error syncing payment methods to Firestore', e);
+    }
+  };
+
+  const setSkills = async (data: any[]) => {
+    const oldIds = skills.map((i: any) => i.id);
+    const newIds = data.map((i: any) => i.id);
+    const deletedIds = oldIds.filter(id => !newIds.includes(id));
+    
+    setSkillsState(data);
+    try {
+      const batch = data.map(async (sk) => {
+        await setDoc(doc(db, 'skills', sk.id), sk);
+      });
+      const deletes = deletedIds.map(async (id) => {
+        await deleteDoc(doc(db, 'skills', id));
+      });
+      await Promise.all([...batch, ...deletes]);
+    } catch (e) {
+      console.error('Error syncing skills to Firestore', e);
+    }
+  };
 
   return (
     <DataContext.Provider value={{
@@ -306,7 +382,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       industries, setIndustries,
       reports, setReports,
       reviews, setReviews,
-      paymentMethods, setPaymentMethods
+      paymentMethods, setPaymentMethods,
+      skills, setSkills
     }}>
       {children}
     </DataContext.Provider>

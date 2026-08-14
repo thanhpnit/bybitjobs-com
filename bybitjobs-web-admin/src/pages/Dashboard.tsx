@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -8,6 +8,7 @@ import { Wallet, Users as UsersIcon, FileText, AlertCircle, Star, CheckCircle2 }
 import { MockChart } from '../components/ui/MockChart';
 import { DatePicker } from '../components/ui/DatePicker';
 import { useData } from '../context/DataContext';
+import { ModernBarChart } from '../components/ui/ModernBarChart';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -34,8 +35,16 @@ export const Dashboard: React.FC = () => {
       .then(data => {
         if (Array.isArray(data)) {
           const mapped = data.map((item: any) => {
-            const dateObj = new Date(item.createdAt);
-            const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+            let dateObj = new Date(item.createdAt || item.created_at || Date.now());
+            if (isNaN(dateObj.getTime())) {
+              dateObj = new Date();
+            }
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const hours = dateObj.getHours().toString().padStart(2, '0');
+            const mins = dateObj.getMinutes().toString().padStart(2, '0');
+            const dateStr = `${day}/${month}/${year} ${hours}:${mins}`;
             
             let finalStatus = item.status;
             if (finalStatus === 'pending') {
@@ -76,34 +85,78 @@ export const Dashboard: React.FC = () => {
       .reduce((sum, t) => sum + t.rawAmount, 0);
   }, [filteredTransactions]);
 
+  const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
+
   const chartData = React.useMemo(() => {
-    const start = new Date(fromDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(toDate);
-    end.setHours(23, 59, 59, 999);
-    
-    const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
-    
-    const labels = [];
-    const data = [];
-    for (let i = 0; i < daysDiff; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
+    if (viewMode === 'month') {
+      const currentYear = new Date().getFullYear();
+      const monthlyRows = [];
+
+      for (let m = 0; m < 12; m++) {
+        const monthStart = new Date(currentYear, m, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
+        const monthStr = `Tháng ${(m + 1).toString().padStart(2, '0')}/${currentYear}`;
+
+        const monthTxns = recentTransactions.filter(t => {
+          if (t.status !== 'success' && t.status !== 'Completed') return false;
+          const tDate = t.rawDate || new Date(t.createdAt || t.created_at);
+          return tDate >= monthStart && tDate <= monthEnd;
+        });
+
+        const allMonthTxns = recentTransactions.filter(t => {
+          const tDate = t.rawDate || new Date(t.createdAt || t.created_at);
+          return tDate >= monthStart && tDate <= monthEnd;
+        });
+        const dailyRev = monthTxns.reduce((sum, t) => sum + Number(t.rawAmount || t.price || 0), 0);
+
+        monthlyRows.push({
+          date: monthStr,
+          totalOrders: allMonthTxns.length,
+          successOrders: monthTxns.length,
+          revenue: dailyRev,
+        });
+      }
+
+      const activeRows = monthlyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...monthlyRows.map(r => r.revenue), 1);
+      return { allRows: monthlyRows, activeRows, maxRev };
+    } else {
+      const start = new Date(fromDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
       
-      const dayStart = new Date(d);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
+      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
       
-      const dailyRev = filteredTransactions
-        .filter(t => t.status === 'success' && t.rawDate >= dayStart && t.rawDate <= dayEnd)
-        .reduce((sum, t) => sum + t.rawAmount, 0);
-      data.push(dailyRev);
+      const allRows = [];
+      for (let i = 0; i < daysDiff; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+        
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(d);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        const dayTxns = filteredTransactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
+        const successTxns = dayTxns.filter(t => t.status === 'success');
+        const dailyRev = successTxns.reduce((sum, t) => sum + t.rawAmount, 0);
+        
+        allRows.push({
+          date: dateStr,
+          totalOrders: dayTxns.length,
+          successOrders: successTxns.length,
+          revenue: dailyRev,
+        });
+      }
+
+      const activeRows = allRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...allRows.map(r => r.revenue), 1);
+      
+      return { allRows, activeRows, maxRev };
     }
-    
-    return { labels, data };
-  }, [filteredTransactions, fromDate, toDate]);
+  }, [viewMode, filteredTransactions, recentTransactions, fromDate, toDate]);
 
   const parseDDMMYYYY = (str: string) => {
     if (!str) return new Date();
@@ -127,7 +180,9 @@ export const Dashboard: React.FC = () => {
   };
 
   const getRelativeTime = (date: Date) => {
+    if (!date || isNaN(date.getTime())) return 'VỪA XONG';
     const diffMs = Date.now() - date.getTime();
+    if (isNaN(diffMs)) return 'VỪA XONG';
     const diffMins = Math.floor(diffMs / (60 * 1000));
     const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
     const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
@@ -144,25 +199,40 @@ export const Dashboard: React.FC = () => {
     // Helper to safely parse any date format into a Date object
     const toDate = (val: any): Date => {
       if (!val) return new Date();
-      if (val instanceof Date) return val;
-      if (val.toDate && typeof val.toDate === 'function') return val.toDate(); // Firebase Timestamp
-      if (typeof val === 'number') return new Date(val);
+      if (val instanceof Date) return isNaN(val.getTime()) ? new Date() : val;
+      if (val.toDate && typeof val.toDate === 'function') {
+        const d = val.toDate();
+        return isNaN(d.getTime()) ? new Date() : d;
+      }
+      if (typeof val === 'number') {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? new Date() : d;
+      }
+      if (typeof val === 'object' && typeof val.seconds === 'number') {
+        return new Date(val.seconds * 1000);
+      }
       if (typeof val === 'string') {
-        // Handle DD/MM/YYYY
-        const parts = val.split('/');
-        if (parts.length === 3) {
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          const year = parseInt(parts[2], 10);
-          return new Date(year, month, day);
+        if (val.includes('/')) {
+          const cleanVal = val.split(' ')[0];
+          const parts = cleanVal.split('/');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+              const d = new Date(year, month, day);
+              if (!isNaN(d.getTime())) return d;
+            }
+          }
         }
-        return new Date(val);
+        const parsed = new Date(val);
+        if (!isNaN(parsed.getTime())) return parsed;
       }
       return new Date();
     };
 
     // Báo cáo vi phạm
-    reports.forEach((item) => {
+    (reports || []).forEach((item) => {
       const statusLabel = item.status === 'Chờ xử lý' ? '⏳ Chờ xử lý' : (item.status === 'Đã xử lý' ? '✅ Đã xử lý' : item.status);
       list.push({
         title: `Báo cáo vi phạm - ${statusLabel}`,
@@ -175,7 +245,7 @@ export const Dashboard: React.FC = () => {
     });
 
     // Đánh giá công ty
-    reviews.forEach((item) => {
+    (reviews || []).forEach((item) => {
       const isApproved = item.status === 'Đã duyệt';
       list.push({
         title: isApproved ? 'Đánh giá đã duyệt' : 'Đánh giá chờ duyệt',
@@ -188,7 +258,7 @@ export const Dashboard: React.FC = () => {
     });
 
     // Tin tuyển dụng
-    jobPosts.forEach((item) => {
+    (jobPosts || []).forEach((item) => {
       list.push({
         title: 'Tin tuyển dụng mới',
         description: `${item.title} tại ${item.company || 'Doanh nghiệp'}`,
@@ -200,7 +270,7 @@ export const Dashboard: React.FC = () => {
     });
 
     // Người dùng đăng ký
-    users.forEach((item) => {
+    (users || []).forEach((item) => {
       list.push({
         title: 'Người dùng mới đăng ký',
         description: `${item.name || 'Thành viên mới'} (${item.job || 'Người tìm việc'})`,
@@ -212,7 +282,7 @@ export const Dashboard: React.FC = () => {
     });
 
     // Giao dịch thanh toán
-    recentTransactions.forEach((item) => {
+    (recentTransactions || []).forEach((item) => {
       list.push({
         title: 'Thanh toán thành công',
         description: `${item.name} đã mua gói dịch vụ ${item.amount}`,
@@ -223,8 +293,11 @@ export const Dashboard: React.FC = () => {
       });
     });
 
-    return list
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+    return list.sort((a, b) => {
+      const timeA = a.date && !isNaN(a.date.getTime()) ? a.date.getTime() : 0;
+      const timeB = b.date && !isNaN(b.date.getTime()) ? b.date.getTime() : 0;
+      return timeB - timeA;
+    });
   }, [reports, reviews, jobPosts, users, recentTransactions, colors]);
 
   return (
@@ -241,13 +314,13 @@ export const Dashboard: React.FC = () => {
             label="Từ ngày" 
             value={fromDate} 
             onChange={setFromDate} 
-            style={{ width: 150 }} 
+            style={{ width: 170 }} 
           />
           <DatePicker 
             label="Đến ngày" 
             value={toDate} 
             onChange={setToDate} 
-            style={{ width: 150 }} 
+            style={{ width: 170 }} 
           />
         </View>
       </View>
@@ -270,8 +343,8 @@ export const Dashboard: React.FC = () => {
           </View>
           <View style={styles.statInfo}>
             <Typography variant="body2" color="secondary">Tổng người dùng</Typography>
-            <Typography variant="h3">{users.length}</Typography>
-            <Typography variant="caption" color="success">~ +{(users.length * 0.05).toFixed(1)}%</Typography>
+            <Typography variant="h3">{(users || []).length}</Typography>
+            <Typography variant="caption" color="success">~ +{((users || []).length * 0.05).toFixed(1)}%</Typography>
           </View>
         </Card>
 
@@ -281,7 +354,7 @@ export const Dashboard: React.FC = () => {
           </View>
           <View style={styles.statInfo}>
             <Typography variant="body2" color="secondary">Số bài đăng</Typography>
-            <Typography variant="h3">{jobPosts.length}</Typography>
+            <Typography variant="h3">{(jobPosts || []).length}</Typography>
             <Typography variant="caption" color="info">~ Ổn định</Typography>
           </View>
         </Card>
@@ -292,7 +365,7 @@ export const Dashboard: React.FC = () => {
           </View>
           <View style={styles.statInfo}>
             <Typography variant="body2" color="secondary">Báo cáo mới</Typography>
-            <Typography variant="h3">{reports.filter(r => r.status === 'Chờ xử lý').length}</Typography>
+            <Typography variant="h3">{(reports || []).filter(r => r.status === 'Chờ xử lý').length}</Typography>
             <Typography variant="caption" color="danger">! Cần xử lý</Typography>
           </View>
         </Card>
@@ -300,14 +373,49 @@ export const Dashboard: React.FC = () => {
 
       <View style={styles.mainGrid}>
         <Card style={styles.chartSection}>
-          <Typography variant="h4" style={{ marginBottom: 24 }}>Xu hướng doanh thu (Ngày được chọn)</Typography>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <View>
+              <Typography variant="h4">Biểu đồ doanh thu {viewMode === 'day' ? 'theo ngày' : '12 tháng (Năm 2026)'}</Typography>
+              <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>
+                Tổng cộng: {totalRevenue.toLocaleString()} VNĐ ({chartData.activeRows.length} {viewMode === 'day' ? 'ngày' : 'tháng'} phát sinh)
+              </Typography>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', backgroundColor: colors.bgSecondary, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: colors.borderColor }}>
+                <TouchableOpacity
+                  onPress={() => setViewMode('day')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: viewMode === 'day' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: viewMode === 'day' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Theo Ngày
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setViewMode('month')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: viewMode === 'month' ? colors.primaryColor : 'transparent',
+                  }}
+                >
+                  <Typography variant="caption" style={{ color: viewMode === 'month' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                    Theo Tháng
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+              <Badge status={totalRevenue > 0 ? "success" : "default"}>
+                {totalRevenue > 0 ? "Thực tế" : "Chưa có phát sinh"}
+              </Badge>
+            </View>
+          </View>
           
-          <MockChart
-            type="bar"
-            labels={chartData.labels}
-            data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
-            height={260}
-          />
+          <ModernBarChart data={chartData.allRows} maxRevenue={chartData.maxRev} height={220} />
         </Card>
 
         <Card style={styles.activitySection}>

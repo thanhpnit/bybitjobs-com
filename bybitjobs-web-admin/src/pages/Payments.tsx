@@ -10,6 +10,8 @@ import { MockChart } from '../components/ui/MockChart';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { ModernBarChart } from '../components/ui/ModernBarChart';
+import { Pagination } from '../components/ui/Pagination';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -107,34 +109,184 @@ export const Payments: React.FC = () => {
       .reduce((sum, t) => sum + t.rawPrice, 0);
   }, [dateFilteredTransactions]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [viewMode, setViewMode] = useState<'7days' | '30days' | 'month' | 'custom'>('7days');
+
+  const handleFromDateChange = (val: string) => {
+    setFromDate(val);
+    setViewMode('custom');
+  };
+
+  const handleToDateChange = (val: string) => {
+    setToDate(val);
+    setViewMode('custom');
+  };
+
+  const handleSelect7Days = () => {
+    setViewMode('7days');
+    const now = new Date();
+    const sevenAgo = new Date();
+    sevenAgo.setDate(now.getDate() - 6);
+    setFromDate(sevenAgo.toISOString().split('T')[0]);
+    setToDate(now.toISOString().split('T')[0]);
+  };
+
+  const handleSelect30Days = () => {
+    setViewMode('30days');
+    const now = new Date();
+    const thirtyAgo = new Date();
+    thirtyAgo.setDate(now.getDate() - 29);
+    setFromDate(thirtyAgo.toISOString().split('T')[0]);
+    setToDate(now.toISOString().split('T')[0]);
+  };
+
+  const handleSelectMonth = () => {
+    setViewMode('month');
+    const year = new Date().getFullYear();
+    setFromDate(`${year}-01-01`);
+    setToDate(`${year}-12-31`);
+  };
+
   const chartData = React.useMemo(() => {
-    const start = new Date(fromDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(toDate);
-    end.setHours(23, 59, 59, 999);
-    
-    const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
-    
-    const labels = [];
-    const data = [];
-    for (let i = 0; i < daysDiff; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      labels.push(`${d.getDate()}/${d.getMonth() + 1}`);
+    const now = new Date();
+
+    if (viewMode === 'month') {
+      const currentYear = now.getFullYear();
+      const monthlyRows = [];
+
+      for (let m = 0; m < 12; m++) {
+        const monthStart = new Date(currentYear, m, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
+        const monthStr = `Tháng ${(m + 1).toString().padStart(2, '0')}/${currentYear}`;
+
+        const monthTxns = transactions.filter(t => {
+          if (t.status !== 'Completed' && t.status !== 'success') return false;
+          return t.rawDate >= monthStart && t.rawDate <= monthEnd;
+        });
+
+        const allMonthTxns = transactions.filter(t => t.rawDate >= monthStart && t.rawDate <= monthEnd);
+        const dailyRev = monthTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+
+        monthlyRows.push({
+          date: monthStr,
+          totalOrders: allMonthTxns.length,
+          successOrders: monthTxns.length,
+          revenue: dailyRev,
+        });
+      }
+
+      const activeRows = monthlyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...monthlyRows.map(r => r.revenue), 1);
+      return { allRows: monthlyRows, activeRows, maxRev };
+    } else if (viewMode === '30days') {
+      const weeklyRows = [];
+      const twentyEightDaysAgo = new Date(now);
+      twentyEightDaysAgo.setDate(now.getDate() - 28);
+
+      for (let w = 0; w < 4; w++) {
+        const weekStart = new Date(twentyEightDaysAgo);
+        weekStart.setDate(twentyEightDaysAgo.getDate() + w * 7);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const weekLabel = `Tuần ${w + 1} (${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1})`;
+
+        const weekTxns = transactions.filter(t => {
+          if (t.status !== 'Completed' && t.status !== 'success') return false;
+          return t.rawDate >= weekStart && t.rawDate <= weekEnd;
+        });
+
+        const allWeekTxns = transactions.filter(t => t.rawDate >= weekStart && t.rawDate <= weekEnd);
+        const weekRev = weekTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+
+        weeklyRows.push({
+          date: weekLabel,
+          totalOrders: allWeekTxns.length,
+          successOrders: weekTxns.length,
+          revenue: weekRev,
+        });
+      }
+
+      const activeRows = weeklyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...weeklyRows.map(r => r.revenue), 1);
+      return { allRows: weeklyRows, activeRows, maxRev };
+    } else if (viewMode === 'custom') {
+      const start = new Date(fromDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+
+      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
+      const customRows = [];
+
+      for (let i = 0; i < daysDiff; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(d);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const dayTxns = transactions.filter(t => {
+          if (t.status !== 'Completed' && t.status !== 'success') return false;
+          return t.rawDate >= dayStart && t.rawDate <= dayEnd;
+        });
+
+        const allDayTxns = transactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
+        const dailyRev = dayTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+
+        customRows.push({
+          date: dateStr,
+          totalOrders: allDayTxns.length,
+          successOrders: dayTxns.length,
+          revenue: dailyRev,
+        });
+      }
+
+      const activeRows = customRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...customRows.map(r => r.revenue), 1);
+      return { allRows: customRows, activeRows, maxRev };
+    } else {
+      const dailyRows = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        
+        const dayStart = new Date(d);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(d);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        const dayTxns = transactions.filter(t => {
+          if (t.status !== 'Completed' && t.status !== 'success') return false;
+          return t.rawDate >= dayStart && t.rawDate <= dayEnd;
+        });
+
+        const allDayTxns = transactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
+        const dailyRev = dayTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+
+        dailyRows.push({
+          date: dateStr,
+          totalOrders: allDayTxns.length,
+          successOrders: dayTxns.length,
+          revenue: dailyRev,
+        });
+      }
+
+      const activeRows = dailyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
+      const maxRev = Math.max(...dailyRows.map(r => r.revenue), 1);
       
-      const dayStart = new Date(d);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      const dailyRev = dateFilteredTransactions
-        .filter(t => t.status === 'Completed' && t.rawDate >= dayStart && t.rawDate <= dayEnd)
-        .reduce((sum, t) => sum + t.rawPrice, 0);
-      data.push(dailyRev);
+      return { allRows: dailyRows, activeRows, maxRev };
     }
-    
-    return { labels, data };
-  }, [dateFilteredTransactions, fromDate, toDate]);
+  }, [viewMode, transactions, fromDate, toDate]);
 
   const todayStats = React.useMemo(() => {
     const todayStart = new Date();
@@ -187,36 +339,77 @@ export const Payments: React.FC = () => {
         <DatePicker 
           label="Từ ngày" 
           value={fromDate} 
-          onChange={setFromDate} 
-          style={{ width: 150 }} 
+          onChange={handleFromDateChange} 
+          style={{ width: 170 }} 
         />
         <DatePicker 
           label="Đến ngày" 
           value={toDate} 
-          onChange={setToDate} 
-          style={{ width: 150 }} 
+          onChange={handleToDateChange} 
+          style={{ width: 170 }} 
         />
       </View>
 
       <View style={styles.topGrid}>
             <Card style={styles.chartCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                 <View>
-                  <Typography variant="h3">Doanh thu (Khoảng ngày chọn)</Typography>
-                  <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>Tổng cộng: {totalRevenue.toLocaleString()} VNĐ</Typography>
+                  <Typography variant="h3">
+                    Biểu đồ doanh thu {viewMode === '7days' ? '7 Ngày (Theo Ngày)' : viewMode === '30days' ? '30 Ngày (Theo Tuần)' : viewMode === 'month' ? '12 Tháng (Năm 2026)' : `Tùy chọn (${fromDate} đến ${toDate})`}
+                  </Typography>
+                  <Typography variant="body2" color="secondary" style={{ marginTop: 4 }}>
+                    Tổng doanh thu: {totalRevenue.toLocaleString()} VNĐ ({chartData.activeRows.length} {viewMode === 'month' ? 'tháng' : viewMode === '30days' ? 'tuần' : 'ngày'} phát sinh)
+                  </Typography>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <ArrowUpRight color={colors.primaryColor} size={16} />
-                  <Typography variant="subtitle2" color="brand">Thực tế</Typography>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ flexDirection: 'row', backgroundColor: colors.bgSecondary, borderRadius: 8, padding: 3, borderWidth: 1, borderColor: colors.borderColor }}>
+                    <TouchableOpacity
+                      onPress={handleSelect7Days}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        backgroundColor: viewMode === '7days' ? colors.primaryColor : 'transparent',
+                      }}
+                    >
+                      <Typography variant="caption" style={{ color: viewMode === '7days' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                        7 Ngày (Ngày)
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleSelect30Days}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        backgroundColor: viewMode === '30days' ? colors.primaryColor : 'transparent',
+                      }}
+                    >
+                      <Typography variant="caption" style={{ color: viewMode === '30days' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                        30 Ngày (Tuần)
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleSelectMonth}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                        backgroundColor: viewMode === 'month' ? colors.primaryColor : 'transparent',
+                      }}
+                    >
+                      <Typography variant="caption" style={{ color: viewMode === 'month' ? '#FFF' : colors.textSecondary, fontWeight: '600' }}>
+                        Theo Tháng
+                      </Typography>
+                    </TouchableOpacity>
+                  </View>
+                  <Badge status={totalRevenue > 0 ? "success" : "default"}>
+                    {totalRevenue > 0 ? "Thực tế" : "Chưa có phát sinh"}
+                  </Badge>
                 </View>
               </View>
-              
-              <MockChart
-                type="bar"
-                labels={chartData.labels}
-                data={chartData.data.length > 0 && Math.max(...chartData.data) > 0 ? chartData.data : [100, 100]}
-                height={220}
-              />
+
+              <ModernBarChart data={chartData.allRows} maxRevenue={chartData.maxRev} height={220} />
             </Card>
 
             <View style={styles.rightStats}>
@@ -270,7 +463,7 @@ export const Payments: React.FC = () => {
               <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
             </View>
 
-            {filteredTransactions.map((item, index) => (
+            {filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
               <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
                 <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
                 <View style={[styles.colCompany, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
@@ -299,16 +492,13 @@ export const Payments: React.FC = () => {
           </View>
         </ScrollView>
 
-        <View style={styles.pagination}>
-          <Typography variant="body2" color="secondary">Hiển thị {filteredTransactions.length > 0 ? 1 : 0} - {Math.min(4, filteredTransactions.length)} trên {filteredTransactions.length} giao dịch</Typography>
-          <View style={styles.pageNumbers}>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><Typography variant="body2" color="secondary">Trước</Typography></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { backgroundColor: colors.primaryColor, borderColor: colors.primaryColor }]}><Typography variant="body2" style={{ color: '#fff' }}>1</Typography></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><Typography variant="body2">2</Typography></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><Typography variant="body2">3</Typography></TouchableOpacity>
-            <TouchableOpacity style={[styles.pageBtn, { borderColor: colors.borderLight }]}><Typography variant="body2" color="secondary">Sau</Typography></TouchableOpacity>
-          </View>
-        </View>
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={filteredTransactions.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          label="giao dịch"
+        />
       </Card>
 
       <Modal 

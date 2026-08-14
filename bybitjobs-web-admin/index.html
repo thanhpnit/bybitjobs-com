@@ -9,8 +9,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      /* React Native Web root styles */
-      html, body { height: 100%; width: 100%; margin: 0; padding: 0; }
+      /* React Native Web root styles & font smoothing */
+      html, body { 
+        height: 100%; 
+        width: 100%; 
+        margin: 0; 
+        padding: 0; 
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
       #root { display: flex; height: 100%; width: 100%; }
     </style>
   </head>

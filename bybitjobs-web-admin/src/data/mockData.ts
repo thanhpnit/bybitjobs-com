@@ -5,8 +5,8 @@ export const initialUsers = [
 ];
 
 export const initialEmployers = [
-  { id: '#EM-5321', company: 'Logistics Toàn Cầu', industry: 'Logistics', email: 'hr@logistics.com', phone: '098 765 4321', status: 'Chờ duyệt', postsLimit: '5/5', isVerified: false },
-  { id: '#EM-5322', company: 'TechAsia Solutions', industry: 'IT', email: 'hr@techasia.vn', phone: '090 111 2222', status: 'Đang hoạt động', postsLimit: '2/10', isVerified: true },
+  { id: '#EM-5321', company: 'Logistics Toàn Cầu', industry: 'Logistics', email: 'hr@logistics.com', phone: '098 765 4321', status: 'Chờ duyệt', postsLimit: '5/5', isVerified: false, package: 'free', packageName: 'Gói STARTER' },
+  { id: '#EM-5322', company: 'TechAsia Solutions', industry: 'IT', email: 'hr@techasia.vn', phone: '090 111 2222', status: 'Đang hoạt động', postsLimit: ' Không giới hạn', isVerified: true, package: 'premium', packageId: 'premium', packageName: 'Gói PREMIUM (VIP 👑)', date: '10/08/2026' },
 ];
 
 export const initialJobPosts = [
@@ -79,4 +79,12 @@ export const initialReviews = [
 export const initialPaymentMethods = [
   { id: 'pm-1', type: 'Chuyển khoản Ngân hàng', name: 'Vietcombank', accountName: 'NGUYEN VAN A', accountNumber: '0071 0001 23456', branch: 'Chi nhánh Nam Sài Gòn', status: 'Đang dùng' },
   { id: 'pm-2', type: 'Ví điện tử', name: 'Ví Momo', accountName: 'NGUYEN VAN A', accountNumber: '0901234567', branch: '', status: 'Đang dùng' },
+];
+
+export const initialSkills = [
+  { id: 'sk-1', name: 'React Native', desc: 'Lập trình ứng dụng di động đa nền tảng', category: 'Công nghệ', posts: 15, status: 'Active' },
+  { id: 'sk-2', name: 'UI/UX Design', desc: 'Thiết kế giao diện và trải nghiệm người dùng', category: 'Thiết kế', posts: 12, status: 'Active' },
+  { id: 'sk-3', name: 'Digital Marketing', desc: 'Quản trị thương hiệu & SEO/SEM', category: 'Marketing', posts: 20, status: 'Active' },
+  { id: 'sk-4', name: 'Barista / Pha chế', desc: 'Kỹ năng pha chế cà phê và thức uống', category: 'Dịch vụ', posts: 8, status: 'Active' },
+  { id: 'sk-5', name: 'Thu ngân / Bán hàng', desc: 'Quản lý quầy thu ngân và chăm sóc khách hàng', category: 'Bán lẻ', posts: 25, status: 'Active' },
 ];
