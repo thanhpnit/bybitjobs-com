@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { collection, deleteField, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, deleteField, doc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Pagination } from '../components/ui/Pagination';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
@@ -109,17 +109,51 @@ export const Reviews: React.FC = () => {
     };
   }, [data]);
 
+  const updateCompanyRatingInFirestore = async (companyName: string) => {
+    if (!companyName) return;
+    try {
+      const targetReviews = data.filter(r => r.company.toLowerCase().trim() === companyName.toLowerCase().trim() && r.status === 'Đã phê duyệt' && r.rating > 0);
+      const totalScore = targetReviews.reduce((sum, r) => sum + r.rating, 0);
+      const count = targetReviews.length;
+      const avg = count > 0 ? Number((totalScore / count).toFixed(1)) : 5.0;
+
+      const snap = await getDocs(collection(db, 'employers'));
+      snap.forEach(async (docSnap) => {
+        const item = docSnap.data();
+        const cName = item.companyName || item.company_name || item.company || '';
+        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
+          await updateDoc(doc(db, 'employers', docSnap.id), {
+            rating: avg,
+            reviewCount: count,
+            totalReviews: count
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Lỗi cập nhật điểm đánh giá công ty:', err);
+    }
+  };
+
   const handleApprove = async (id: string) => {
+    const targetItem = data.find(i => i.id === id);
     setData((current) => current.map((item) => item.id === id ? { ...item, status: 'Đã phê duyệt' } : item));
     await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Đã phê duyệt' });
+    if (targetItem) {
+      await updateCompanyRatingInFirestore(targetItem.company);
+    }
   };
 
   const handleHide = async (id: string) => {
+    const targetItem = data.find(i => i.id === id);
     setData((current) => current.map((item) => item.id === id ? { ...item, status: 'Bị báo cáo' } : item));
     await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Bị báo cáo' });
+    if (targetItem) {
+      await updateCompanyRatingInFirestore(targetItem.company);
+    }
   };
 
   const handleDelete = async (id: string) => {
+    const targetItem = data.find(i => i.id === id);
     setData((current) => current.filter((item) => item.id !== id));
     await updateDoc(doc(db, 'applications', id), {
       companyRating: deleteField(),
@@ -127,6 +161,9 @@ export const Reviews: React.FC = () => {
       reviewedAt: deleteField(),
       reviewStatus: deleteField(),
     });
+    if (targetItem) {
+      await updateCompanyRatingInFirestore(targetItem.company);
+    }
   };
 
   return (
