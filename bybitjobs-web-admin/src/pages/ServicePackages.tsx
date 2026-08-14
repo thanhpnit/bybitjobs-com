@@ -159,20 +159,29 @@ export const ServicePackages: React.FC = () => {
   };
 
   const employerSubscriptions = React.useMemo(() => {
-    return (employers || []).map((emp, index) => {
+    const list: any[] = [];
+    const processedCompanies = new Set<string>();
+
+    (employers || []).forEach((emp, index) => {
       const companyName = emp.company || emp.company_name || emp.name || `Nhà tuyển dụng #${index + 1}`;
       const email = emp.email || 'ntd@bybitjobs.vn';
-      
-      const empOrders = (orders || []).filter(o => 
-        (o.status === 'success' || o.status === 'Completed' || o.status === 'PAID') && 
-        ((o.company || '').toLowerCase() === companyName.toLowerCase() || (o.email || '').toLowerCase() === email.toLowerCase())
-      );
-      
+      const normCompany = companyName.toLowerCase().trim();
+      processedCompanies.add(normCompany);
+
+      const empOrders = (orders || []).filter(o => {
+        const isPaid = o.status === 'success' || o.status === 'Completed' || o.status === 'PAID';
+        if (!isPaid) return false;
+        const oCompany = (o.company || o.employer || '').toLowerCase().trim();
+        const oEmail = (o.email || '').toLowerCase().trim();
+        return (oCompany.length > 0 && (oCompany.includes(normCompany) || normCompany.includes(oCompany))) ||
+               (email.length > 0 && oEmail === email.toLowerCase().trim());
+      });
+
       const latestOrder = empOrders.length > 0 ? empOrders[empOrders.length - 1] : null;
-      
-      let rawPkg = emp.packageName || emp.package || emp.packageId || emp.tier || (latestOrder ? (latestOrder.packageName || latestOrder.package || latestOrder.packageId) : 'free');
+
+      let rawPkg = (latestOrder ? (latestOrder.packageName || latestOrder.package || latestOrder.packageId) : null) || emp.packageName || emp.package || emp.packageId || emp.tier || 'free';
       if (typeof rawPkg === 'object' && rawPkg !== null) rawPkg = rawPkg.name || rawPkg.id || 'free';
-      
+
       let pkgStr = String(rawPkg || '').toLowerCase();
       let pkgDisplayName = 'Gói STARTER (Miễn phí)';
       let isVip = false;
@@ -186,7 +195,7 @@ export const ServicePackages: React.FC = () => {
         isPro = true;
       }
 
-      let startDateStr = emp.date || (latestOrder ? latestOrder.date : '14/08/2026');
+      let startDateStr = (latestOrder ? (latestOrder.date || latestOrder.createdAt) : null) || emp.date || '14/08/2026';
       let expiryDateStr = 'Vĩnh viễn';
       let daysLeft = 999;
       let statusTag = 'Đang hoạt động';
@@ -213,7 +222,7 @@ export const ServicePackages: React.FC = () => {
         else statusTag = 'Đang hoạt động';
       }
 
-      return {
+      list.push({
         id: emp.id || `sub-${index}`,
         company: companyName,
         email,
@@ -225,8 +234,70 @@ export const ServicePackages: React.FC = () => {
         expiryDate: expiryDateStr,
         daysLeft,
         statusTag
-      };
+      });
     });
+
+    (orders || []).forEach((o, index) => {
+      const isPaid = o.status === 'success' || o.status === 'Completed' || o.status === 'PAID';
+      if (!isPaid) return;
+
+      const companyName = o.company || o.employer || 'Doanh nghiệp';
+      const normCompany = companyName.toLowerCase().trim();
+
+      if (processedCompanies.has(normCompany)) return;
+      processedCompanies.add(normCompany);
+
+      let rawPkg = o.packageName || o.package || o.packageId || 'premium';
+      if (typeof rawPkg === 'object' && rawPkg !== null) rawPkg = rawPkg.name || rawPkg.id || 'premium';
+
+      let pkgStr = String(rawPkg || '').toLowerCase();
+      let pkgDisplayName = 'Gói PREMIUM (VIP 👑)';
+      let isVip = true;
+      let isPro = false;
+
+      if (pkgStr.includes('pro') && !pkgStr.includes('premium')) {
+        pkgDisplayName = 'Gói PRO (Phổ Biến ⭐)';
+        isVip = false;
+        isPro = true;
+      }
+
+      let startDateStr = o.date || o.createdAt || '10/08/2026';
+      const parts = String(startDateStr).split(/[-/]/);
+      let startD = new Date();
+      if (parts.length === 3) {
+        if (parts[0].length === 4) startD = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        else startD = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      const expiryD = new Date(startD);
+      expiryD.setDate(startD.getDate() + 30);
+
+      const now = new Date();
+      const diffMs = expiryD.getTime() - now.getTime();
+      const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      const expiryDateStr = `${expiryD.getDate().toString().padStart(2, '0')}/${(expiryD.getMonth() + 1).toString().padStart(2, '0')}/${expiryD.getFullYear()}`;
+
+      let statusTag = 'Đang hoạt động';
+      if (daysLeft < 0) statusTag = 'Đã hết hạn';
+      else if (daysLeft <= 5) statusTag = 'Sắp hết hạn';
+
+      list.push({
+        id: `order-sub-${index}`,
+        company: companyName,
+        email: o.email || 'hr@campuchia.vn',
+        phone: o.phone || '090 999 8888',
+        packageName: pkgDisplayName,
+        isVip,
+        isPro,
+        startDate: startDateStr,
+        expiryDate: expiryDateStr,
+        daysLeft,
+        statusTag
+      });
+    });
+
+    return list;
   }, [employers, orders]);
 
   const [empSearch, setEmpSearch] = useState('');
