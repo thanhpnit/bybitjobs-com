@@ -629,6 +629,7 @@ function CandidateHomeScreen() {
   const [bookmarkedJobs, setBookmarkedJobs] = React.useState<string[]>([]);
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
   const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
+  const [proEmployersById, setProEmployersById] = React.useState<Record<string, boolean>>({});
   const [premiumCompaniesByEmployerId, setPremiumCompaniesByEmployerId] = React.useState<Record<string, FeaturedCompany>>({});
 
   const toggleBookmark = (id: string) => {
@@ -646,7 +647,7 @@ function CandidateHomeScreen() {
         .filter((job) => {
           if (!job.employerId) return false;
           const needsPosterName = !job.posterName && !posterNamesByEmployerId[job.employerId];
-          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined;
+          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined || proEmployersById[job.employerId] === undefined;
           return needsPosterName || needsPremiumStatus;
         })
         .map((job) => job.employerId as string)
@@ -658,6 +659,7 @@ function CandidateHomeScreen() {
       const entries = await Promise.all(employerIds.map(async (employerId) => {
         let name: string | undefined;
         let isPremium = false;
+        let isPro = false;
         let premiumCompany: FeaturedCompany | undefined;
 
         try {
@@ -683,6 +685,7 @@ function CandidateHomeScreen() {
           if (response.ok) {
             const employerData = await response.json();
             isPremium = isPremiumEmployer(employerData);
+            isPro = isProEmployer(employerData);
 
             if (isPremium) {
               premiumCompany = buildFeaturedCompany(employerData, employerId, name);
@@ -692,7 +695,7 @@ function CandidateHomeScreen() {
           console.error('Lỗi lấy gói nhà tuyển dụng:', error);
         }
 
-        return { employerId, name, isPremium, premiumCompany };
+        return { employerId, name, isPremium, isPro, premiumCompany };
       }));
 
       if (!isActive) return;
@@ -704,6 +707,9 @@ function CandidateHomeScreen() {
       );
       const nextPremiumStatuses = Object.fromEntries(
         entries.map((entry) => [entry.employerId, entry.isPremium])
+      );
+      const nextProStatuses = Object.fromEntries(
+        entries.map((entry) => [entry.employerId, entry.isPro])
       );
       const nextPremiumCompanies = Object.fromEntries(
         entries
@@ -721,6 +727,19 @@ function CandidateHomeScreen() {
           Object.entries(nextPremiumStatuses).forEach(([employerId, isPremium]) => {
             if (next[employerId] !== isPremium) {
               next[employerId] = isPremium;
+              hasChanged = true;
+            }
+          });
+          return hasChanged ? next : prev;
+        });
+      }
+      if (Object.keys(nextProStatuses).length > 0) {
+        setProEmployersById((prev) => {
+          let hasChanged = false;
+          const next = { ...prev };
+          Object.entries(nextProStatuses).forEach(([employerId, isPro]) => {
+            if (next[employerId] !== isPro) {
+              next[employerId] = isPro;
               hasChanged = true;
             }
           });
@@ -1883,8 +1902,12 @@ function CandidateHomeScreen() {
             ) : (
               filteredJobs.map((job) => {
                 const isBookmarked = bookmarkedJobs.includes(job.id);
-                const isPremiumJob = job.isPremium || (job as any).packageTier === 'PREMIUM';
-                const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO');
+                const isEmployerPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
+                const isEmployerPro = job.employerId ? proEmployersById[job.employerId] === true : false;
+                const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
+
+                const isPremiumJob = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;
+                const isProJob = !isPremiumJob && ((job as any).isPro === true || rawPkg.includes('PRO') || isEmployerPro);
                 return (
                   <TouchableOpacity
                     key={job.id}
