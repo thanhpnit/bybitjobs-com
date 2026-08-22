@@ -318,14 +318,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const setIndustries = async (data: any[]) => {
     const oldIds = industries.map((i: any) => i.id);
     const newIds = data.map((i: any) => i.id);
-    const deletedIds = oldIds.filter(id => !newIds.includes(id));
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
     
     setIndustriesState(data);
     try {
       const batch = data.map(async (ind) => {
         await setDoc(doc(db, 'industries', ind.id), ind);
       });
-      const deletes = deletedIds.map(async (id) => {
+      const deletes = deletedIds.map(async (id: string) => {
         await deleteDoc(doc(db, 'industries', id));
       });
       await Promise.all([...batch, ...deletes]);
@@ -338,14 +338,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const setPaymentMethods = async (data: any[]) => {
     const oldIds = paymentMethods.map((i: any) => i.id);
     const newIds = data.map((i: any) => i.id);
-    const deletedIds = oldIds.filter(id => !newIds.includes(id));
+    const deletedIds = oldIds.filter((id: string) => !newIds.includes(id));
     
     setPaymentMethodsState(data);
     try {
       const batch = data.map(async (pm) => {
         await setDoc(doc(db, 'paymentMethods', pm.id), pm);
       });
-      const deletes = deletedIds.map(async (id) => {
+      const deletes = deletedIds.map(async (id: string) => {
         await deleteDoc(doc(db, 'paymentMethods', id));
       });
       await Promise.all([...batch, ...deletes]);

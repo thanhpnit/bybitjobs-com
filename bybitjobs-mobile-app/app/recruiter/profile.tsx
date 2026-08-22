@@ -420,7 +420,7 @@ export default function RecruiterProfileScreen() {
   const totalApplicants = realApplicantsCount;
 
   const displayJobs = employerJobs
-    .filter(job => job.isOpen && job.status !== 'Đã đóng')
+    .filter(job => job.isOpen && (job.status as string) !== 'Đã đóng')
     .map(job => ({
       id: job.id,
       title: job.title,

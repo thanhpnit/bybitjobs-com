@@ -55,15 +55,15 @@ export default function RecruiterCvDetailsScreen() {
       applicantName: candidate.name,
       applicantEmail: candidate.email || 'Chưa cập nhật email',
       applicantPhone: candidate.phone || 'Chưa cập nhật số điện thoại',
-      cvName: candidate.cvName || `CV_${candidate.name.replace(/\s+/g, '_')}.pdf`,
-      cvUrl: candidate.cvUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      cvName: (candidate as any).cvName || `CV_${candidate.name.replace(/\s+/g, '_')}.pdf`,
+      cvUrl: (candidate as any).cvUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
       appliedAt: new Date().toISOString(),
       status: 'Pending',
-      message: candidate.introduction || `Ứng viên ${candidate.name} có ${candidate.yearsOfExp || 1} năm kinh nghiệm vị trí ${candidate.role}.`,
+      message: (candidate as any).introduction || `Ứng viên ${candidate.name} có ${candidate.yearsOfExp || 1} năm kinh nghiệm vị trí ${candidate.role}.`,
     } as any;
   }
 
-  if (!application && !candidate) {
+  if (!application) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
         <View style={styles.headerBar}>

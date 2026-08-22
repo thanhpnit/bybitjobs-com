@@ -354,7 +354,7 @@ export default function RecruiterDashboardScreen() {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
     const titleLower = (job.title || '').toLowerCase();
-    const isUrgent = job.urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
+    const isUrgent = (job as any).urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
     const isHot = isPremium || (job as any).isHot === true || (job as any).isFeatured === true || ((job as any).viewsCount || 0) > 10;
 
     return {
@@ -463,7 +463,7 @@ export default function RecruiterDashboardScreen() {
               <Text style={styles.headerBarTitle}>BybitJobs</Text>
             </View>
             <View style={styles.headerRightGroup}>
-              <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => setIsSearchModalVisible(true)}>
+              <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => setIsIndustryModalVisible(true)}>
                 <Ionicons name="search-outline" size={24} color="#FFF" />
               </TouchableOpacity>
               <TouchableOpacity 
@@ -568,7 +568,7 @@ export default function RecruiterDashboardScreen() {
           const tierInfo = getEmployerPackageTier(employerData);
 
           // Calculate Expiration Date & Remaining Days
-          const rawExpiresAt = employerData?.packageExpiresAt || employerData?.expires_at || employerData?.expiredAt;
+          const rawExpiresAt = employerData?.packageExpiresAt || (employerData as any)?.expires_at || (employerData as any)?.expiredAt;
           let expiresDateStr = '';
           let daysLeft: number | null = null;
 
@@ -939,8 +939,8 @@ export default function RecruiterDashboardScreen() {
           ) : (
             filteredJobs.map((job) => {
               const isBookmarked = bookmarkedJobs.includes(job.id);
-              const isPremiumJob = (job as any).isPremium || (job.employerId ? isPremiumEmployer(employerData) : false);
-              const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO' || (job.employerId ? isProEmployer(employerData) : false));
+              const isPremiumJob = (job as any).isPremium || ((job as any).employerId ? isPremiumEmployer(employerData) : false);
+              const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO' || ((job as any).employerId ? isProEmployer(employerData) : false));
               return (
                 <TouchableOpacity
                   key={job.id}
@@ -1097,7 +1097,7 @@ export default function RecruiterDashboardScreen() {
 
                         <View style={styles.authorRow}>
                           <CompanyLogoAvatar
-                            logoUri={(job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userDataExtra?.avatar) : null)}
+                            logoUri={(job as any).companyLogo || (job as any).logo || (job as any).authorLogo || (job.author.name === employerData?.companyName ? (employerData?.logo || (employerData as any)?.logoUrl || userData?.avatar) : null)}
                             fallbackText={job.author.avatar || 'TC'}
                             isDark={isDark}
                           />
@@ -1463,6 +1463,53 @@ export default function RecruiterDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  heroBlueBanner: {
+    backgroundColor: '#2563EB',
+    paddingBottom: 8,
+  },
+  selectorTextPillActive: {
+    color: '#2563EB',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeModalBtn: {
+    padding: 4,
+  },
+  modalList: {
+    marginTop: 12,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+  },
+  modalItemText: {
+    fontSize: 15,
   },
   gradientHeaderBg: {
     position: 'absolute',
