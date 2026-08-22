@@ -364,7 +364,7 @@ export default function RecruiterDashboardScreen() {
       author: {
         name: posterName,
         verified: true,
-        rating: 5.0,
+        rating: Number((job as any).companyRating || (employerData as any)?.rating || 5.0),
         avatar: getPosterAvatar(posterName),
       },
       location: job.location,

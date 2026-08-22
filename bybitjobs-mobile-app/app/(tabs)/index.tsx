@@ -578,7 +578,7 @@ function CandidateHomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { jobs, userData, userDataExtra, employerData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole } = useAuth();
+  const { jobs, userData, userDataExtra, employerData, invitations, respondToInvitation, savedJobs, viewedJobs, userRole, applications } = useAuth();
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = React.useCallback(() => {
@@ -939,8 +939,29 @@ function CandidateHomeScreen() {
     }
     return true;
   });
+  const companyRatingsByName = React.useMemo(() => {
+    const map: Record<string, { sum: number; count: number }> = {};
+    (applications || []).forEach((app: any) => {
+      const cName = (app.companyName || app.company || '').toLowerCase().trim();
+      const r = Number(app.companyRating || 0);
+      const status = app.reviewStatus || 'Đã phê duyệt';
+      if (cName && r > 0 && status !== 'Bị báo cáo') {
+        if (!map[cName]) map[cName] = { sum: 0, count: 0 };
+        map[cName].sum += r;
+        map[cName].count += 1;
+      }
+    });
+    const result: Record<string, number> = {};
+    Object.keys(map).forEach((cName) => {
+      result[cName] = Number((map[cName].sum / map[cName].count).toFixed(1));
+    });
+    return result;
+  }, [applications]);
+
   const jobListings: JobItem[] = openJobs.map(job => {
     const posterName = getPosterName(job);
+    const cNameKey = posterName.toLowerCase().trim();
+    const dynamicRating = companyRatingsByName[cNameKey] || Number((job as any).companyRating || 5.0);
 
     return {
       id: job.id,
@@ -949,7 +970,7 @@ function CandidateHomeScreen() {
       author: {
         name: posterName,
         verified: true,
-        rating: 5.0,
+        rating: dynamicRating,
         avatar: getPosterAvatar(posterName),
       },
       location: job.location,
