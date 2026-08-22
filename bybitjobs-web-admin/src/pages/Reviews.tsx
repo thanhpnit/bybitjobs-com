@@ -112,13 +112,28 @@ export const Reviews: React.FC = () => {
   const updateCompanyRatingInFirestore = async (companyName: string) => {
     if (!companyName) return;
     try {
-      const targetReviews = data.filter(r => r.company.toLowerCase().trim() === companyName.toLowerCase().trim() && r.status === 'Đã phê duyệt' && r.rating > 0);
-      const totalScore = targetReviews.reduce((sum, r) => sum + r.rating, 0);
-      const count = targetReviews.length;
+      // Query Firestore directly for all approved reviews of this company
+      const snapApps = await getDocs(collection(db, 'applications'));
+      let totalScore = 0;
+      let count = 0;
+
+      snapApps.forEach((docSnap) => {
+        const val = docSnap.data();
+        const cName = val.companyName || val.company || '';
+        const status = val.reviewStatus || 'Chờ duyệt';
+        const r = Number(val.companyRating || 0);
+
+        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() && status === 'Đã phê duyệt' && r > 0) {
+          totalScore += r;
+          count += 1;
+        }
+      });
+
       const avg = count > 0 ? Number((totalScore / count).toFixed(1)) : 5.0;
 
-      const snap = await getDocs(collection(db, 'employers'));
-      snap.forEach(async (docSnap) => {
+      // 1. Update `employers` collection
+      const snapEmp = await getDocs(collection(db, 'employers'));
+      snapEmp.forEach(async (docSnap) => {
         const item = docSnap.data();
         const cName = item.companyName || item.company_name || item.company || '';
         if (cName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
@@ -126,6 +141,33 @@ export const Reviews: React.FC = () => {
             rating: avg,
             reviewCount: count,
             totalReviews: count
+          });
+        }
+      });
+
+      // 2. Update `users` collection for recruiter
+      const snapUsers = await getDocs(collection(db, 'users'));
+      snapUsers.forEach(async (docSnap) => {
+        const item = docSnap.data();
+        const cName = item.companyName || item.company_name || item.company || '';
+        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() || item.email?.toLowerCase() === companyName.toLowerCase()) {
+          await updateDoc(doc(db, 'users', docSnap.id), {
+            rating: avg,
+            reviewsCount: count,
+            totalReviews: count
+          });
+        }
+      });
+
+      // 3. Update `job_posts` collection for this company
+      const snapJobs = await getDocs(collection(db, 'job_posts'));
+      snapJobs.forEach(async (docSnap) => {
+        const item = docSnap.data();
+        const cName = item.companyName || item.company_name || item.company || '';
+        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
+          await updateDoc(doc(db, 'job_posts', docSnap.id), {
+            companyRating: avg,
+            reviewsCount: count
           });
         }
       });

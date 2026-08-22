@@ -243,11 +243,11 @@ export default function JobDetailsScreen() {
   }, [employerInfo?.companyName, employerName]);
 
   const companyRatingDisplay = React.useMemo(() => {
-    if (employerInfo?.rating) return Number(employerInfo.rating).toFixed(1);
     if (approvedReviews.length > 0) {
       const total = approvedReviews.reduce((sum, r) => sum + r.rating, 0);
       return (total / approvedReviews.length).toFixed(1);
     }
+    if (employerInfo?.rating) return Number(employerInfo.rating).toFixed(1);
     return '5.0';
   }, [employerInfo?.rating, approvedReviews]);
 
