@@ -958,10 +958,21 @@ function CandidateHomeScreen() {
     return result;
   }, [applications]);
 
+  const getCompanyRating = (posterName: string, defaultRating: number = 5.0) => {
+    const key = posterName.toLowerCase().trim();
+    if (!key) return defaultRating;
+    if (companyRatingsByName[key]) return companyRatingsByName[key];
+    for (const [cName, rating] of Object.entries(companyRatingsByName)) {
+      if (cName && (cName.includes(key) || key.includes(cName))) {
+        return rating;
+      }
+    }
+    return defaultRating;
+  };
+
   const jobListings: JobItem[] = openJobs.map(job => {
     const posterName = getPosterName(job);
-    const cNameKey = posterName.toLowerCase().trim();
-    const dynamicRating = companyRatingsByName[cNameKey] || Number((job as any).companyRating || 5.0);
+    const dynamicRating = getCompanyRating(posterName, Number((job as any).companyRating || 5.0));
 
     return {
       id: job.id,

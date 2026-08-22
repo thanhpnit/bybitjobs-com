@@ -212,18 +212,23 @@ export default function JobDetailsScreen() {
   }, [currentJob?.employerId, currentJob?.industry, displayLocation, storedPosterName]);
 
   React.useEffect(() => {
-    const compName = employerInfo?.companyName || employerName;
-    if (!compName || compName === 'Nhà tuyển dụng') return;
+    const compName = (employerInfo?.companyName || employerName || '').toLowerCase().trim();
+    const empId = (employerInfo as any)?.id || currentJob?.employerId || '';
+    const jId = currentJob?.id || jobId || '';
 
     const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((docSnap) => {
         const val = docSnap.data();
-        const cName = val.companyName || val.company || '';
+        const cName = (val.companyName || val.company || '').toLowerCase().trim();
         const status = val.reviewStatus || 'Đã phê duyệt';
         const r = Number(val.companyRating || 0);
 
-        if (cName.toLowerCase().trim() === compName.toLowerCase().trim() && status !== 'Bị báo cáo' && (r > 0 || (val.companyComment && val.companyComment.trim().length > 0))) {
+        const isMatch = (compName && cName && (cName === compName || cName.includes(compName) || compName.includes(cName))) ||
+                        (empId && val.employerId === empId) ||
+                        (jId && val.jobId === jId);
+
+        if (isMatch && status !== 'Bị báo cáo' && (r > 0 || (val.companyComment && val.companyComment.trim().length > 0))) {
           list.push({
             id: docSnap.id,
             applicantName: val.applicantName || val.candidateName || 'Ứng viên ẩn danh',
@@ -238,7 +243,7 @@ export default function JobDetailsScreen() {
     }, (err) => console.log('Lỗi tải đánh giá đã duyệt:', err));
 
     return () => unsubscribe();
-  }, [employerInfo?.companyName, employerName]);
+  }, [employerInfo?.companyName, employerName, currentJob?.employerId, currentJob?.id, jobId]);
 
   const companyRatingDisplay = React.useMemo(() => {
     if (approvedReviews.length > 0) {
