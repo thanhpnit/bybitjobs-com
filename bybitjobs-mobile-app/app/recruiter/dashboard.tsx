@@ -350,12 +350,44 @@ export default function RecruiterDashboardScreen() {
     }
     return true;
   });
+  const companyRatingsByName = React.useMemo(() => {
+    const map: Record<string, { sum: number; count: number }> = {};
+    (applications || []).forEach((app: any) => {
+      const cName = (app.companyName || app.company || '').toLowerCase().trim();
+      const r = Number(app.companyRating || 0);
+      const status = app.reviewStatus || 'Đã phê duyệt';
+      if (cName && r > 0 && status !== 'Bị báo cáo') {
+        if (!map[cName]) map[cName] = { sum: 0, count: 0 };
+        map[cName].sum += r;
+        map[cName].count += 1;
+      }
+    });
+    const result: Record<string, number> = {};
+    Object.keys(map).forEach((cName) => {
+      result[cName] = Number((map[cName].sum / map[cName].count).toFixed(1));
+    });
+    return result;
+  }, [applications]);
+
+  const getCompanyRating = (posterName: string, defaultRating: number = 5.0) => {
+    const key = (posterName || '').toLowerCase().trim();
+    if (!key) return defaultRating;
+    if (companyRatingsByName[key]) return companyRatingsByName[key];
+    for (const [cName, rating] of Object.entries(companyRatingsByName)) {
+      if (cName && (cName.includes(key) || key.includes(cName))) {
+        return rating;
+      }
+    }
+    return defaultRating;
+  };
+
   const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
     const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
     const titleLower = (job.title || '').toLowerCase();
     const isUrgent = (job as any).urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
     const isHot = isPremium || (job as any).isHot === true || (job as any).isFeatured === true || ((job as any).viewsCount || 0) > 10;
+    const dynamicRating = getCompanyRating(posterName, Number((job as any).companyRating || (employerData as any)?.rating || 5.0));
 
     return {
       id: job.id,
@@ -364,7 +396,7 @@ export default function RecruiterDashboardScreen() {
       author: {
         name: posterName,
         verified: true,
-        rating: Number((job as any).companyRating || (employerData as any)?.rating || 5.0),
+        rating: dynamicRating,
         avatar: getPosterAvatar(posterName),
       },
       location: job.location,
