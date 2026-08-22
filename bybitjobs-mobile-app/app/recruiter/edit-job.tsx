@@ -90,6 +90,7 @@ export default function RecruiterEditJobScreen() {
   });
 
   const [isGeneratingJD, setIsGeneratingJD] = React.useState(false);
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = React.useState(false);
 
   const handleGenerateAIJD = async () => {
     if (!title.trim()) {
@@ -544,10 +545,7 @@ export default function RecruiterEditJobScreen() {
                         Alert.alert('Thông báo', 'Vui lòng nhập tiêu đề công việc để xem trước.');
                         return;
                       }
-                      Alert.alert(
-                        `👀 Xem trước tin đăng: ${title}`,
-                        `🏢 Công ty: ${(userData as any)?.companyName || 'Doanh nghiệp'}\n📍 Địa điểm: ${location}\n💰 Lương: ${salary}\n\n📝 Mô tả:\n${description || 'Chưa có mô tả'}\n\n🎯 Yêu cầu:\n${requirements || 'Chưa có yêu cầu'}`
-                      );
+                      setIsPreviewModalVisible(true);
                     }}
                     style={{
                       flexDirection: 'row',
@@ -895,6 +893,211 @@ export default function RecruiterEditJobScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Scrollable Job Post Preview Modal */}
+      <Modal
+        visible={isPreviewModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsPreviewModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#151718' : '#F4F5F7' }}>
+          {/* Header Bar */}
+          <View style={{
+            height: 56,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            backgroundColor: isDark ? '#1E2022' : '#FFFFFF',
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? '#2C2E30' : '#E2E8F0',
+          }}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsPreviewModalVisible(false)}
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? '#2C2E30' : '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Ionicons name="close" size={20} color={isDark ? '#FFF' : '#11181C'} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+              👀 Xem Trước Tin Đăng
+            </Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          {/* Scrollable Preview Content */}
+          <ScrollView
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          >
+            {/* Header Card */}
+            <View style={{
+              backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: isDark ? '#2C3E50' : '#E2E8F0',
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <View style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: '#0084FF',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '700' }}>
+                    {((userData as any)?.companyName || 'C').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, color: isDark ? '#9BA1A6' : '#64748B', fontWeight: '600' }}>
+                    {(userData as any)?.companyName || 'Doanh nghiệp tuyển dụng'}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFF' : '#0F172A', marginTop: 2, lineHeight: 24 }}>
+                    {title || 'Tiêu đề công việc'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tags / Badges */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#2C2C2E' : '#ECFDF5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 }}>
+                  <Ionicons name="cash-outline" size={14} color="#10B981" />
+                  <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700' }}>{salary || 'Thỏa thuận'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#2C2C2E' : '#EFF6FF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 }}>
+                  <Ionicons name="location-outline" size={14} color="#3B82F6" />
+                  <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600' }}>{location || 'Toàn quốc'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#2C2C2E' : '#F5F3FF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 }}>
+                  <Ionicons name="briefcase-outline" size={14} color="#8B5CF6" />
+                  <Text style={{ color: '#8B5CF6', fontSize: 12, fontWeight: '600' }}>{industry || 'Khác'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#2C2C2E' : '#FFF7ED', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 }}>
+                  <Ionicons name="time-outline" size={14} color="#F97316" />
+                  <Text style={{ color: '#F97316', fontSize: 12, fontWeight: '600' }}>Hạn chót: {deadline || '30 ngày'}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Description Section */}
+            <View style={{
+              backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: isDark ? '#2C3E50' : '#E2E8F0',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Ionicons name="document-text-outline" size={18} color="#0084FF" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                  MÔ TẢ CÔNG VIỆC
+                </Text>
+              </View>
+              <Text selectable={true} style={{ fontSize: 14, color: isDark ? '#ECEDEE' : '#334155', lineHeight: 22 }}>
+                {description || 'Chưa nhập mô tả công việc.'}
+              </Text>
+            </View>
+
+            {/* Requirements Section */}
+            <View style={{
+              backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: isDark ? '#2C3E50' : '#E2E8F0',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                  YÊU CẦU ỨNG VIÊN
+                </Text>
+              </View>
+              <Text selectable={true} style={{ fontSize: 14, color: isDark ? '#ECEDEE' : '#334155', lineHeight: 22 }}>
+                {requirements || 'Chưa nhập yêu cầu ứng viên.'}
+              </Text>
+            </View>
+
+            {/* Benefits Section */}
+            <View style={{
+              backgroundColor: isDark ? '#1C2A3A' : '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: isDark ? '#2C3E50' : '#E2E8F0',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Ionicons name="gift-outline" size={18} color="#F59E0B" />
+                <Text style={{ fontSize: 15, fontWeight: '700', color: isDark ? '#FFF' : '#0F172A' }}>
+                  QUYỀN LỢI & PHÚC LỢI
+                </Text>
+              </View>
+              <Text selectable={true} style={{ fontSize: 14, color: isDark ? '#ECEDEE' : '#334155', lineHeight: 22 }}>
+                Môi trường làm việc chuyên nghiệp, năng động. Chế độ đãi ngộ cạnh tranh, thưởng hiệu quả công việc và bảo hiểm đầy đủ.
+              </Text>
+            </View>
+          </ScrollView>
+
+          {/* Bottom Bar */}
+          <View style={{
+            padding: 16,
+            backgroundColor: isDark ? '#1E2022' : '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: isDark ? '#2C2E30' : '#E2E8F0',
+            flexDirection: 'row',
+            gap: 12,
+          }}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setIsPreviewModalVisible(false)}
+              style={{
+                flex: 1,
+                height: 46,
+                borderRadius: 12,
+                backgroundColor: isDark ? '#2C2E30' : '#E2E8F0',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: isDark ? '#FFF' : '#334155', fontSize: 15, fontWeight: '700' }}>
+                Đóng xem trước
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setIsPreviewModalVisible(false);
+                handleSave();
+              }}
+              style={{
+                flex: 1,
+                height: 46,
+                borderRadius: 12,
+                backgroundColor: '#0084FF',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '700' }}>
+                Lưu tin đăng
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
