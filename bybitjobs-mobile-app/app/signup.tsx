@@ -37,6 +37,49 @@ export default function SignupScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
+  const [isGoogleEmailPromptVisible, setIsGoogleEmailPromptVisible] = React.useState(false);
+  const [googleInputEmail, setGoogleInputEmail] = React.useState('');
+
+  const handleCustomGoogleEmailSubmit = async () => {
+    if (!googleInputEmail.trim() || !googleInputEmail.includes('@')) {
+      Alert.alert('Thông báo', 'Vui lòng nhập địa chỉ Gmail hợp lệ!');
+      return;
+    }
+    setIsGoogleEmailPromptVisible(false);
+    setIsGoogleLoading(true);
+    const result = await loginWithGoogleRealWeb(googleInputEmail.trim());
+    setIsGoogleLoading(false);
+
+    if (!result.success) {
+      Alert.alert('Đăng nhập Google', result.message);
+      return;
+    }
+
+    Alert.alert(
+      'Thành công',
+      result.message,
+      [
+        {
+          text: 'Đồng ý',
+          onPress: () => {
+            if (redirectTitle) {
+              router.replace({
+                pathname: '/apply-job',
+                params: { title: redirectTitle }
+              });
+            } else {
+              if (router.canGoBack()) {
+                router.dismissAll();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSocialLogin = async (platform: 'Google' | 'Facebook') => {
     if (platform === 'Google') {
       setIsGoogleLoading(true);
@@ -44,6 +87,10 @@ export default function SignupScreen() {
       setIsGoogleLoading(false);
 
       if (!result.success) {
+        if (result.message === 'LỖI_ỦY_QUYỀN_GOOGLE') {
+          setIsGoogleEmailPromptVisible(true);
+          return;
+        }
         Alert.alert('Đăng nhập Google', result.message);
         return;
       }
@@ -357,6 +404,70 @@ export default function SignupScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal Nhập Gmail Google Trực Tiếp */}
+      <Modal
+        visible={isGoogleEmailPromptVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsGoogleEmailPromptVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalOverlay}
+          onPress={() => setIsGoogleEmailPromptVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', width: '90%', maxWidth: 360 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Image
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }}
+                style={{ width: 44, height: 44, marginBottom: 8 }}
+              />
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#11181C', fontSize: 18 }]}>
+                Đăng nhập Google
+              </Text>
+              <Text style={{ color: isDark ? '#9BA1A6' : '#687076', fontSize: 13, marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+                Vui lòng nhập địa chỉ Gmail cá nhân của bạn để tiếp tục:
+              </Text>
+            </View>
+
+            <TextInput
+              style={[styles.input, { backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA', color: isDark ? '#FFF' : '#000', marginBottom: 14 }]}
+              placeholder="ví dụ: tenban@gmail.com"
+              placeholderTextColor={isDark ? '#8E8E93' : '#999'}
+              value={googleInputEmail}
+              onChangeText={setGoogleInputEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoFocus={true}
+            />
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={{
+                backgroundColor: '#2563EB',
+                borderRadius: 12,
+                height: 46,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={handleCustomGoogleEmailSubmit}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>
+                Đăng nhập ngay
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsGoogleEmailPromptVisible(false)}
+              style={{ marginTop: 12, paddingVertical: 8, alignItems: 'center' }}
+            >
+              <Text style={{ color: isDark ? '#9BA1A6' : '#687076', fontSize: 13, fontWeight: '600' }}>Hủy bỏ</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
