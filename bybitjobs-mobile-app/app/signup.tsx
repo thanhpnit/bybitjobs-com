@@ -10,6 +10,8 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +37,53 @@ export default function SignupScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
+  const [isGoogleAccountsModalVisible, setIsGoogleAccountsModalVisible] = React.useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = React.useState('');
+  const [customGoogleName, setCustomGoogleName] = React.useState('');
+  const [showCustomGoogleInput, setShowCustomGoogleInput] = React.useState(false);
+
+  const defaultGoogleAccounts = [
+    { name: 'Phạm Ngọc Thanh', email: 'thanh.nguyen@gmail.com', avatar: 'https://ui-avatars.com/api/?name=Pham+Ngoc+Thanh&background=2563EB&color=fff' },
+    { name: 'Nguyễn Hoàng Đại', email: 'dai.hoang@gmail.com', avatar: 'https://ui-avatars.com/api/?name=Nguyen+Hoang+Dai&background=10B981&color=fff' },
+    { name: 'Lê Thiện Nhân', email: 'nhan.le@gmail.com', avatar: 'https://ui-avatars.com/api/?name=Le+Thien+Nhan&background=F59E0B&color=fff' },
+  ];
+
+  const handleSelectGoogleAccount = async (selectedEmail: string, selectedName: string) => {
+    setIsGoogleAccountsModalVisible(false);
+    setIsGoogleLoading(true);
+    const result = await loginWithGoogle(selectedEmail, selectedName);
+    setIsGoogleLoading(false);
+
+    if (!result.success) {
+      Alert.alert('Đăng nhập Google', result.message);
+      return;
+    }
+
+    Alert.alert(
+      'Thành công',
+      `Đăng nhập bằng Google thành công với tài khoản ${selectedEmail}!`,
+      [
+        {
+          text: 'Đồng ý',
+          onPress: () => {
+            if (redirectTitle) {
+              router.replace({
+                pathname: '/apply-job',
+                params: { title: redirectTitle }
+              });
+            } else {
+              if (router.canGoBack()) {
+                router.dismissAll();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSignupSubmit = async () => {
     if (!fullName.trim()) {
       Alert.alert('Thông báo', 'Vui lòng nhập Họ và tên.');
@@ -49,20 +98,20 @@ export default function SignupScreen() {
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Thông báo', 'Mật khẩu nhập lại không khớp.');
+      Alert.alert('Thông báo', 'Xác nhận mật khẩu không trùng khớp.');
       return;
     }
 
-    const result = await signup(email, fullName, password);
+    const result = await signup(fullName.trim(), email.trim(), password);
 
     if (!result.success) {
-      Alert.alert('Lỗi đăng ký', result.message);
+      Alert.alert('Đăng ký thất bại', result.message);
       return;
     }
 
     Alert.alert(
-      'Thành công',
-      'Đăng ký tài khoản mới thành công! Đang chuyển hướng bạn đến trang Đăng nhập.',
+      'Đăng ký thành công',
+      'Tài khoản của bạn đã được khởi tạo thành công!',
       [
         {
           text: 'Đăng nhập ngay',
@@ -70,7 +119,7 @@ export default function SignupScreen() {
             router.replace({
               pathname: '/login',
               params: {
-                prefilledEmail: email,
+                prefilledEmail: email.trim(),
                 prefilledPassword: password,
                 redirectTitle
               }
@@ -90,38 +139,7 @@ export default function SignupScreen() {
 
   const handleSocialLogin = async (platform: 'Google' | 'Facebook') => {
     if (platform === 'Google') {
-      setIsGoogleLoading(true);
-      const result = await loginWithGoogle();
-      setIsGoogleLoading(false);
-
-      if (!result.success) {
-        Alert.alert('Đăng nhập Google', result.message);
-        return;
-      }
-
-      Alert.alert(
-        'Thành công',
-        'Đăng nhập bằng Google thành công!',
-        [
-          {
-            text: 'Đồng ý',
-            onPress: () => {
-              if (redirectTitle) {
-                router.replace({
-                  pathname: '/apply-job',
-                  params: { title: redirectTitle }
-                });
-              } else {
-                if (router.canGoBack()) {
-                  router.dismissAll();
-                } else {
-                  router.replace('/(tabs)');
-                }
-              }
-            },
-          },
-        ]
-      );
+      setIsGoogleAccountsModalVisible(true);
     } else {
       Alert.alert('Thông báo', `Tính năng đăng nhập qua ${platform} đang được cập nhật.`);
     }
@@ -354,8 +372,135 @@ export default function SignupScreen() {
             </View>
 
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      {/* Modal Chọn Tài Khoản Google */}
+      <Modal
+        visible={isGoogleAccountsModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsGoogleAccountsModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalOverlay}
+          onPress={() => setIsGoogleAccountsModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.modalCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', width: '90%', maxWidth: 360 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Image
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }}
+                style={{ width: 44, height: 44, marginBottom: 8 }}
+              />
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#11181C', fontSize: 18 }]}>
+                Đăng nhập với Google
+              </Text>
+              <Text style={{ color: isDark ? '#9BA1A6' : '#687076', fontSize: 13, marginTop: 2, textAlign: 'center' }}>
+                Chọn một tài khoản để tiếp tục với BybitJobs
+              </Text>
+            </View>
+
+            {defaultGoogleAccounts.map((acc, index) => (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.7}
+                onPress={() => handleSelectGoogleAccount(acc.email, acc.name)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  borderRadius: 12,
+                  backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA',
+                  marginBottom: 8,
+                  borderWidth: 1,
+                  borderColor: isDark ? '#3A3A3C' : '#E5E7EB',
+                }}
+              >
+                <Image
+                  source={{ uri: acc.avatar }}
+                  style={{ width: 38, height: 38, borderRadius: 19, marginRight: 12 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FFF' : '#11181C' }}>
+                    {acc.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: isDark ? '#9BA1A6' : '#687076' }}>
+                    {acc.email}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={isDark ? '#9BA1A6' : '#9CA3AF'} />
+              </TouchableOpacity>
+            ))}
+
+            {!showCustomGoogleInput ? (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowCustomGoogleInput(true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 12,
+                  gap: 8,
+                  marginTop: 4,
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
+                <Text style={{ color: '#2563EB', fontWeight: '700', fontSize: 14 }}>
+                  Sử dụng một tài khoản khác...
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ marginTop: 8, gap: 10 }}>
+                <TextInput
+                  style={[styles.input, { backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA', color: isDark ? '#FFF' : '#000' }]}
+                  placeholder="Nhập Gmail của bạn..."
+                  placeholderTextColor={isDark ? '#8E8E93' : '#999'}
+                  value={customGoogleEmail}
+                  onChangeText={setCustomGoogleEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={[styles.input, { backgroundColor: isDark ? '#2C2C2E' : '#F8F9FA', color: isDark ? '#FFF' : '#000' }]}
+                  placeholder="Nhập Họ & Tên..."
+                  placeholderTextColor={isDark ? '#8E8E93' : '#999'}
+                  value={customGoogleName}
+                  onChangeText={setCustomGoogleName}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={{
+                    backgroundColor: '#2563EB',
+                    borderRadius: 12,
+                    height: 44,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    if (!customGoogleEmail.trim() || !customGoogleEmail.includes('@')) {
+                      Alert.alert('Thông báo', 'Vui lòng nhập định dạng Email Google hợp lệ!');
+                      return;
+                    }
+                    handleSelectGoogleAccount(customGoogleEmail.trim(), customGoogleName.trim() || customGoogleEmail.split('@')[0]);
+                  }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
+                    Đăng nhập tài khoản này
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setIsGoogleAccountsModalVisible(false)}
+              style={{ marginTop: 12, paddingVertical: 8, alignItems: 'center' }}
+            >
+              <Text style={{ color: isDark ? '#9BA1A6' : '#687076', fontSize: 13, fontWeight: '600' }}>Hủy bỏ</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -529,5 +674,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 20,
+    padding: 24,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  input: {
+    height: 44,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
 });

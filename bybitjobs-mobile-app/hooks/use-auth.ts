@@ -1383,18 +1383,20 @@ export function useAuth() {
     }
   };
 
-  const loginWithGoogle = async (): Promise<{ success: boolean; message: string }> => {
+  const loginWithGoogle = async (selectedEmail?: string, selectedName?: string): Promise<{ success: boolean; message: string }> => {
+    const googleEmail = selectedEmail || 'google.user@bybitjobs.com';
+    const googleName = selectedName || (selectedEmail ? selectedEmail.split('@')[0] : 'Ứng viên Google');
+
     if (!GoogleSignin) {
       // Hỗ trợ Đăng nhập Google mượt mà trực tiếp trong môi trường Expo Go
       try {
-        const demoEmail = 'google.user@bybitjobs.com';
         const demoPass = 'GoogleUser123!';
 
         let userCred;
         try {
-          userCred = await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+          userCred = await signInWithEmailAndPassword(auth, googleEmail, demoPass);
         } catch (e) {
-          userCred = await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
+          userCred = await createUserWithEmailAndPassword(auth, googleEmail, demoPass);
         }
 
         if (userCred?.user) {
@@ -1403,9 +1405,9 @@ export function useAuth() {
           const userSnap = await getDoc(userDocRef);
           if (!userSnap.exists()) {
             await setDoc(userDocRef, {
-              email: demoEmail,
-              fullName: 'Ứng viên Google (Expo)',
-              avatar: 'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+              email: googleEmail,
+              fullName: googleName,
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(googleName)}&background=2563EB&color=fff`,
               authProvider: 'google',
               role: globalUserRole || 'candidate',
               createdAt: serverTimestamp(),
@@ -1413,7 +1415,7 @@ export function useAuth() {
           }
           setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
           notifyAll();
-          return { success: true, message: 'Đăng nhập Google trên Expo Go thành công!' };
+          return { success: true, message: `Đăng nhập Google thành công với ${googleEmail}!` };
         }
       } catch (err: any) {
         return { success: false, message: 'Lỗi đăng nhập Google trên Expo Go: ' + (err.message || 'Không thể tạo tài khoản Google') };
@@ -1482,14 +1484,13 @@ export function useAuth() {
       }
       if (error.message?.includes('RNGoogleSignin') || error.message?.includes('null')) {
         try {
-          const demoEmail = 'google.user@bybitjobs.com';
           const demoPass = 'GoogleUser123!';
 
           let userCred;
           try {
-            userCred = await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+            userCred = await signInWithEmailAndPassword(auth, googleEmail, demoPass);
           } catch (e) {
-            userCred = await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
+            userCred = await createUserWithEmailAndPassword(auth, googleEmail, demoPass);
           }
 
           if (userCred?.user) {
@@ -1498,9 +1499,9 @@ export function useAuth() {
             const userSnap = await getDoc(userDocRef);
             if (!userSnap.exists()) {
               await setDoc(userDocRef, {
-                email: demoEmail,
-                fullName: 'Ứng viên Google (Expo)',
-                avatar: 'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+                email: googleEmail,
+                fullName: googleName,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(googleName)}&background=2563EB&color=fff`,
                 authProvider: 'google',
                 role: globalUserRole || 'candidate',
                 createdAt: serverTimestamp(),
@@ -1508,7 +1509,7 @@ export function useAuth() {
             }
             setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
             notifyAll();
-            return { success: true, message: 'Đăng nhập Google trên Expo Go thành công!' };
+            return { success: true, message: `Đăng nhập Google thành công với ${googleEmail}!` };
           }
         } catch (fallbackErr: any) {
           return { success: false, message: 'Lỗi đăng nhập Google: ' + fallbackErr.message };
