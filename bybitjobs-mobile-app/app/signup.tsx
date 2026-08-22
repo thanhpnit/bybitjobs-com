@@ -23,7 +23,7 @@ export default function SignupScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { signup, loginWithGoogle } = useAuth();
+  const { signup, loginWithGoogle, loginWithGoogleRealWeb } = useAuth();
 
   // Get dynamic redirect parameters from job details if any
   const { redirectTitle } = useLocalSearchParams<{ redirectTitle: string }>();
@@ -62,6 +62,42 @@ export default function SignupScreen() {
     Alert.alert(
       'Thành công',
       `Đăng nhập bằng Google thành công với tài khoản ${selectedEmail}!`,
+      [
+        {
+          text: 'Đồng ý',
+          onPress: () => {
+            if (redirectTitle) {
+              router.replace({
+                pathname: '/apply-job',
+                params: { title: redirectTitle }
+              });
+            } else {
+              if (router.canGoBack()) {
+                router.dismissAll();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRealGoogleWebAuth = async () => {
+    setIsGoogleAccountsModalVisible(false);
+    setIsGoogleLoading(true);
+    const result = await loginWithGoogleRealWeb();
+    setIsGoogleLoading(false);
+
+    if (!result.success) {
+      Alert.alert('Đăng nhập Google', result.message);
+      return;
+    }
+
+    Alert.alert(
+      'Thành công',
+      result.message,
       [
         {
           text: 'Đồng ý',
@@ -396,9 +432,44 @@ export default function SignupScreen() {
               <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#11181C', fontSize: 18 }]}>
                 Đăng nhập với Google
               </Text>
-              <Text style={{ color: isDark ? '#9BA1A6' : '#687076', fontSize: 13, marginTop: 2, textAlign: 'center' }}>
-                Chọn một tài khoản để tiếp tục với BybitJobs
+            </View>
+            {/* Option 1: Real Google WebBrowser OAuth */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleRealGoogleWebAuth}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 14,
+                paddingHorizontal: 14,
+                borderRadius: 14,
+                backgroundColor: '#2563EB',
+                marginBottom: 14,
+                elevation: 3,
+                shadowColor: '#2563EB',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+              }}
+            >
+              <Ionicons name="globe-outline" size={22} color="#FFF" style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#FFF' }}>
+                  Đăng nhập qua Trình duyệt Google THẬT
+                </Text>
+                <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>
+                  Mở trang web accounts.google.com chính thức
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color="#FFF" />
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#3A3A3C' : '#E5E7EB' }} />
+              <Text style={{ fontSize: 11, color: isDark ? '#9BA1A6' : '#9CA3AF', marginHorizontal: 8, fontWeight: '600' }}>
+                HOẶC CHỌN TÀI KHOẢN KHÁC
               </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#3A3A3C' : '#E5E7EB' }} />
             </View>
 
             {defaultGoogleAccounts.map((acc, index) => (

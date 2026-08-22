@@ -1,5 +1,9 @@
 import React from 'react';
 import { Alert, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 import { router } from 'expo-router';
 import { auth, db } from '../src/config/firebase';
 import {
@@ -1519,6 +1523,73 @@ export function useAuth() {
     }
   };
 
+  const loginWithGoogleRealWeb = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const redirectUri = AuthSession.makeRedirectUri();
+      
+      const discovery = {
+        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenEndpoint: 'https://oauth2.googleapis.com/token',
+        revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+      };
+
+      const request = new AuthSession.AuthRequest({
+        clientId: '811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com',
+        scopes: ['openid', 'profile', 'email'],
+        redirectUri,
+        responseType: AuthSession.ResponseType.IdToken,
+      });
+
+      const result = await request.promptAsync(discovery);
+
+      if (result.type === 'success' && (result.params?.id_token || result.params?.idToken)) {
+        const idToken = result.params?.id_token || result.params?.idToken;
+        const googleCredential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, googleCredential);
+        const user = userCredential.user;
+
+        if (user) {
+          try {
+            const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/seq`);
+            if (response.ok) {
+              const data = await response.json();
+              globalSeqId = data.seqId;
+              setSeqId(data.seqId);
+            }
+          } catch (e) { }
+
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userDocRef);
+            if (!userSnap.exists()) {
+              await setDoc(userDocRef, {
+                email: user.email || '',
+                fullName: user.displayName || 'Người dùng Google',
+                avatar: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'Google')}&background=2563EB&color=fff`,
+                authProvider: 'google',
+                role: globalUserRole || 'candidate',
+                createdAt: serverTimestamp(),
+              }, { merge: true });
+            }
+          } catch (fsErr) {
+            console.error('Lỗi lưu thông tin user Google:', fsErr);
+          }
+
+          setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+          notifyAll();
+          return { success: true, message: `Đăng nhập Google THẬT thành công với ${user.email}!` };
+        }
+      }
+      if (result.type === 'dismiss' || result.type === 'cancel') {
+        return { success: false, message: 'Bạn đã hủy đăng nhập Google.' };
+      }
+      return { success: false, message: 'Không thể nhận Token từ trình duyệt Google.' };
+    } catch (error: any) {
+      console.error('Lỗi Đăng nhập Google WebBrowser:', error);
+      return { success: false, message: 'Lỗi đăng nhập Google: ' + (error.message || 'Thất bại') };
+    }
+  };
+
   const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await fetch('http://160.250.246.119:4000/api/auth/forgot-password/send-otp', {
@@ -2660,6 +2731,7 @@ export function useAuth() {
     },
     login,
     loginWithGoogle,
+    loginWithGoogleRealWeb,
     signup,
     changePassword,
     resetPassword,
