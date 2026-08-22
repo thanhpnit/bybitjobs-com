@@ -304,10 +304,6 @@ export default function ApplyJobScreen() {
       Alert.alert('Thông báo', 'Vui lòng nhập họ và tên của bạn.');
       return;
     }
-    if (!phoneNumber.trim()) {
-      Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại liên hệ.');
-      return;
-    }
     if (!cvUploaded || !cvFile) {
       Alert.alert('Thông báo', 'Vui lòng tải lên CV hoặc Hồ sơ năng lực của bạn.');
       return;
@@ -320,7 +316,7 @@ export default function ApplyJobScreen() {
       jobSalary: displaySalary,
       jobLocation: displayLocation,
       applicantName: fullName.trim(),
-      applicantPhone: phoneNumber.trim(),
+      applicantPhone: phoneNumber.trim() || 'Liên hệ qua Email (Chưa có SĐT)',
       applicantEmail: email.trim(),
       message: message.trim(),
       cvName: cvFile.name,
