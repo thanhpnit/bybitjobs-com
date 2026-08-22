@@ -1263,11 +1263,7 @@ export default function RecruiterDashboardScreen() {
                         style: 'destructive',
                         onPress: () => {
                           logout();
-                          if (router.canGoBack()) {
-                            router.dismissAll();
-                          } else {
-                            router.replace('/(tabs)');
-                          }
+                          router.replace('/(tabs)');
                         },
                       },
                     ]

@@ -68,11 +68,7 @@ export default function SignupScreen() {
                 params: { title: redirectTitle }
               });
             } else {
-              if (router.canGoBack()) {
-                router.dismissAll();
-              } else {
-                router.replace('/(tabs)');
-              }
+              router.replace('/(tabs)');
             }
           },
         },

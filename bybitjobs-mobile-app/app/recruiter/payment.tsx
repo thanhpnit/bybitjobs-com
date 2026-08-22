@@ -104,11 +104,7 @@ export default function RecruiterPaymentScreen() {
           Thanh toán đơn hàng
         </Text>
         <TouchableOpacity activeOpacity={0.7} onPress={() => {
-          if (router.canGoBack()) {
-            router.dismissAll();
-          } else {
-            router.replace('/(tabs)');
-          }
+          router.replace('/(tabs)');
         }} style={styles.closeButton}>
           <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#11181C'} />
         </TouchableOpacity>

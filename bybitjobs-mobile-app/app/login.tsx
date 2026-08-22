@@ -216,11 +216,7 @@ export default function LoginScreen() {
                 params: { title: redirectTitle }
               });
             } else {
-              if (router.canGoBack()) {
-                router.dismissAll();
-              } else {
-                router.replace('/(tabs)');
-              }
+              router.replace('/(tabs)');
             }
           },
         },
