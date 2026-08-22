@@ -123,7 +123,7 @@ export const Reviews: React.FC = () => {
         const status = val.reviewStatus || 'Chờ duyệt';
         const r = Number(val.companyRating || 0);
 
-        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() && status === 'Đã phê duyệt' && r > 0) {
+        if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() && status !== 'Bị báo cáo' && r > 0) {
           totalScore += r;
           count += 1;
         }

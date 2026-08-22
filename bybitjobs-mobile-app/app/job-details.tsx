@@ -215,21 +215,19 @@ export default function JobDetailsScreen() {
     const compName = employerInfo?.companyName || employerName;
     if (!compName || compName === 'Nhà tuyển dụng') return;
 
-    const q = query(
-      collection(db, 'applications'),
-      where('reviewStatus', '==', 'Đã phê duyệt')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
       const list: any[] = [];
       snapshot.forEach((docSnap) => {
         const val = docSnap.data();
         const cName = val.companyName || val.company || '';
-        if (cName.toLowerCase().trim() === compName.toLowerCase().trim() && (val.companyRating > 0 || (val.companyComment && val.companyComment.trim().length > 0))) {
+        const status = val.reviewStatus || 'Đã phê duyệt';
+        const r = Number(val.companyRating || 0);
+
+        if (cName.toLowerCase().trim() === compName.toLowerCase().trim() && status !== 'Bị báo cáo' && (r > 0 || (val.companyComment && val.companyComment.trim().length > 0))) {
           list.push({
             id: docSnap.id,
             applicantName: val.applicantName || val.candidateName || 'Ứng viên ẩn danh',
-            rating: Number(val.companyRating || 5),
+            rating: r > 0 ? r : 5,
             comment: val.companyComment || '',
             reviewedAt: val.reviewedAt || val.appliedAt || '',
           });
