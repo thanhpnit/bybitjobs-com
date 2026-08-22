@@ -109,18 +109,19 @@ export const Reviews: React.FC = () => {
     };
   }, [data]);
 
-  const updateCompanyRatingInFirestore = async (companyName: string) => {
+  const updateCompanyRatingInFirestore = async (companyName: string, excludeAppId?: string) => {
     if (!companyName) return;
     try {
-      // Query Firestore directly for all approved reviews of this company
+      // Query Firestore directly for all valid non-reported reviews of this company
       const snapApps = await getDocs(collection(db, 'applications'));
       let totalScore = 0;
       let count = 0;
 
       snapApps.forEach((docSnap) => {
+        if (excludeAppId && docSnap.id === excludeAppId) return;
         const val = docSnap.data();
         const cName = val.companyName || val.company || '';
-        const status = val.reviewStatus || 'Chờ duyệt';
+        const status = val.reviewStatus || 'Đã phê duyệt';
         const r = Number(val.companyRating || 0);
 
         if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() && status !== 'Bị báo cáo' && r > 0) {
@@ -190,7 +191,7 @@ export const Reviews: React.FC = () => {
     setData((current) => current.map((item) => item.id === id ? { ...item, status: 'Bị báo cáo' } : item));
     await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Bị báo cáo' });
     if (targetItem) {
-      await updateCompanyRatingInFirestore(targetItem.company);
+      await updateCompanyRatingInFirestore(targetItem.company, id);
     }
   };
 
@@ -204,7 +205,7 @@ export const Reviews: React.FC = () => {
       reviewStatus: deleteField(),
     });
     if (targetItem) {
-      await updateCompanyRatingInFirestore(targetItem.company);
+      await updateCompanyRatingInFirestore(targetItem.company, id);
     }
   };
 
