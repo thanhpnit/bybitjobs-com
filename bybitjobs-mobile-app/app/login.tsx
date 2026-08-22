@@ -226,42 +226,7 @@ export default function LoginScreen() {
 
   const handleSocialLogin = async (platform: 'Google' | 'Facebook') => {
     if (platform === 'Google') {
-      setIsGoogleLoading(true);
-      const result = await loginWithGoogleRealWeb();
-      setIsGoogleLoading(false);
-
-      if (!result.success) {
-        if (result.message === 'LỖI_ỦY_QUYỀN_GOOGLE') {
-          setIsGoogleEmailPromptVisible(true);
-          return;
-        }
-        Alert.alert('Đăng nhập Google', result.message);
-        return;
-      }
-
-      Alert.alert(
-        'Thành công',
-        result.message,
-        [
-          {
-            text: 'Đồng ý',
-            onPress: () => {
-              if (redirectTitle) {
-                router.replace({
-                  pathname: '/apply-job',
-                  params: { title: redirectTitle }
-                });
-              } else {
-                if (router.canGoBack()) {
-                  router.dismissAll();
-                } else {
-                  router.replace('/(tabs)');
-                }
-              }
-            },
-          },
-        ]
-      );
+      setIsGoogleEmailPromptVisible(true);
     } else {
       Alert.alert('Thông báo', `Tính năng đăng nhập qua ${platform} đang được cập nhật.`);
     }
