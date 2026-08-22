@@ -1557,12 +1557,12 @@ export function useAuth() {
         }
       }
 
-      // Try Real Google Web OAuth Session via Firebase Handler Proxy
+      // Try Real Google Web OAuth Session
       const redirectUrl = Linking.createURL('google-auth');
       const clientId = '811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com';
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}` +
-        `&redirect_uri=${encodeURIComponent('https://bybitjobs.firebaseapp.com/__/auth/handler')}` +
+        `&redirect_uri=${encodeURIComponent(redirectUrl)}` +
         `&response_type=id_token` +
         `&scope=${encodeURIComponent('openid profile email')}` +
         `&nonce=${Math.random().toString(36).substring(7)}`;
