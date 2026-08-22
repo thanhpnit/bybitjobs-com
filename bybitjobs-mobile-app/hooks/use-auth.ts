@@ -1612,10 +1612,6 @@ export function useAuth() {
           }
         }
       }
-      if (result.type === 'cancel' || result.type === 'dismiss') {
-        return { success: false, message: 'Bạn đã hủy đăng nhập Google.' };
-      }
-
       return { success: false, message: 'LỖI_ỦY_QUYỀN_GOOGLE' };
     } catch (error: any) {
       console.error('Lỗi Đăng nhập Google WebBrowser:', error);
