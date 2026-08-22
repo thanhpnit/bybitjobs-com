@@ -1557,8 +1557,8 @@ export function useAuth() {
         }
       }
 
-      // Try Real Google Web OAuth Session
-      const redirectUrl = Linking.createURL('google-auth');
+      // Try Real Google Web OAuth Session using Expo Auth Proxy URL
+      const redirectUrl = 'https://auth.expo.io/@thanhpnit/bybitjobs-mobile-app';
       const clientId = '811135097267-n2pqj79f38pet4fq583tl0m96li04rcc.apps.googleusercontent.com';
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}` +
