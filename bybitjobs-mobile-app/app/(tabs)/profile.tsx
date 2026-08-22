@@ -714,16 +714,14 @@ function CandidateProfileScreen() {
   };
 
   const getReviewStatusLabel = (status?: string, hasReview = false) => {
-    if (status === 'Đã phê duyệt') return 'Đã phê duyệt';
     if (status === 'Bị báo cáo') return 'Bị báo cáo';
-    if (status === 'Chờ duyệt' || hasReview) return 'Chờ duyệt';
+    if (status === 'Đã phê duyệt' || status === 'Chờ duyệt' || hasReview) return 'Đã đăng công khai';
     return 'Chưa đánh giá';
   };
 
   const getReviewStatusColor = (status?: string, hasReview = false) => {
-    if (status === 'Đã phê duyệt') return '#4CAF50';
     if (status === 'Bị báo cáo') return '#FF3B30';
-    if (status === 'Chờ duyệt' || hasReview) return '#FF9500';
+    if (status === 'Đã phê duyệt' || status === 'Chờ duyệt' || hasReview) return '#4CAF50';
     return '#8E8E93';
   };
 

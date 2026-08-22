@@ -2079,7 +2079,7 @@ export function useAuth() {
           companyRating: feedback.companyRating,
           companyComment: feedback.companyComment,
           reviewedAt,
-          reviewStatus: 'Chờ duyệt',
+          reviewStatus: 'Đã phê duyệt',
         };
       }
       return app;
@@ -2092,13 +2092,76 @@ export function useAuth() {
         companyRating: feedback.companyRating,
         companyComment: feedback.companyComment,
         reviewedAt,
-        reviewStatus: 'Chờ duyệt',
+        reviewStatus: 'Đã phê duyệt',
       });
+
+      // Recalculate average rating & sync to employers, users, and job_posts
+      const targetApp = globalApplications.find(a => a.id === appId);
+      const companyName = targetApp?.companyName;
+      if (companyName) {
+        const snapApps = await getDocs(collection(db, 'applications'));
+        let totalScore = 0;
+        let count = 0;
+
+        snapApps.forEach((docSnap) => {
+          const val = docSnap.data();
+          const cName = val.companyName || val.company || '';
+          const r = Number(val.companyRating || 0);
+
+          if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() && r > 0) {
+            totalScore += r;
+            count += 1;
+          }
+        });
+
+        const avg = count > 0 ? Number((totalScore / count).toFixed(1)) : 5.0;
+
+        // Update `employers`
+        const snapEmp = await getDocs(collection(db, 'employers'));
+        snapEmp.forEach(async (docSnap) => {
+          const item = docSnap.data();
+          const cName = item.companyName || item.company_name || item.company || '';
+          if (cName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
+            await updateDoc(doc(db, 'employers', docSnap.id), {
+              rating: avg,
+              reviewCount: count,
+              totalReviews: count
+            });
+          }
+        });
+
+        // Update `users`
+        const snapUsers = await getDocs(collection(db, 'users'));
+        snapUsers.forEach(async (docSnap) => {
+          const item = docSnap.data();
+          const cName = item.companyName || item.company_name || item.company || '';
+          if (cName.toLowerCase().trim() === companyName.toLowerCase().trim() || item.email?.toLowerCase() === companyName.toLowerCase()) {
+            await updateDoc(doc(db, 'users', docSnap.id), {
+              rating: avg,
+              reviewsCount: count,
+              totalReviews: count
+            });
+          }
+        });
+
+        // Update `job_posts`
+        const snapJobs = await getDocs(collection(db, 'job_posts'));
+        snapJobs.forEach(async (docSnap) => {
+          const item = docSnap.data();
+          const cName = item.companyName || item.company_name || item.company || '';
+          if (cName.toLowerCase().trim() === companyName.toLowerCase().trim()) {
+            await updateDoc(doc(db, 'job_posts', docSnap.id), {
+              companyRating: avg,
+              reviewsCount: count
+            });
+          }
+        });
+      }
     } catch (error) {
       console.error('Lỗi lưu đánh giá công ty:', error);
     }
 
-    return { success: true, message: 'Bạn đã đánh giá thành công.' };
+    return { success: true, message: 'Đánh giá của bạn đã được đăng công khai thành công!' };
   };
 
   const toggleSavedJob = async (payload: {
