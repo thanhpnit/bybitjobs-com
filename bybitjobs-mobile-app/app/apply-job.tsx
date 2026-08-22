@@ -149,8 +149,8 @@ export default function ApplyJobScreen() {
         body: JSON.stringify({
           jobTitle: displayTitle,
           applicantName: fullName.trim() || userData?.fullName || 'Ứng viên',
-          candidateSkills: userData?.skills || [],
-          candidateExperience: userData?.experience || [],
+          candidateSkills: (userData as any)?.skills || [],
+          candidateExperience: (userData as any)?.experience || [],
           message,
         }),
       });

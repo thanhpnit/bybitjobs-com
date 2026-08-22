@@ -2392,7 +2392,7 @@ function CandidateProfileScreen() {
                       setIsSubmittingFeedback(true);
                       
                       try {
-                        const userIdentifier = userData?.displayName || userData?.name || 'Ứng viên';
+                        const userIdentifier = (userData as any)?.displayName || (userData as any)?.name || userData?.fullName || 'Ứng viên';
                         const userContact = userData?.emailOrPhone || 'guest@bybitjobs.com';
 
                         await addDoc(collection(db, 'feedbacks'), {

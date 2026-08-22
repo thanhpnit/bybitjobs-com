@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -963,5 +964,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  input: {
+    height: 44,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
 });

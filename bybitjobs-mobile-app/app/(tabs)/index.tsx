@@ -978,9 +978,9 @@ function CandidateHomeScreen() {
     if (!jobListings || jobListings.length === 0) return [];
 
     const desired = (userData?.desiredJob || '').toLowerCase().trim();
-    const userRoleText = (userData?.job || userData?.role || '').toLowerCase().trim();
+    const userRoleText = ((userData as any)?.job || (userData as any)?.role || '').toLowerCase().trim();
     const cvName = (userData?.cvName || '').toLowerCase().trim();
-    const userLocation = (userData?.location || userData?.address || '').toLowerCase().trim();
+    const userLocation = ((userData as any)?.location || (userData as any)?.address || '').toLowerCase().trim();
 
     // Comprehensive list of generic Vietnamese stop words to prevent accidental keyword collisions (e.g. "viên" in "Nhân viên" vs "Lập trình viên")
     const STOP_WORDS = new Set([
@@ -1093,11 +1093,11 @@ function CandidateHomeScreen() {
   }, [
     jobListings,
     userData?.desiredJob,
-    userData?.job,
-    userData?.role,
+    (userData as any)?.job,
+    (userData as any)?.role,
     userData?.cvName,
-    userData?.location,
-    userData?.address,
+    (userData as any)?.location,
+    (userData as any)?.address,
     savedJobs,
     viewedJobs,
   ]);
@@ -1902,8 +1902,8 @@ function CandidateHomeScreen() {
             ) : (
               filteredJobs.map((job) => {
                 const isBookmarked = bookmarkedJobs.includes(job.id);
-                const isEmployerPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
-                const isEmployerPro = job.employerId ? proEmployersById[job.employerId] === true : false;
+                const isEmployerPremium = (job as any).employerId ? premiumEmployersById[(job as any).employerId] === true : false;
+                const isEmployerPro = (job as any).employerId ? proEmployersById[(job as any).employerId] === true : false;
                 const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
 
                 const isPremiumJob = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;

@@ -372,6 +372,9 @@ export default function SignupScreen() {
             </View>
 
           </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
       {/* Modal Chọn Tài Khoản Google */}
       <Modal
         visible={isGoogleAccountsModalVisible}

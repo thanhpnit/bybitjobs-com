@@ -1472,44 +1472,11 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     fontWeight: 'bold',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
   modalContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeModalBtn: {
-    padding: 4,
-  },
-  modalList: {
-    marginTop: 12,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-  },
-  modalItemText: {
-    fontSize: 15,
   },
   gradientHeaderBg: {
     position: 'absolute',
