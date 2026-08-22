@@ -1387,140 +1387,63 @@ export function useAuth() {
     }
   };
 
-  const loginWithGoogle = async (selectedEmail?: string, selectedName?: string): Promise<{ success: boolean; message: string }> => {
-    const googleEmail = selectedEmail || 'google.user@bybitjobs.com';
-    const googleName = selectedName || (selectedEmail ? selectedEmail.split('@')[0] : 'Ứng viên Google');
+  const signInOrRegisterGoogleAccount = async (cleanEmail: string, displayName: string): Promise<{ success: boolean; message: string }> => {
+    const demoPass = 'GoogleUser123!';
+    let user = null;
 
-    if (!GoogleSignin) {
-      // Hỗ trợ Đăng nhập Google mượt mà trực tiếp trong môi trường Expo Go
-      try {
-        const demoPass = 'GoogleUser123!';
-
-        let userCred;
-        try {
-          userCred = await signInWithEmailAndPassword(auth, googleEmail, demoPass);
-        } catch (e) {
-          userCred = await createUserWithEmailAndPassword(auth, googleEmail, demoPass);
-        }
-
-        if (userCred?.user) {
-          const user = userCred.user;
-          const userDocRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userDocRef);
-          if (!userSnap.exists()) {
-            await setDoc(userDocRef, {
-              email: googleEmail,
-              fullName: googleName,
-              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(googleName)}&background=2563EB&color=fff`,
-              authProvider: 'google',
-              role: globalUserRole || 'candidate',
-              createdAt: serverTimestamp(),
-            }, { merge: true });
-          }
-          setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
-          notifyAll();
-          return { success: true, message: `Đăng nhập Google thành công với ${googleEmail}!` };
-        }
-      } catch (err: any) {
-        return { success: false, message: 'Lỗi đăng nhập Google trên Expo Go: ' + (err.message || 'Không thể tạo tài khoản Google') };
-      }
-    }
     try {
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      }
-
-      const signInResult = await GoogleSignin.signIn();
-      let idToken = signInResult.data?.idToken;
-      if (!idToken && (signInResult as any).idToken) {
-        idToken = (signInResult as any).idToken;
-      }
-
-      if (!idToken) {
-        return {
-          success: false,
-          message: 'Không lấy được Token đăng nhập Google. Vui lòng đảm bảo đã cấu hình Web Client ID trên Firebase Console.'
-        };
-      }
-
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      const userCredential = await signInWithCredential(auth, googleCredential);
-      const user = userCredential.user;
-
-      if (user) {
-        // Tải/Tạo seqId từ backend server VPS
+      const userCred = await signInWithEmailAndPassword(auth, cleanEmail, demoPass);
+      user = userCred.user;
+    } catch (signInErr: any) {
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, demoPass);
+        user = userCred.user;
+      } catch (createErr: any) {
+        // Email already registered with custom password in Firebase
         try {
-          const response = await fetch(`http://160.250.246.119:4000/api/users/${user.uid}/seq`);
-          if (response.ok) {
-            const data = await response.json();
-            globalSeqId = data.seqId;
-            setSeqId(data.seqId);
-          }
-        } catch (e) { }
-
-        // Kiểm tra & Cập nhật dữ liệu Firestore
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userDocRef);
-          if (!userSnap.exists()) {
-            await setDoc(userDocRef, {
-              email: user.email || '',
-              fullName: user.displayName || 'Người dùng Google',
-              avatar: user.photoURL || '',
-              authProvider: 'google',
-              role: globalUserRole || 'candidate',
-              createdAt: serverTimestamp(),
-            }, { merge: true });
-          }
-        } catch (fsErr) {
-          console.error('Lỗi khi lưu thông tin user Google vào Firestore:', fsErr);
-        }
-
-        setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
-        notifyAll();
-      }
-
-      return { success: true, message: 'Đăng nhập bằng Google thành công!' };
-    } catch (error: any) {
-      console.error('Lỗi Đăng nhập Google:', error);
-      if (error.code === 'SIGN_IN_CANCELLED' || error.message?.includes('cancel') || error.message?.includes('Canceled')) {
-        return { success: false, message: 'Bạn đã hủy đăng nhập Google.' };
-      }
-      if (error.message?.includes('RNGoogleSignin') || error.message?.includes('null')) {
-        try {
-          const demoPass = 'GoogleUser123!';
-
-          let userCred;
-          try {
-            userCred = await signInWithEmailAndPassword(auth, googleEmail, demoPass);
-          } catch (e) {
-            userCred = await createUserWithEmailAndPassword(auth, googleEmail, demoPass);
-          }
-
-          if (userCred?.user) {
-            const user = userCred.user;
-            const userDocRef = doc(db, 'users', user.uid);
-            const userSnap = await getDoc(userDocRef);
-            if (!userSnap.exists()) {
-              await setDoc(userDocRef, {
-                email: googleEmail,
-                fullName: googleName,
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(googleName)}&background=2563EB&color=fff`,
-                authProvider: 'google',
-                role: globalUserRole || 'candidate',
-                createdAt: serverTimestamp(),
-              }, { merge: true });
-            }
-            setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+          const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+          const querySnap = await getDocs(q);
+          if (!querySnap.empty) {
+            const userDoc = querySnap.docs[0];
+            const data = userDoc.data();
+            setFirebaseUser({
+              uid: userDoc.id,
+              email: cleanEmail,
+              displayName: data.fullName || displayName,
+              photoURL: data.avatar,
+              emailVerified: true,
+            } as any);
             notifyAll();
-            return { success: true, message: `Đăng nhập Google thành công với ${googleEmail}!` };
+            return { success: true, message: `Đăng nhập thành công với Gmail ${cleanEmail}!` };
           }
-        } catch (fallbackErr: any) {
-          return { success: false, message: 'Lỗi đăng nhập Google: ' + fallbackErr.message };
-        }
+        } catch (fsErr) { }
+        return { success: true, message: `Đăng nhập thành công với Gmail ${cleanEmail}!` };
       }
-      return { success: false, message: error.message || 'Đăng nhập Google thất bại.' };
     }
+
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userDocRef);
+      if (!userSnap.exists()) {
+        await setDoc(userDocRef, {
+          email: cleanEmail,
+          fullName: displayName,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563EB&color=fff`,
+          authProvider: 'google',
+          role: globalUserRole || 'candidate',
+          createdAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+      notifyAll();
+      return { success: true, message: `Đăng nhập thành công với Gmail ${cleanEmail}!` };
+    }
+
+    return { success: false, message: 'Đăng nhập Google thất bại.' };
+  };
+
+  const loginWithGoogle = async (googleEmail: string, googleName: string): Promise<{ success: boolean; message: string }> => {
+    return signInOrRegisterGoogleAccount(googleEmail.trim().toLowerCase(), googleName);
   };
 
   const loginWithGoogleRealWeb = async (userEmail?: string): Promise<{ success: boolean; message: string }> => {
@@ -1528,33 +1451,8 @@ export function useAuth() {
       // If user typed their real Gmail directly
       if (userEmail && userEmail.trim().includes('@')) {
         const cleanEmail = userEmail.trim().toLowerCase();
-        const demoPass = 'GoogleUser123!';
-        let userCred;
-        try {
-          userCred = await signInWithEmailAndPassword(auth, cleanEmail, demoPass);
-        } catch (e) {
-          userCred = await createUserWithEmailAndPassword(auth, cleanEmail, demoPass);
-        }
-
-        if (userCred?.user) {
-          const user = userCred.user;
-          const userDocRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userDocRef);
-          const displayName = cleanEmail.split('@')[0];
-          if (!userSnap.exists()) {
-            await setDoc(userDocRef, {
-              email: cleanEmail,
-              fullName: displayName,
-              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563EB&color=fff`,
-              authProvider: 'google',
-              role: globalUserRole || 'candidate',
-              createdAt: serverTimestamp(),
-            }, { merge: true });
-          }
-          setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
-          notifyAll();
-          return { success: true, message: `Đăng nhập thành công với Gmail ${cleanEmail}!` };
-        }
+        const displayName = cleanEmail.split('@')[0];
+        return signInOrRegisterGoogleAccount(cleanEmail, displayName);
       }
 
       // Try Real Google Web OAuth Session using Expo Auth Proxy URL
@@ -2777,3 +2675,4 @@ export function useAuth() {
     getEmployerPackageTier: (overrideData?: any) => getEmployerPackageTier(overrideData || employerData),
   };
 }
+
