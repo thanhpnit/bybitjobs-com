@@ -136,7 +136,8 @@ export const Notifications: React.FC = () => {
         });
       } else if (target === 'RECRUITER') {
         try {
-          const empRes = await fetch('http://160.250.246.119:4000/api/employers');
+          const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+          const empRes = await fetch(`${apiHost}/api/employers`);
           if (empRes.ok) {
             const employers = await empRes.json();
             const recruiterUids = employers.map((emp: any) => emp.user_id || emp.id);
@@ -154,7 +155,8 @@ export const Notifications: React.FC = () => {
         }
       } else if (target === 'USER') {
         try {
-          const empRes = await fetch('http://160.250.246.119:4000/api/employers');
+          const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+          const empRes = await fetch(`${apiHost}/api/employers`);
           if (empRes.ok) {
             const employers = await empRes.json();
             const recruiterUids = employers.map((emp: any) => emp.user_id || emp.id);

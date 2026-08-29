@@ -35,10 +35,10 @@ export const Payments: React.FC = () => {
   });
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật
-  const apiHost = '160.250.246.119';
+  const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
 
   useEffect(() => {
-    fetch(`http://${apiHost}:4000/api/orders`)
+    fetch(`${apiHost}/api/orders`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

@@ -47,7 +47,7 @@ export const Employers: React.FC = () => {
   const { jobPosts } = useData();
   const [employers, setEmployers] = useState<any[]>([]);
   // Luôn luôn kết nối trực tiếp tới IP VPS thật để đồng bộ với cấu hình CORS và Port mapping
-  const apiHost = '160.250.246.119';
+  const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -56,7 +56,7 @@ export const Employers: React.FC = () => {
 
   const fetchEmployers = async () => {
     try {
-      const response = await fetch(`http://${apiHost}:4000/api/employers`);
+      const response = await fetch(`${apiHost}/api/employers`);
       if (response.ok) {
         const data = await response.json();
         setEmployers((Array.isArray(data) ? data : []).sort((a, b) => getItemTime(b) - getItemTime(a)));
@@ -107,7 +107,7 @@ export const Employers: React.FC = () => {
       message: actionMessage,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://${apiHost}:4000/api/employers/${id}/status`, {
+          const response = await fetch(`${apiHost}/api/employers/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
@@ -138,7 +138,7 @@ export const Employers: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      const response = await fetch(`http://${apiHost}:4000/api/employers/${id}/status`, {
+      const response = await fetch(`${apiHost}/api/employers/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Xác thực' })

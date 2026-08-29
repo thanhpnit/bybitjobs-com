@@ -97,12 +97,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [paymentMethods, setPaymentMethodsState] = useState(() => loadData('bybitjobs_paymentMethods', initialPaymentMethods));
   const [skills, setSkillsState] = useState<any[]>([]);
 
-  const apiHost = '160.250.246.119';
+  const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
 
   // Load Real Users & Employers from API
   useEffect(() => {
     const fetchRealUsers = () => {
-      fetch(`http://${apiHost}:4000/api/users`)
+      fetch(`${apiHost}/api/users`)
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {

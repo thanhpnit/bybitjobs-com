@@ -45,7 +45,7 @@ export const Users: React.FC = () => {
   const { users, setUsers } = useData();
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật để vượt qua các bộ chặn cổng (như Cloudflare / Proxy của tên miền)
-  const apiHost = '160.250.246.119';
+  const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -53,7 +53,7 @@ export const Users: React.FC = () => {
   const itemsPerPage = 10;
 
   const fetchUsers = () => {
-    fetch(`http://${apiHost}:4000/api/users`)
+    fetch(`${apiHost}/api/users`)
       .then(res => res.json())
       .then(data => {
         // Đôi khi API trả về { users: [...] } hoặc [...]
@@ -98,7 +98,7 @@ export const Users: React.FC = () => {
       message: `Bạn có chắc chắn muốn ${isBanning ? 'khóa' : 'khôi phục'} tài khoản này không?`,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://${apiHost}:4000/api/users/${targetUid}/status`, {
+          const response = await fetch(`${apiHost}/api/users/${targetUid}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ disabled: isBanning })

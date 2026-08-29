@@ -30,7 +30,8 @@ export const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('http://160.250.246.119:4000/api/orders')
+    const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+    fetch(`${apiHost}/api/orders`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

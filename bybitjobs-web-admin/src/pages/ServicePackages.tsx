@@ -65,7 +65,8 @@ export const ServicePackages: React.FC = () => {
   const [chartFilter, setChartFilter] = useState<'7days' | '30days' | '12months'>('30days');
 
   useEffect(() => {
-    fetch('http://160.250.246.119:4000/api/orders')
+    const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+    fetch(`${apiHost}/api/orders`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setOrders(data);
