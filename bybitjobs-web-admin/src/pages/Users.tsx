@@ -298,56 +298,96 @@ export const Users: React.FC = () => {
       </View>
 
       <Card style={styles.tableCard}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ minWidth: 900, flex: 1 }}>
-            <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight }]}>
-              <Typography variant="caption" color="muted" style={styles.colId}>MÃ ND</Typography>
-              <Typography variant="caption" color="muted" style={styles.colName}>NGƯỜI TÌM VIỆC</Typography>
-              <Typography variant="caption" color="muted" style={styles.colContact}>THÔNG TIN LIÊN HỆ</Typography>
-              <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
-              <Typography variant="caption" color="muted" style={styles.colDate}>NGÀY ĐĂNG KÝ</Typography>
-              <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
-            </View>
-
+        {isMobile ? (
+          <View style={{ gap: 16 }}>
             {paginatedData.map((item, index) => {
               const stt = (currentPage - 1) * itemsPerPage + index + 1;
               const displayId = item.id.startsWith('#US-') ? item.id : `#ND-${String(stt).padStart(3, '0')}`;
               return (
-                <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
-                  <Typography variant="subtitle2" color="brand" style={styles.colId}>
-                    {displayId}
-                  </Typography>
-                <View style={[styles.colName, styles.flexRow]}>
-                  <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
-                  <View>
-                    <Typography variant="subtitle2">{item.name}</Typography>
-                    <Typography variant="caption" color="secondary">{item.job}</Typography>
+                <View key={item.id} style={{ padding: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.borderLight, backgroundColor: colors.bgSecondary, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle2" color="brand">{displayId}</Typography>
+                    <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : item.status === 'Tự vô hiệu hóa' ? 'warning' : 'default'}>
+                      {item.status}
+                    </Badge>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                    <View style={[styles.avatar, { backgroundColor: colors.borderLight, width: 40, height: 40 }]} />
+                    <View style={{ flex: 1 }}>
+                      <Typography variant="subtitle2">{item.name}</Typography>
+                      <Typography variant="caption" color="secondary">{item.job}</Typography>
+                    </View>
+                  </View>
+                  <View style={{ marginTop: 4 }}>
+                    <Typography variant="body2" color="secondary">Email: {item.email}</Typography>
+                    <Typography variant="body2" color="secondary">SĐT: {item.phone}</Typography>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+                    <Typography variant="caption" color="secondary">{item.date}</Typography>
+                    <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
+                      {item.status === 'Bị khóa' || item.status === 'Tự vô hiệu hóa' ? (
+                        <RotateCcw size={20} color={colors.successText || '#10B981'} />
+                      ) : (
+                        <Ban size={20} color={colors.warningText || '#F59E0B'} />
+                      )}
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View style={styles.colContact}>
-                  <Typography variant="body2" color="secondary">{item.email}</Typography>
-                  <Typography variant="body2" color="secondary">{item.phone}</Typography>
-                </View>
-                <View style={styles.colStatus}>
-                  <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : item.status === 'Tự vô hiệu hóa' ? 'warning' : 'default'}>
-                    {item.status}
-                  </Badge>
-                </View>
-                <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
-                <View style={[styles.colAction, styles.flexRow]}>
-                  <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
-                    {item.status === 'Bị khóa' || item.status === 'Tự vô hiệu hóa' ? (
-                      <RotateCcw size={18} color={colors.successText || '#10B981'} />
-                    ) : (
-                      <Ban size={18} color={colors.warningText || '#F59E0B'} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
+              );
+            })}
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: 900, flex: 1 }}>
+              <View style={[styles.tableHeader, { borderBottomColor: colors.borderLight }]}>
+                <Typography variant="caption" color="muted" style={styles.colId}>MÃ ND</Typography>
+                <Typography variant="caption" color="muted" style={styles.colName}>NGƯỜI TÌM VIỆC</Typography>
+                <Typography variant="caption" color="muted" style={styles.colContact}>THÔNG TIN LIÊN HỆ</Typography>
+                <Typography variant="caption" color="muted" style={styles.colStatus}>TRẠNG THÁI</Typography>
+                <Typography variant="caption" color="muted" style={styles.colDate}>NGÀY ĐĂNG KÝ</Typography>
+                <Typography variant="caption" color="muted" style={styles.colAction}>THAO TÁC</Typography>
+              </View>
+
+              {paginatedData.map((item, index) => {
+                const stt = (currentPage - 1) * itemsPerPage + index + 1;
+                const displayId = item.id.startsWith('#US-') ? item.id : `#ND-${String(stt).padStart(3, '0')}`;
+                return (
+                  <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
+                    <Typography variant="subtitle2" color="brand" style={styles.colId}>
+                      {displayId}
+                    </Typography>
+                  <View style={[styles.colName, styles.flexRow]}>
+                    <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                    <View>
+                      <Typography variant="subtitle2">{item.name}</Typography>
+                      <Typography variant="caption" color="secondary">{item.job}</Typography>
+                    </View>
+                  </View>
+                  <View style={styles.colContact}>
+                    <Typography variant="body2" color="secondary">{item.email}</Typography>
+                    <Typography variant="body2" color="secondary">{item.phone}</Typography>
+                  </View>
+                  <View style={styles.colStatus}>
+                    <Badge status={item.status === 'Đã xác thực' || item.status === 'Đã xác minh' ? 'success' : item.status === 'Bị khóa' ? 'danger' : item.status === 'Tự vô hiệu hóa' ? 'warning' : 'default'}>
+                      {item.status}
+                    </Badge>
+                  </View>
+                  <Typography variant="body2" color="secondary" style={styles.colDate}>{item.date}</Typography>
+                  <View style={[styles.colAction, styles.flexRow]}>
+                    <TouchableOpacity onPress={() => requestToggleStatus(item.uid || item.id, item.status)}>
+                      {item.status === 'Bị khóa' || item.status === 'Tự vô hiệu hóa' ? (
+                        <RotateCcw size={18} color={colors.successText || '#10B981'} />
+                      ) : (
+                        <Ban size={18} color={colors.warningText || '#F59E0B'} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+            </View>
+          </ScrollView>
+        )}
 
         <Pagination 
           currentPage={currentPage}
