@@ -332,6 +332,9 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
     return res.status(200).json(users);
   } catch (error: any) {
     console.error('Lỗi khi lấy danh sách người dùng:', error);
+    if (error?.message?.includes('16 UNAUTHENTICATED') || error?.message?.includes('invalid authentication credentials')) {
+      return res.status(401).json({ error: 'Lỗi xác thực hệ thống (Có thể do sai lệch giờ máy chủ). Vui lòng đồng bộ lại giờ VPS.' });
+    }
     return res.status(500).json({ error: 'Lỗi server khi lấy dữ liệu Firebase', details: error.message });
   }
 });
@@ -1815,6 +1818,10 @@ app.get('/api/employers', async (req: Request, res: Response): Promise<any> => {
     const employers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     return res.status(200).json(employers);
   } catch (error: any) {
+    console.error('Lỗi khi lấy danh sách nhà tuyển dụng:', error);
+    if (error?.message?.includes('16 UNAUTHENTICATED') || error?.message?.includes('invalid authentication credentials')) {
+      return res.status(401).json({ error: 'Lỗi xác thực hệ thống (Có thể do sai lệch giờ máy chủ). Vui lòng đồng bộ lại giờ VPS.' });
+    }
     return res.status(500).json({ error: 'Lỗi khi lấy danh sách nhà tuyển dụng', details: error.message });
   }
 });
@@ -1978,8 +1985,9 @@ app.get('/api/packages', async (req: Request, res: Response): Promise<any> => {
 // Lấy danh sách giao dịch (orders)
 app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
   try {
+    const limitCount = parseInt(req.query.limit as string) || 500;
     const db = admin.firestore();
-    const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
+    const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(limitCount).get();
     
     // get unique employerIds
     const employerIds = [...new Set(snapshot.docs.map(doc => doc.data().employerId))];
@@ -2006,6 +2014,9 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
     return res.status(200).json(orders);
   } catch (error: any) {
     console.error('Lỗi lấy danh sách giao dịch:', error);
+    if (error?.message?.includes('16 UNAUTHENTICATED') || error?.message?.includes('invalid authentication credentials')) {
+      return res.status(401).json({ error: 'Lỗi xác thực hệ thống (Có thể do sai lệch giờ máy chủ). Vui lòng đồng bộ lại giờ VPS.' });
+    }
     return res.status(500).json({ error: 'Lỗi lấy danh sách giao dịch' });
   }
 });
