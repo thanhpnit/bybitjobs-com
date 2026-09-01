@@ -323,6 +323,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       email: userRecord.email || '',
       phone: userRecord.phoneNumber || firestoreUsers[userRecord.uid]?.phone || 'Chưa cập nhật',
       job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
+      avatar: userRecord.photoURL || firestoreUsers[userRecord.uid]?.avatar || firestoreUsers[userRecord.uid]?.photoURL || '',
       status: userRecord.disabled 
         ? (firestoreUsers[userRecord.uid]?.disabledByUser ? 'Tự vô hiệu hóa' : 'Bị khóa')
         : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
