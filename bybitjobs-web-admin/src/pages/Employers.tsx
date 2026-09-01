@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions, Image } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -379,7 +379,11 @@ export const Employers: React.FC = () => {
                 <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
                   <Typography variant="subtitle2" color="brand" style={styles.colId} numberOfLines={1}>{displayId}</Typography>
                 <View style={[styles.colName, styles.flexRow]}>
-                  <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                  {(item.logo || item.logo_url || item.avatar) ? (
+                    <Image source={{ uri: item.logo || item.logo_url || item.avatar }} style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                  )}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <TouchableOpacity activeOpacity={0.75} onPress={() => handleOpenDetail(item)}>
                       <Typography variant="subtitle2" numberOfLines={1}>{item.company}</Typography>

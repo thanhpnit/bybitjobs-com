@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TextInput, ScrollView, useWindowDimensions, Image } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -312,7 +312,11 @@ export const Users: React.FC = () => {
                     </Badge>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                    <View style={[styles.avatar, { backgroundColor: colors.borderLight, width: 40, height: 40 }]} />
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={[styles.avatar, { width: 40, height: 40, backgroundColor: colors.borderLight }]} />
+                    ) : (
+                      <View style={[styles.avatar, { backgroundColor: colors.borderLight, width: 40, height: 40 }]} />
+                    )}
                     <View style={{ flex: 1 }}>
                       <Typography variant="subtitle2">{item.name}</Typography>
                       <Typography variant="caption" color="secondary">{item.job}</Typography>
@@ -357,7 +361,11 @@ export const Users: React.FC = () => {
                       {displayId}
                     </Typography>
                   <View style={[styles.colName, styles.flexRow]}>
-                    <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                    ) : (
+                      <View style={[styles.avatar, { backgroundColor: colors.borderLight }]} />
+                    )}
                     <View>
                       <Typography variant="subtitle2">{item.name}</Typography>
                       <Typography variant="caption" color="secondary">{item.job}</Typography>
