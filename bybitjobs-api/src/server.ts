@@ -899,7 +899,7 @@ app.post('/api/send-email', async (req: Request, res: Response): Promise<any> =>
     return res.status(200).json({
       success: true,
       messageId: info.messageId,
-      message: 'Gửi email thành công qua Nodemailer!'
+      message: 'Gửi email thành công!'
     });
   } catch (error: any) {
     console.error('[Nodemailer] Lỗi khi gửi email:', error);

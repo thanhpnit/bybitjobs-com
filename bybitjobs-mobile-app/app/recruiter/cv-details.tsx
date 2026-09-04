@@ -342,7 +342,7 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
       setIsSendingEmail(false);
 
       if (response.ok && data.success) {
-        Alert.alert('Thành công 🎉', `Đã gửi email trực tiếp qua Nodemailer tới ${candidateEmail}!`);
+        Alert.alert('Thành công 🎉', `Đã gửi email trực tiếp tới ${candidateEmail}!`);
         setIsEmailModalVisible(false);
       } else {
         const errorMsg = data.error || data.details || data.message || 'API Server VPS chưa cập nhật route /api/send-email. Vui lòng deploy server VPS.';
@@ -960,7 +960,7 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
                 ) : (
                   <>
                     <Ionicons name="paper-plane-outline" size={18} color="#FFF" />
-                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Gửi Email qua Nodemailer</Text>
+                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Gửi Email</Text>
                   </>
                 )}
               </TouchableOpacity>

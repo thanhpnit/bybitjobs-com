@@ -1669,7 +1669,7 @@ export function useAuth() {
         console.warn('Phản hồi send-otp từ server không phải JSON:', responseText);
       }
 
-      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi mã OTP qua Nodemailer. Vui lòng deploy server VPS.' };
+      return { success: response.ok, message: result.message || result.error || 'Lỗi gửi mã OTP qua Email. Vui lòng deploy server VPS.' };
     } catch (error: any) {
       console.error('Lỗi gọi API sendOtp Nodemailer:', error);
       return { success: false, message: error.message };
