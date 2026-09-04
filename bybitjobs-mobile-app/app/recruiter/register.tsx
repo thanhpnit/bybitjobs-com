@@ -43,6 +43,40 @@ const COMPANY_KEYWORDS = [
   'startup',
 ];
 
+// Gợi ý local – hiện ngay lập tức, không cần chờ API
+const LOCAL_COMPANY_SUGGESTIONS: CompanySuggestion[] = [
+  { id: 'local-1', name: 'Công ty TNHH Công nghệ FPT', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-2', name: 'Công ty Cổ phần VNG', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-3', name: 'Công ty TNHH Samsung Electronics Việt Nam', description: 'Bắc Ninh, Việt Nam' },
+  { id: 'local-4', name: 'Tập đoàn Vingroup', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-5', name: 'Công ty Cổ phần Thế Giới Di Động', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-6', name: 'Công ty TNHH Grab Việt Nam', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-7', name: 'Công ty Cổ phần Shopee Việt Nam', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-8', name: 'Công ty TNHH Lazada Việt Nam', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-9', name: 'Tập đoàn Viettel', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-10', name: 'Công ty Cổ phần Tiki', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-11', name: 'Công ty TNHH Be Group', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-12', name: 'Công ty Cổ phần MoMo', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-13', name: 'Công ty TNHH Bosch Việt Nam', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-14', name: 'Ngân hàng Thương mại Cổ phần Vietcombank', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-15', name: 'Công ty TNHH Giao Hàng Nhanh (GHN)', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-16', name: 'Công ty TNHH Giao Hàng Tiết Kiệm', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-17', name: 'Tập đoàn VNPT', description: 'Hà Nội, Việt Nam' },
+  { id: 'local-18', name: 'Công ty Cổ phần Điện tử Bình Hòa', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-19', name: 'Công ty TNHH TMA Solutions', description: 'TP. Hồ Chí Minh, Việt Nam' },
+  { id: 'local-20', name: 'Công ty Cổ phần KMS Technology', description: 'TP. Hồ Chí Minh, Việt Nam' },
+];
+
+const getLocalSuggestions = (keyword: string): CompanySuggestion[] => {
+  if (!keyword || keyword.length < 1) return [];
+  const kw = keyword.toLowerCase().trim();
+  return LOCAL_COMPANY_SUGGESTIONS.filter(
+    (s) =>
+      s.name.toLowerCase().includes(kw) ||
+      (s.description || '').toLowerCase().includes(kw)
+  ).slice(0, 6);
+};
+
 const looksLikeCompany = (suggestion: CompanySuggestion) => {
   const text = `${suggestion.name} ${suggestion.description || ''}`.toLowerCase();
   return COMPANY_KEYWORDS.some((keyword) => text.includes(keyword));
@@ -107,27 +141,46 @@ export default function RecruiterRegisterScreen() {
       return;
     }
 
+    // Hiện gợi ý local NGAY LẬP TỨC trong khi chờ API
+    const localMatches = getLocalSuggestions(keyword);
+    if (localMatches.length > 0) {
+      setCompanySuggestions(localMatches);
+    }
+
     let isActive = true;
     setIsSearchingCompany(true);
 
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`http://160.250.246.119:4000/api/companies/suggest?q=${encodeURIComponent(keyword)}`);
+        const controller = new AbortController();
+        const timeoutHandle = setTimeout(() => controller.abort(), 4000); // timeout 4s
+        const response = await fetch(
+          `http://160.250.246.119:4000/api/companies/suggest?q=${encodeURIComponent(keyword)}`,
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutHandle);
         const suggestions = await response.json();
 
         if (!isActive) return;
 
-        setCompanySuggestions(Array.isArray(suggestions) ? suggestions : []);
+        const apiResults = Array.isArray(suggestions) && suggestions.length > 0 ? suggestions : [];
+        // Kết hợp kết quả API + gợi ý local (ưu tiên API, loại trùng)
+        const apiNames = new Set(apiResults.map((s: CompanySuggestion) => s.name.toLowerCase()));
+        const uniqueLocal = localMatches.filter((s) => !apiNames.has(s.name.toLowerCase()));
+        const combined = [...apiResults, ...uniqueLocal].slice(0, 8);
+        setCompanySuggestions(combined.length > 0 ? combined : localMatches);
       } catch {
         if (isActive) {
-          setCompanySuggestions([]);
+          // Fallback: giữ nguyên gợi ý local nếu API lỗi/timeout
+          const fallback = getLocalSuggestions(keyword);
+          setCompanySuggestions(fallback);
         }
       } finally {
         if (isActive) {
           setIsSearchingCompany(false);
         }
       }
-    }, 350);
+    }, 150);
 
     return () => {
       isActive = false;
