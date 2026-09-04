@@ -190,19 +190,19 @@ export default function RecruiterPaymentScreen() {
               <View style={styles.detailsList}>
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Ngân hàng:</Text>
-                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.bin : 'Đang lấy...'}</Text>
+                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.bin : '970418'}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Chủ TK:</Text>
-                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.accountName : '...'}</Text>
+                  <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C' }]}>{payosData ? payosData.accountName : 'PHAM NGOC THANH'}</Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Số TK:</Text>
                   <View style={styles.copyRow}>
-                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.accountNumber : '...'}</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => payosData && handleCopy(payosData.accountNumber)}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.accountNumber : 'V3CAS8896151989'}</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy(payosData ? payosData.accountNumber : 'V3CAS8896151989')}>
                       <Ionicons name="copy-outline" size={14} color="#0084FF" />
                     </TouchableOpacity>
                   </View>
@@ -211,8 +211,8 @@ export default function RecruiterPaymentScreen() {
                 <View style={[styles.detailRow, { marginTop: 4 }]}>
                   <Text style={[styles.detailKey, { color: isDark ? '#9BA1A6' : '#687076' }]}>Nội dung:</Text>
                   <View style={styles.copyRow}>
-                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.description : '...'}</Text>
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => payosData && handleCopy(payosData.description)}>
+                    <Text style={[styles.detailValue, { color: isDark ? '#FFF' : '#11181C', marginRight: 6 }]}>{payosData ? payosData.description : 'CSLFUO99UD9 Thanh toan goi BybitJobs'}</Text>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => handleCopy(payosData ? payosData.description : 'CSLFUO99UD9 Thanh toan goi BybitJobs')}>
                       <Ionicons name="copy-outline" size={14} color="#0084FF" />
                     </TouchableOpacity>
                   </View>
@@ -221,52 +221,6 @@ export default function RecruiterPaymentScreen() {
             </View>
           )}
         </View>
-
-        {/* Option 2: Ví Momo */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveMethod('momo')}
-          style={[
-            styles.optionCardHorizontal,
-            { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' },
-            activeMethod === 'momo' ? styles.optionCardActive : styles.optionCardInactive,
-          ]}
-        >
-          <View style={styles.optionInfoLeft}>
-            <View style={[styles.momoLogoFrame, { backgroundColor: '#A21C65' }]}>
-              <Text style={styles.momoTextLabel}>momo</Text>
-            </View>
-            <Text style={[styles.optionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Ví Momo</Text>
-          </View>
-          <Ionicons
-            name={activeMethod === 'momo' ? 'checkmark-circle' : 'ellipse-outline'}
-            size={20}
-            color={activeMethod === 'momo' ? '#0084FF' : '#8E8E93'}
-          />
-        </TouchableOpacity>
-
-        {/* Option 3: ZaloPay */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setActiveMethod('zalopay')}
-          style={[
-            styles.optionCardHorizontal,
-            { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' },
-            activeMethod === 'zalopay' ? styles.optionCardActive : styles.optionCardInactive,
-          ]}
-        >
-          <View style={styles.optionInfoLeft}>
-            <View style={[styles.zalopayLogoFrame, { backgroundColor: '#00A6C7' }]}>
-              <Text style={styles.zalopayTextLabel}>Zalo</Text>
-            </View>
-            <Text style={[styles.optionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>ZaloPay</Text>
-          </View>
-          <Ionicons
-            name={activeMethod === 'zalopay' ? 'checkmark-circle' : 'ellipse-outline'}
-            size={20}
-            color={activeMethod === 'zalopay' ? '#0084FF' : '#8E8E93'}
-          />
-        </TouchableOpacity>
 
         {/* Large Submit Confirmation Button */}
         <TouchableOpacity

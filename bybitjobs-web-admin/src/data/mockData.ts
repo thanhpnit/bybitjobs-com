@@ -77,8 +77,7 @@ export const initialReviews = [
 ];
 
 export const initialPaymentMethods = [
-  { id: 'pm-1', type: 'Chuyển khoản Ngân hàng', name: 'Vietcombank', accountName: 'NGUYEN VAN A', accountNumber: '0071 0001 23456', branch: 'Chi nhánh Nam Sài Gòn', status: 'Đang dùng' },
-  { id: 'pm-2', type: 'Ví điện tử', name: 'Ví Momo', accountName: 'NGUYEN VAN A', accountNumber: '0901234567', branch: '', status: 'Đang dùng' },
+  { id: 'pm-1', type: 'Chuyển khoản Ngân hàng', name: 'Chuyển khoản Ngân hàng (PayOS QR)', accountName: 'PHAM NGOC THANH', accountNumber: 'V3CAS8896151989', branch: '970418 (MBBank)', status: 'Đang dùng' }
 ];
 
 export const initialSkills = [

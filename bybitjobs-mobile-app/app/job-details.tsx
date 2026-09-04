@@ -901,18 +901,19 @@ export default function JobDetailsScreen() {
                   try {
                     await addDoc(collection(db, 'reports'), {
                       type: 'Phản ánh tin tuyển dụng',
-                      reason: reportForm.reason,
+                      reason: finalReason,
                       desc: finalReason,
+                      targetName: displayTitle,
                       target: displayTitle,
                       targetBy: `Họ tên: ${reporterName} - SĐT: ${reporterPhone} - Email: ${reporterEmail}`,
                       reporterId: userData?.uid || '',
-                      reporterName,
-                      reporterPhone,
-                      reporterEmail,
+                      reporterName: reporterName,
+                      reporterPhone: reporterPhone,
+                      reporterEmail: reporterEmail,
                       jobId: displayJobId,
                       companyName: employerName,
                       address: displayLocation,
-                      status: 'pending',
+                      status: 'Chờ xử lý',
                       createdAt: serverTimestamp()
                     });
                     Alert.alert('Thành công', 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xử lý sớm nhất.');

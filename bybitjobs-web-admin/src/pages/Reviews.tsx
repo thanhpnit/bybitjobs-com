@@ -59,20 +59,27 @@ export const Reviews: React.FC = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, 'reviews'), (snapshot) => {
       const reviews = snapshot.docs
         .map((item) => {
           const value = item.data();
+          let statusText: ReviewStatus = 'Chờ duyệt';
+          if (value.status === 'Đã duyệt' || value.status === 'Đã phê duyệt' || value.reviewStatus === 'Đã phê duyệt') {
+            statusText = 'Đã phê duyệt';
+          } else if (value.status === 'Bị báo cáo' || value.reviewStatus === 'Bị báo cáo') {
+            statusText = 'Bị báo cáo';
+          }
+
           return {
             id: item.id,
-            name: value.applicantName || value.candidateName || 'Người dùng',
-            company: value.companyName || 'Nhà tuyển dụng',
+            name: value.userName || value.name || value.applicantName || value.candidateName || 'Người dùng',
+            company: value.companyName || value.company || 'Nhà tuyển dụng',
             jobTitle: value.jobTitle || 'Công việc đã ứng tuyển',
-            rating: Number(value.companyRating || 0),
-            comment: value.companyComment || '',
-            status: (value.reviewStatus || 'Chờ duyệt') as ReviewStatus,
-            reviewedAt: value.reviewedAt || value.appliedAt || '',
-            appliedAt: value.appliedAt || '',
+            rating: Number(value.rating || value.companyRating || 5),
+            comment: value.comment || value.companyComment || '',
+            status: statusText,
+            reviewedAt: value.createdAt || value.reviewedAt || value.appliedAt || '',
+            appliedAt: value.createdAt || value.appliedAt || '',
           };
         })
         .filter((item) => item.rating > 0 || item.comment.trim().length > 0)
@@ -180,7 +187,12 @@ export const Reviews: React.FC = () => {
   const handleApprove = async (id: string) => {
     const targetItem = data.find(i => i.id === id);
     setData((current) => current.map((item) => item.id === id ? { ...item, status: 'Đã phê duyệt' } : item));
-    await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Đã phê duyệt' });
+    try {
+      await updateDoc(doc(db, 'reviews', id), { status: 'Đã duyệt' });
+    } catch(e) {}
+    try {
+      await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Đã phê duyệt' });
+    } catch(e) {}
     if (targetItem) {
       await updateCompanyRatingInFirestore(targetItem.company);
     }
@@ -189,7 +201,12 @@ export const Reviews: React.FC = () => {
   const handleHide = async (id: string) => {
     const targetItem = data.find(i => i.id === id);
     setData((current) => current.map((item) => item.id === id ? { ...item, status: 'Bị báo cáo' } : item));
-    await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Bị báo cáo' });
+    try {
+      await updateDoc(doc(db, 'reviews', id), { status: 'Bị báo cáo' });
+    } catch(e) {}
+    try {
+      await updateDoc(doc(db, 'applications', id), { reviewStatus: 'Bị báo cáo' });
+    } catch(e) {}
     if (targetItem) {
       await updateCompanyRatingInFirestore(targetItem.company, id);
     }
@@ -198,12 +215,17 @@ export const Reviews: React.FC = () => {
   const handleDelete = async (id: string) => {
     const targetItem = data.find(i => i.id === id);
     setData((current) => current.filter((item) => item.id !== id));
-    await updateDoc(doc(db, 'applications', id), {
-      companyRating: deleteField(),
-      companyComment: deleteField(),
-      reviewedAt: deleteField(),
-      reviewStatus: deleteField(),
-    });
+    try {
+      await deleteDoc(doc(db, 'reviews', id));
+    } catch(e) {}
+    try {
+      await updateDoc(doc(db, 'applications', id), {
+        companyRating: deleteField(),
+        companyComment: deleteField(),
+        reviewedAt: deleteField(),
+        reviewStatus: deleteField(),
+      });
+    } catch(e) {}
     if (targetItem) {
       await updateCompanyRatingInFirestore(targetItem.company, id);
     }

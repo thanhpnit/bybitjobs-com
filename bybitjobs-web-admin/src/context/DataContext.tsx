@@ -221,41 +221,39 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setJobPostsState(sortNewestFirst(data));
     });
 
-    // 4. Reports
+    // 4. Reports (Collection 'reports' trong Firestore)
     const unsubReports = onSnapshot(collection(db, 'reports'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
         const item = docSnap.data();
         data.push({
           id: docSnap.id,
-          user: item.reporterName || item.reporterEmail || 'Người dùng ẩn danh',
-          target: item.targetName || item.jobTitle || 'Tin đăng / Công ty',
+          user: item.reporterName || item.reporterEmail || item.user || 'Người dùng ẩn danh',
+          target: item.targetName || item.target || item.jobTitle || 'Tin đăng / Công ty',
           reason: item.reason || item.desc || 'Báo cáo vi phạm',
-          date: parseSafeDate(item.createdAt),
-          status: item.status === 'accepted' ? 'Đã xử lý' : (item.status === 'rejected' ? 'Bác bỏ' : 'Chờ xử lý')
+          date: parseSafeDate(item.createdAt || item.date),
+          status: item.status || 'Chờ xử lý'
         });
       });
-      setReportsState(data);
+      setReportsState(sortNewestFirst(data));
     });
 
-    // 5. Reviews (applications collection with feedback)
-    const unsubReviews = onSnapshot(collection(db, 'applications'), (snapshot) => {
+    // 5. Reviews (Collection 'reviews' trong Firestore)
+    const unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
       const data: any[] = [];
       snapshot.forEach(docSnap => {
         const item = docSnap.data();
-        if (Number(item.companyRating || 0) > 0 || (item.companyComment && item.companyComment.trim().length > 0)) {
-          data.push({
-            id: docSnap.id,
-            user: item.applicantName || item.candidateName || 'Người dùng ẩn danh',
-            company: item.companyName || 'Doanh nghiệp',
-            rating: Number(item.companyRating || 0),
-            comment: item.companyComment || '',
-            date: item.reviewedAt ? new Date(item.reviewedAt) : (item.appliedAt ? new Date(item.appliedAt) : new Date()),
-            status: item.reviewStatus === 'Đã phê duyệt' ? 'Đã duyệt' : (item.reviewStatus === 'Bị báo cáo' ? 'Bị báo cáo' : 'Chờ duyệt')
-          });
-        }
+        data.push({
+          id: docSnap.id,
+          user: item.userName || item.user || item.applicantName || 'Người dùng ẩn danh',
+          company: item.companyName || item.company || 'Doanh nghiệp',
+          rating: Number(item.rating || item.companyRating || 5),
+          comment: item.comment || item.companyComment || '',
+          date: parseSafeDate(item.createdAt || item.date || item.reviewedAt),
+          status: item.status || 'Chờ duyệt'
+        });
       });
-      setReviewsState(data);
+      setReviewsState(sortNewestFirst(data));
     });
 
     // 6. Payment Methods

@@ -72,23 +72,23 @@ export const Reports: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'applications'), (snapshot) => {
+    const unsubscribe = onSnapshot(collection(db, 'reviews'), (snapshot) => {
       const approvedReviews = snapshot.docs
         .map((docSnap) => {
           const item = docSnap.data();
           return {
             id: docSnap.id,
-            name: item.applicantName || item.candidateName || 'Người dùng',
-            company: item.companyName || 'Nhà tuyển dụng',
+            name: item.userName || item.name || item.applicantName || 'Người dùng',
+            company: item.companyName || item.company || 'Nhà tuyển dụng',
             jobTitle: item.jobTitle || 'Công việc đã ứng tuyển',
-            rating: Number(item.companyRating || 0),
-            comment: item.companyComment || '',
-            date: formatDate(item.reviewedAt || item.appliedAt),
-            reviewedAt: item.reviewedAt || item.appliedAt || '',
-            status: item.reviewStatus || 'Chờ duyệt',
+            rating: Number(item.rating || item.companyRating || 5),
+            comment: item.comment || item.companyComment || '',
+            date: formatDate(item.createdAt || item.reviewedAt || item.appliedAt),
+            reviewedAt: item.createdAt || item.reviewedAt || item.appliedAt || '',
+            status: item.status || item.reviewStatus || 'Chờ duyệt',
           };
         })
-        .filter((item) => item.status === 'Đã phê duyệt' && (item.rating > 0 || item.comment.trim().length > 0))
+        .filter((item) => (item.status === 'Đã duyệt' || item.status === 'Đã phê duyệt') && (item.rating > 0 || item.comment.trim().length > 0))
         .sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
 
       setReviewData(approvedReviews);

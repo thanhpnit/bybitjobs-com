@@ -1595,6 +1595,26 @@ export function useAuth() {
       await updateProfile(userCredential.user, { displayName: fullName });
       await userCredential.user.reload();
       setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
+
+      // Ghi thông tin người dùng vào Firestore collection 'users' chuẩn hóa theo bảng ERD nguoi_dung
+      try {
+        const userUid = userCredential.user.uid;
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563EB&color=fff`;
+        await setDoc(doc(db, 'users', userUid), {
+          id: userUid,
+          email: emailOrPhone,
+          fullName: fullName,
+          phone: null,
+          avatar: defaultAvatar,
+          role: globalUserRole || 'candidate',
+          desiredJob: null,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
+      } catch (fsErr) {
+        console.error('Lỗi tạo tài liệu người dùng Firestore:', fsErr);
+      }
+
       // Tải mã seqId mới ngay sau khi tạo tài khoản
       try {
         const response = await fetch(`http://160.250.246.119:4000/api/users/${userCredential.user.uid}/seq`);
@@ -2096,11 +2116,28 @@ export function useAuth() {
         companyRating: feedback.companyRating,
         companyComment: feedback.companyComment,
         reviewedAt,
-        reviewStatus: 'Đã phê duyệt',
+        reviewStatus: 'Chờ duyệt',
       });
 
-      // Recalculate average rating & sync to employers, users, and job_posts
+      // Tạo bản ghi đánh giá thật trong collection 'reviews' trên Firestore
       const targetApp = globalApplications.find(a => a.id === appId);
+      const userName = targetApp?.applicantName || auth.currentUser?.displayName || 'Ứng viên';
+      const userEmail = targetApp?.applicantEmail || auth.currentUser?.email || '';
+
+      try {
+        await addDoc(collection(db, 'reviews'), {
+          appId: appId,
+          userName: userName,
+          userEmail: userEmail,
+          companyName: targetApp?.companyName || 'Doanh nghiệp',
+          rating: feedback.companyRating,
+          comment: feedback.companyComment,
+          status: 'Chờ duyệt',
+          createdAt: serverTimestamp()
+        });
+      } catch (revErr) {
+        console.error('Lỗi lưu review vào Firestore:', revErr);
+      }
       const companyName = targetApp?.companyName;
       if (companyName) {
         const snapApps = await getDocs(collection(db, 'applications'));
