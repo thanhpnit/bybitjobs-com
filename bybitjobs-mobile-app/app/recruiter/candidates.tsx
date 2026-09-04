@@ -102,9 +102,15 @@ export default function RecruiterCandidatesScreen() {
         <TouchableOpacity 
           activeOpacity={0.7} 
           style={styles.iconBtn} 
-          onPress={() => router.push('/recruiter/search-candidates')}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.push('/recruiter/dashboard');
+            }
+          }}
         >
-          <Ionicons name="search-outline" size={22} color="#FFF" />
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerBarTitle}>Quản lý ứng viên</Text>
         <TouchableOpacity 
