@@ -28,7 +28,7 @@ export default function AIAdvisorScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-  const { userRole, userData } = useAuth();
+  const { userRole, userData, employerData } = useAuth();
   const isEmployer = userRole === 'employer';
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -38,7 +38,7 @@ export default function AIAdvisorScreen() {
     id: 'welcome-1',
     role: 'assistant',
     content: isEmployer
-      ? `👋 Xin chào Nhà tuyển dụng **${(userData as any)?.companyName || userData?.fullName || 'Quý doanh nghiệp'}**!\n\nTôi là **Trợ lý AI BybitJobs**, chuyên gia cố vấn nhân sự & tuyển dụng. Tôi có thể hỗ trợ bạn:\n\n• ❓ **Soạn câu hỏi phỏng vấn** cho mọi vị trí & cấp bậc\n• 💰 **Tra cứu dải lương thị trường** tại Việt Nam\n• 📋 **Tư vấn chiến lược thu hút nhân tài**\n\nBạn muốn tôi hỗ trợ công việc gì ngay hôm nay?`
+      ? `👋 Xin chào Nhà tuyển dụng **${employerData?.companyName || userData?.fullName || 'Quý doanh nghiệp'}**!\n\nTôi là **Trợ lý AI BybitJobs**, chuyên gia cố vấn nhân sự & tuyển dụng. Tôi có thể hỗ trợ bạn:\n\n• ❓ **Soạn câu hỏi phỏng vấn** cho mọi vị trí & cấp bậc\n• 💰 **Tra cứu dải lương thị trường** tại Việt Nam\n• 📋 **Tư vấn chiến lược thu hút nhân tài**\n\nBạn muốn tôi hỗ trợ công việc gì ngay hôm nay?`
       : `👋 Xin chào **${userData?.fullName || 'bạn'}**!\n\nTôi là **Trợ lý AI BybitJobs**, người cố vấn sự nghiệp của bạn. Tôi có thể giúp bạn:\n\n• 🎤 **Tập phỏng vấn thử (AI Mock Interview)** theo ngành nghề\n• 📝 **Cố vấn viết & tối ưu CV chuẩn ATS**\n• 💼 **Định hướng phát triển sự nghiệp & đàm phán lương**\n\nHãy chọn một chủ đề bên dưới hoặc gõ câu hỏi cho tôi nhé!`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };

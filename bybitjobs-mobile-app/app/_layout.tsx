@@ -1,15 +1,12 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/use-auth';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
-const NavigationThemeProvider = ThemeProvider as any;
 
 function ToastNotificationWrapper() {
   const { activeToast, dismissToast } = useAuth();
@@ -153,19 +150,21 @@ Alert.alert = (title: string, message?: string, buttons?: any[], options?: any) 
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaProvider>
-        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <ToastNotificationWrapper />
-          <GlobalAppModal />
-        </NavigationThemeProvider>
+        <Stack screenOptions={{ 
+          headerShown: false,
+          contentStyle: { backgroundColor: isDark ? '#151718' : '#F8F9FA' }
+        }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <ToastNotificationWrapper />
+        <GlobalAppModal />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

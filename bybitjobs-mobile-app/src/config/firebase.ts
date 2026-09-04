@@ -5,13 +5,13 @@ import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAJrjqkcxdI7N4tc5H6vF-FnVcCyv3NsLc",
-  authDomain: "bybitjobs.firebaseapp.com",
-  projectId: "bybitjobs",
-  storageBucket: "bybitjobs.firebasestorage.app",
-  messagingSenderId: "811135097267",
-  appId: "1:811135097267:web:dab5c4e8ea4dee79cd93c6",
-  measurementId: "G-9K2536WERT"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyAJrjqkcxdI7N4tc5H6vF-FnVcCyv3NsLc",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "bybitjobs.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "bybitjobs",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "bybitjobs.firebasestorage.app",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "811135097267",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:811135097267:web:dab5c4e8ea4dee79cd93c6",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-9K2536WERT"
 };
 
 // Khởi tạo app và auth (kiểm tra để tránh lỗi initialize nhiều lần)

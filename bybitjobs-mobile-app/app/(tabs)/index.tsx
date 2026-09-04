@@ -3842,7 +3842,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   companyModalCoverOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 132, 255, 0.28)',
   },
   companyModalBackBtn: {

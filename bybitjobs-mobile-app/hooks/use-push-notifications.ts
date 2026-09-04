@@ -1,26 +1,44 @@
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../src/config/firebase';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+// Safely resolve expo-notifications module only in standalone/dev builds
+let Notifications: typeof import('expo-notifications') | null = null;
+const isExpoGo =
+  Constants.appOwnership === 'expo' ||
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+  (Constants as any).executionEnvironment === 'storeClient';
+
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (err) {
+    console.warn('Cannot load expo-notifications module:', err);
+  }
+}
 
 // Configure notification presentation handler (banner, sound, badge) when received
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Notifications) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    // Bỏ qua lỗi cấu hình notification handler trên môi trường Expo Go
+  }
+}
 
 export async function registerForPushNotificationsAsync(userId: string) {
-  let token;
-
-  // Bỏ qua đăng ký Push Notification nếu đang chạy trong Expo Go (Expo SDK 53+ không hỗ trợ remote push trong Expo Go)
-  if (Constants.appOwnership === 'expo') {
+  let token: string | undefined;
+  if (isExpoGo || !Notifications) {
     return;
   }
 

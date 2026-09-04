@@ -63,30 +63,11 @@ export default function RecruiterCvDetailsScreen() {
     } as any;
   }
 
-  if (!application) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerBarTitle, { color: isDark ? '#FFF' : '#000' }]}>Chi tiết hồ sơ</Text>
-          <View style={styles.iconBtn} />
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={{ color: isDark ? '#FFF' : '#000' }}>Không tìm thấy thông tin hồ sơ ứng viên.</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const isApproved = application.status === 'Approved';
-  const isRejected = application.status === 'Rejected';
-  const candidateName = application.applicantName || candidate?.name || 'Ứng viên';
-  const candidateEmail = application.applicantEmail || candidate?.email || 'Chưa cập nhật email';
-  const candidatePhone = application.applicantPhone || candidate?.phone || 'Chưa cập nhật số điện thoại';
-  const candidateLocation = candidate?.location || application.jobLocation || 'TP. Hồ Chí Minh';
-  const candidateRole = candidate?.role || application.jobTitle || 'Ứng viên đã nộp hồ sơ';
+  const candidateName = application?.applicantName || candidate?.name || 'Ứng viên';
+  const candidateEmail = application?.applicantEmail || candidate?.email || 'Chưa cập nhật email';
+  const candidatePhone = application?.applicantPhone || candidate?.phone || 'Chưa cập nhật số điện thoại';
+  const candidateLocation = candidate?.location || application?.jobLocation || 'TP. Hồ Chí Minh';
+  const candidateRole = candidate?.role || application?.jobTitle || 'Ứng viên đã nộp hồ sơ';
   const candidateJobType = candidate?.jobType || 'Toàn thời gian';
   const candidateRating = candidate?.rating || 5;
   const candidateReviewsCount = candidate?.reviewsCount || 1;
@@ -94,7 +75,7 @@ export default function RecruiterCvDetailsScreen() {
   // Smart dynamic Skills extraction from candidate doc or job title / CV name
   const candidateSkills = React.useMemo(() => {
     if (candidate?.skills?.length) return candidate.skills;
-    const roleLower = ((application.jobTitle || '') + ' ' + (application.cvName || '')).toLowerCase();
+    const roleLower = (((application?.jobTitle) || '') + ' ' + ((application?.cvName) || '')).toLowerCase();
     if (roleLower.includes('web') || roleLower.includes('react') || roleLower.includes('frontend') || roleLower.includes('backend') || roleLower.includes('lập trình')) {
       return ['React Native', 'JavaScript', 'TypeScript', 'HTML/CSS', 'Git'];
     } else if (roleLower.includes('design') || roleLower.includes('ui') || roleLower.includes('ux') || roleLower.includes('đồ họa')) {
@@ -105,7 +86,7 @@ export default function RecruiterCvDetailsScreen() {
       return ['Pha chế đồ uống', 'Quản lý quầy hàng', 'Giao tiếp khách hàng', 'Thu ngân'];
     }
     return ['Kỹ năng chuyên môn', 'Giao tiếp tốt', 'Làm việc nhóm', 'Giải quyết vấn đề'];
-  }, [candidate?.skills, application.jobTitle, application.cvName]);
+  }, [candidate?.skills, application?.jobTitle, application?.cvName]);
 
   const candidatePortfolio = candidate?.portfolio || 'Đã đính kèm chi tiết trong tệp CV';
   const candidateEducation = candidate?.education || 'Trình độ Chuyên môn / Đại học - Cao đẳng';
@@ -114,14 +95,14 @@ export default function RecruiterCvDetailsScreen() {
     if (candidate?.experience?.length) return candidate.experience;
     return [
       {
-        role: application.jobTitle || 'Chuyên viên ứng tuyển',
-        company: application.companyName || 'Kinh nghiệm tích lũy thực tế',
+        role: application?.jobTitle || 'Chuyên viên ứng tuyển',
+        company: application?.companyName || 'Kinh nghiệm tích lũy thực tế',
         duration: '2023 - Hiện tại',
-        description: application.message || `Đã có kinh nghiệm làm việc thực chiến ở vị trí ${application.jobTitle || 'chuyên môn'}, có khả năng làm việc độc lập và phối hợp nhóm hiệu quả.`,
+        description: application?.message || `Đã có kinh nghiệm làm việc thực chiến ở vị trí ${application?.jobTitle || 'chuyên môn'}, có khả năng làm việc độc lập và phối hợp nhóm hiệu quả.`,
         isCurrent: true,
       },
     ];
-  }, [candidate?.experience, application.jobTitle, application.companyName, application.message]);
+  }, [candidate?.experience, application?.jobTitle, application?.companyName, application?.message]);
 
   const candidateAvatar = candidate?.avatar;
   const candidateInitials = candidateName
@@ -147,7 +128,8 @@ export default function RecruiterCvDetailsScreen() {
     const fetchAIMatchScore = async () => {
       setIsLoadingMatch(true);
       try {
-        const response = await fetch('http://160.250.246.119:4000/api/ai/candidate-match-score', {
+        const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.bybitjobs.com';
+        const response = await fetch(`${baseUrl}/api/ai/candidate-match-score`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -193,7 +175,27 @@ export default function RecruiterCvDetailsScreen() {
 
     fetchAIMatchScore();
     return () => { isMounted = false; };
-  }, [appId, application]);
+  }, [appId, application, candidateExperience, candidateName, candidateSkills]);
+
+  if (!application) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}>
+        <View style={styles.headerBar}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#000'} />
+          </TouchableOpacity>
+          <Text style={[styles.headerBarTitle, { color: isDark ? '#FFF' : '#000' }]}>Chi tiết hồ sơ</Text>
+          <View style={styles.iconBtn} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={{ color: isDark ? '#FFF' : '#000' }}>Không tìm thấy thông tin hồ sơ ứng viên.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isApproved = application.status === 'Approved';
+  const isRejected = application.status === 'Rejected';
 
   const handleApprove = () => {
     if (application.status === 'Approved') {

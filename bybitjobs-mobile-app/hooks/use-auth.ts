@@ -79,6 +79,10 @@ export interface UserData {
   cvUploadTime?: string;
   cvUrl?: string;
   avatar?: string;
+  companyName?: string;
+  skills?: string[];
+  experience?: any[];
+  bio?: string;
 }
 
 export type PackageTier = 'PREMIUM' | 'PRO' | 'FREE';
