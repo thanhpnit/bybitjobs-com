@@ -77,14 +77,14 @@ export default function RecruiterPricingScreen() {
     {
       id: 'pro',
       name: 'Gói PRO (Phổ Biến ⭐)',
-      price: '299,000đ',
-      priceNum: 299000,
+      price: '499,000đ',
+      priceNum: 499000,
       duration: '30 ngày',
       tag: 'BÁN CHẠY NHẤT ⭐',
       subTag: 'TIẾT KIỆM 40%',
       features: [
-        'Đăng tối đa: 15 tin tuyển dụng',
-        'Mở khóa: 50 CV ứng viên',
+        'Đăng tối đa: 25 tin tuyển dụng',
+        'Mở khóa: Không giới hạn CV',
         '⚡ Ghim ƯU TIÊN TOP 2 Trang Chủ',
         '⚡ Huy hiệu ⚡ PRO Xanh Royal phát sáng',
         '⚡ Đánh giá AI độ phù hợp CV ứng viên',
@@ -137,11 +137,11 @@ export default function RecruiterPricingScreen() {
             if (isVip) key = 'premium';
             else if (isPopular) key = 'pro';
 
-            let displayPrice = pkg.price || (isFree ? '0 VNĐ' : isPopular ? '299,000đ' : '799,000đ');
-            let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isFree ? 0 : isPopular ? 299000 : 799000);
+            let displayPrice = pkg.price || (isFree ? '0 VNĐ' : isPopular ? '499,000đ' : '799,000đ');
+            let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isFree ? 0 : isPopular ? 499000 : 799000);
 
-            let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
-            let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
+            let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '25 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
+            let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? 'Không giới hạn CV' : 'KHÔNG GIỚI HẠN mở khóa CV');
 
             mapByTier[key] = {
               id: key,

@@ -454,11 +454,11 @@ export default function RecruiterProfileScreen() {
           if (isVip) key = 'premium';
           else if (isPopular) key = 'pro';
 
-          let displayPrice = isVip ? '799,000đ' : isPopular ? '299,000đ' : '0 VNĐ';
-          let priceNum = isVip ? 799000 : isPopular ? 299000 : 0;
+          let displayPrice = pkg.price || (isVip ? '799,000đ' : isPopular ? '499,000đ' : '0 VNĐ');
+          let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isVip ? 799000 : isPopular ? 499000 : 0);
 
-          let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
-          let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
+          let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '25 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
+          let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? 'Không giới hạn CV' : 'KHÔNG GIỚI HẠN mở khóa CV');
 
           mapByTier[key] = {
             id: key,

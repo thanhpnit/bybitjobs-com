@@ -198,7 +198,7 @@ export const getEmployerPackageTier = (employerData: any): {
     };
   }
 
-  // Tier 2: PRO (Gold / Pro / Standard / Silver / Vàng / Chuyên Nghiệp / 299k)
+  // Tier 2: PRO (Gold / Pro / Standard / Silver / Vàng / Chuyên Nghiệp / 299k / 499k)
   if (
     employerData.isPro === true ||
     employerData.is_pro === true ||
@@ -207,7 +207,8 @@ export const getEmployerPackageTier = (employerData: any): {
     packageText.includes('silver') ||
     packageText.includes('standard') ||
     packageText.includes('vàng') ||
-    packageText.includes('299')
+    packageText.includes('299') ||
+    packageText.includes('499')
   ) {
     return {
       tier: 'PRO',

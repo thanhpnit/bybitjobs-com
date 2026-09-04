@@ -16,41 +16,41 @@ export const initialJobPosts = [
 ];
 
 export const initialPackages = [
-  { 
+  {
     id: 'free',
-    name: 'Gói MIỄN PHÍ', 
-    price: '0 VNĐ', 
+    name: 'Gói MIỄN PHÍ',
+    price: '0 VNĐ',
     priceNum: 0,
-    period: '/ vĩnh viễn', 
-    posts: '5 tin tuyển dụng', 
-    cvs: '10 CV ứng viên', 
+    period: '/ vĩnh viễn',
+    posts: '5 tin tuyển dụng',
+    cvs: '10 CV ứng viên',
     users: '1,240',
     iconName: 'User',
     badge: 'CƠ BẢN',
     color: '#6B7280'
   },
-  { 
+  {
     id: 'pro',
-    name: 'Gói PRO (Phổ Biến ⭐)', 
-    price: '299.000 VNĐ', 
-    priceNum: 299000,
-    period: '/ 30 ngày', 
-    posts: '15 tin tuyển dụng', 
-    cvs: '50 CV ứng viên', 
+    name: 'Gói PRO (Phổ Biến ⭐)',
+    price: '499.000 VNĐ',
+    priceNum: 499000,
+    period: '/ 30 ngày',
+    posts: '25 tin tuyển dụng',
+    cvs: 'Không giới hạn CV',
     users: '856',
     iconName: 'Star',
     badge: 'BÁN CHẠY NHẤT ⭐',
     isPopular: true,
     color: '#0066FF'
   },
-  { 
+  {
     id: 'premium',
-    name: 'Gói PREMIUM (VIP 👑)', 
-    price: '799.000 VNĐ', 
+    name: 'Gói PREMIUM (VIP 👑)',
+    price: '799.000 VNĐ',
     priceNum: 799000,
-    period: '/ 30 ngày', 
-    posts: 'Không giới hạn', 
-    cvs: 'Không giới hạn CV', 
+    period: '/ 30 ngày',
+    posts: 'Không giới hạn',
+    cvs: 'Không giới hạn CV',
     users: '142',
     iconName: 'Award',
     badge: 'ĐỘC QUYỀN TOP 1 👑',
