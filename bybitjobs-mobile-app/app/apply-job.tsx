@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,7 @@ export default function ApplyJobScreen() {
   const [phoneNumber, setPhoneNumber] = React.useState(userData?.phone || (userData?.emailOrPhone?.match(/^[0-9+]+$/) ? userData?.emailOrPhone : '') || '');
   const [email, setEmail] = React.useState(userData?.emailOrPhone || '');
   const [message, setMessage] = React.useState('');
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = React.useState(false);
   const [cvUploaded, setCvUploaded] = React.useState(!!userData?.cvUrl);
   const [cvFile, setCvFile] = React.useState<{ name: string; size: string; uploadTime: string; url?: string } | null>(() => {
     if (userData?.cvUrl) {
@@ -493,11 +495,30 @@ export default function ApplyJobScreen() {
 
             {/* Cover Message */}
             <View style={styles.inputGroup}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                 <Text style={[styles.inputLabel, { color: isDark ? '#ECEDEE' : '#333', marginBottom: 0 }]}>
                   Thư giới thiệu
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setShowCoverLetterPreview(true)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: isDark ? '#1F2937' : '#EFF6FF',
+                      borderColor: '#0084FF',
+                      borderWidth: 1,
+                      paddingHorizontal: 8,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      gap: 4
+                    }}
+                  >
+                    <Ionicons name="eye-outline" size={12} color="#0084FF" />
+                    <Text style={{ color: '#0084FF', fontSize: 11, fontWeight: '600' }}>Xem trước</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={handleCheckAIMatch}
@@ -506,7 +527,7 @@ export default function ApplyJobScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       backgroundColor: '#7C3AED',
-                      paddingHorizontal: 10,
+                      paddingHorizontal: 8,
                       paddingVertical: 5,
                       borderRadius: 14,
                       gap: 4
@@ -531,6 +552,8 @@ export default function ApplyJobScreen() {
                       {
                         backgroundColor: isDark ? '#1F2937' : '#F0F7FF',
                         borderColor: '#0084FF',
+                        paddingHorizontal: 8,
+                        paddingVertical: 5,
                       }
                     ]}
                   >
@@ -563,13 +586,114 @@ export default function ApplyJobScreen() {
                 placeholder="Giới thiệu ngắn gọn về kinh nghiệm hoặc lý do bạn phù hợp với công việc này..."
                 placeholderTextColor={isDark ? '#555' : '#8E8E93'}
                 multiline
-                numberOfLines={4}
+                numberOfLines={6}
                 value={message}
                 onChangeText={setMessage}
                 textAlignVertical="top"
                 />
               </View>
+
+              {message.trim().length > 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setShowCoverLetterPreview(true)}
+                  style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}
+                >
+                  <Ionicons name="expand-outline" size={13} color="#0084FF" />
+                  <Text style={{ color: '#0084FF', fontSize: 12, fontWeight: '600' }}>
+                    Xem toàn bộ thư ({message.length} ký tự)
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
+
+            {/* Modal Xem trước Thư giới thiệu */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={showCoverLetterPreview}
+              onRequestClose={() => setShowCoverLetterPreview(false)}
+            >
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                <View style={{
+                  width: '100%',
+                  maxHeight: '80%',
+                  backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}>
+                  {/* Modal Header */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: isDark ? '#374151' : '#F3F4F6' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ionicons name="document-text" size={22} color="#0084FF" />
+                      <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFF' : '#111827' }}>
+                        Xem trước Thư giới thiệu
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setShowCoverLetterPreview(false)} style={{ padding: 4 }}>
+                      <Ionicons name="close-circle" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Modal Content */}
+                  <ScrollView style={{ maxHeight: 350, marginVertical: 4 }} showsVerticalScrollIndicator={true}>
+                    <Text style={{
+                      fontSize: 14,
+                      lineHeight: 22,
+                      color: isDark ? '#E5E7EB' : '#374151',
+                      fontStyle: message.trim() ? 'normal' : 'italic',
+                    }}>
+                      {message.trim() || 'Chưa có nội dung thư giới thiệu. Bấm "AI viết hộ" để hệ thống tự động soạn thư cho bạn!'}
+                    </Text>
+                  </ScrollView>
+
+                  {/* Info & Footer Actions */}
+                  <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: isDark ? '#374151' : '#F3F4F6' }}>
+                    <Text style={{ fontSize: 12, color: isDark ? '#9CA3AF' : '#6B7280', marginBottom: 12, textAlign: 'right' }}>
+                      Tổng độ dài: {message.length} ký tự
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => setShowCoverLetterPreview(false)}
+                        style={{
+                          flex: 1,
+                          backgroundColor: isDark ? '#374151' : '#E5E7EB',
+                          paddingVertical: 12,
+                          borderRadius: 10,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Text style={{ color: isDark ? '#FFF' : '#1F2937', fontWeight: '600', fontSize: 14 }}>Đóng</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowCoverLetterPreview(false);
+                        }}
+                        style={{
+                          flex: 1,
+                          backgroundColor: '#0084FF',
+                          paddingVertical: 12,
+                          borderRadius: 10,
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={16} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 14 }}>Chỉnh sửa</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </Modal>
 
             {/* CV Upload Section */}
             <View style={styles.inputGroup}>
