@@ -113,69 +113,62 @@ export default function RecruiterCvDetailsScreen() {
     .join('')
     .toUpperCase() || 'UV';
 
-  React.useEffect(() => {
+  const fetchAIMatchScore = React.useCallback(async (forceRefresh = false) => {
     if (!application) return;
-
-    // Check if application already has saved matchScore & matchReason in Firestore
-    if ((application as any).matchScore && ((application as any).matchReason || (application as any).matchSummary)) {
+    if (!forceRefresh && (application as any).matchScore && ((application as any).matchReason || (application as any).matchSummary)) {
       setMatchScore((application as any).matchScore);
       setMatchSummary((application as any).matchReason || (application as any).matchSummary);
       setIsLoadingMatch(false);
       return;
     }
 
-    let isMounted = true;
-    const fetchAIMatchScore = async () => {
-      setIsLoadingMatch(true);
-      try {
-        const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://160.250.246.119:4000';
-        const response = await fetch(`${baseUrl}/api/ai/candidate-match-score`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jobTitle: application.jobTitle,
-            applicantName: candidateName,
-            candidateSkills,
-            candidateExperience,
-            message: application.message,
-            cvUrl: application.cvUrl
-          })
-        });
+    setIsLoadingMatch(true);
+    try {
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://160.250.246.119:4000';
+      const response = await fetch(`${baseUrl}/api/ai/candidate-match-score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobTitle: application.jobTitle,
+          applicantName: candidateName,
+          candidateSkills,
+          candidateExperience,
+          message: application.message,
+          cvUrl: application.cvUrl
+        })
+      });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && isMounted) {
-            const finalScore = result.matchScore || 84;
-            const finalSummary = result.reason || result.matchSummary || 'Ứng viên có kỹ năng và hồ sơ đáp ứng tiêu chí vị trí tuyển dụng.';
-            setMatchScore(finalScore);
-            setMatchSummary(finalSummary);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const finalScore = result.matchScore !== undefined ? result.matchScore : 50;
+          const finalSummary = result.reason || result.matchSummary || 'Đã hoàn tất phân tích độ phù hợp của ứng viên.';
+          setMatchScore(finalScore);
+          setMatchSummary(finalSummary);
 
-            // Save permanently to Firestore so score is persisted forever
-            try {
-              await updateDoc(doc(db, 'applications', application.id), {
-                matchScore: finalScore,
-                matchReason: finalSummary,
-                matchSummary: finalSummary,
-                scoredAt: new Date().toISOString(),
-              });
-            } catch (saveErr) {
-              console.warn('Lỗi lưu điểm AI vào Firestore:', saveErr);
-            }
-            return;
+          try {
+            await updateDoc(doc(db, 'applications', application.id), {
+              matchScore: finalScore,
+              matchReason: finalSummary,
+              matchSummary: finalSummary,
+              scoredAt: new Date().toISOString(),
+            });
+          } catch (saveErr) {
+            console.warn('Lỗi lưu điểm AI vào Firestore:', saveErr);
           }
-        }
-      } catch (err) {
-        console.warn('Lỗi lấy AI Match Score:', err);
-      } finally {
-        if (isMounted) {
-          setIsLoadingMatch(false);
+          return;
         }
       }
-    };
+    } catch (err) {
+      console.warn('Lỗi lấy AI Match Score:', err);
+    } finally {
+      setIsLoadingMatch(false);
+    }
+  }, [application, candidateName, candidateSkills, candidateExperience]);
 
-    fetchAIMatchScore();
-    return () => { isMounted = false; };
-  }, [appId, application, candidateExperience, candidateName, candidateSkills]);
+  React.useEffect(() => {
+    fetchAIMatchScore(false);
+  }, [fetchAIMatchScore]);
 
   if (!application) {
     return (
@@ -463,10 +456,40 @@ ${employerData?.companyName || 'Bộ phận Tuyển dụng'}`);
             {isLoadingMatch ? (
               <ActivityIndicator size="small" color="#7C3AED" />
             ) : matchScore !== null ? (
-              <View style={styles.scorePill}>
-                <Text style={styles.scorePillText}>🎯 Độ phù hợp: {matchScore}%</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={styles.scorePill}>
+                  <Text style={styles.scorePillText}>🎯 Độ phù hợp: {matchScore}%</Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => fetchAIMatchScore(true)}
+                  style={{
+                    backgroundColor: isDark ? '#3B2D54' : '#EDE9FE',
+                    padding: 6,
+                    borderRadius: 8,
+                  }}
+                >
+                  <Ionicons name="refresh" size={14} color="#7C3AED" />
+                </TouchableOpacity>
               </View>
-            ) : null}
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => fetchAIMatchScore(true)}
+                style={{
+                  backgroundColor: isDark ? '#3B2D54' : '#EDE9FE',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Ionicons name="sparkles" size={12} color="#7C3AED" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#7C3AED' }}>Chấm điểm</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {isLoadingMatch ? (
