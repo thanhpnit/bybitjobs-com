@@ -1372,7 +1372,8 @@ export function useAuth() {
 
   const login = async (emailOrPhone: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
-      await signInWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      const cleanEmail = emailOrPhone ? emailOrPhone.trim().toLowerCase() : '';
+      await signInWithEmailAndPassword(auth, cleanEmail, passwordInput);
       return { success: true, message: 'Đăng nhập thành công!' };
     } catch (error: any) {
       let msg = `Đăng nhập thất bại. Vui lòng thử lại. Lỗi: ${error.message}`;
@@ -1591,7 +1592,8 @@ export function useAuth() {
 
   const signup = async (emailOrPhone: string, fullName: string, passwordInput: string): Promise<{ success: boolean; message: string }> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, emailOrPhone, passwordInput);
+      const cleanEmail = emailOrPhone ? emailOrPhone.trim().toLowerCase() : '';
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, passwordInput);
       await updateProfile(userCredential.user, { displayName: fullName });
       await userCredential.user.reload();
       setFirebaseUser({ ...auth.currentUser } as FirebaseUser);
