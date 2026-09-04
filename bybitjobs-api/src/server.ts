@@ -2372,22 +2372,134 @@ Trả về CHÍNH XÁC MỘT OBJECT JSON hợp lệ, KHÔNG bọc mã code block
   }
 });
 
+function evaluateCandidateMatchWithLocalAI(params: {
+  jobTitle: string;
+  jobDescription?: string;
+  applicantName?: string;
+  candidateSkills?: any;
+  candidateExperience?: any;
+  message?: string;
+  cvUrl?: string;
+  cvExtractedText?: string;
+}): { matchScore: number; reason: string; matchSummary: string } {
+  const { jobTitle = '', jobDescription = '', applicantName = 'Ứng viên', candidateSkills, candidateExperience, message = '', cvExtractedText = '' } = params;
+
+  const skillsArray: string[] = Array.isArray(candidateSkills) 
+    ? candidateSkills.map(s => String(s).trim()).filter(Boolean)
+    : (typeof candidateSkills === 'string' ? candidateSkills.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : []);
+  
+  const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || '');
+  const combinedCandidateText = [
+    ...skillsArray,
+    expText,
+    cvExtractedText,
+    message
+  ].join(' ').toLowerCase();
+
+  const invalidKeywords = ['hóa đơn', 'hoa don', 'tiền điện', 'invoice', 'receipt', 'sao kê', 'biên lai', 'chứng minh nhân dân', 'bài hát', 'ảnh'];
+  const hasInvalidKeywords = invalidKeywords.some(kw => combinedCandidateText.includes(kw));
+
+  const isMeaningful = combinedCandidateText.replace(/[^a-z0-9à-ỹ]/gi, '').length > 25 && !hasInvalidKeywords;
+
+  if (!isMeaningful || (skillsArray.length === 0 && expText.length < 15 && cvExtractedText.length < 15)) {
+    const score = 15;
+    const reason = `Hồ sơ đạt 15/100: Tệp đính kèm hoặc hồ sơ không phải là CV hợp lệ, chưa cung cấp đầy đủ kỹ năng và kinh nghiệm cho vị trí ${jobTitle || 'tuyển dụng'}.`;
+    return { matchScore: score, reason, matchSummary: reason };
+  }
+
+  const jobKeywords = [
+    jobTitle.toLowerCase(),
+    ...(jobDescription.toLowerCase().match(/[a-z0-9à-ỹ#+.-]{2,}/gi) || [])
+  ];
+  const uniqueJobKeywords = Array.from(new Set(jobKeywords)).filter(k => k.length > 2);
+
+  let matchedSkillsCount = 0;
+  for (const skill of skillsArray) {
+    const sLower = skill.toLowerCase();
+    if (uniqueJobKeywords.some(jk => jk.includes(sLower) || sLower.includes(jk))) {
+      matchedSkillsCount++;
+    }
+  }
+
+  let skillScore = 8;
+  if (skillsArray.length > 0) {
+    const skillRatio = matchedSkillsCount / Math.max(1, skillsArray.length);
+    skillScore = Math.min(40, Math.round(10 + skillRatio * 30));
+  }
+
+  let expScore = 8;
+  if (expText.length > 30) {
+    const hasJobKeyword = uniqueJobKeywords.some(jk => expText.toLowerCase().includes(jk));
+    if (hasJobKeyword) {
+      expScore = Math.min(30, 20 + (expText.length > 80 ? 8 : 4));
+    } else {
+      expScore = 12;
+    }
+  }
+
+  let msgScore = 5;
+  if (message && message.length > 10) {
+    msgScore = Math.min(20, 10 + Math.min(10, Math.floor(message.length / 20)));
+  }
+
+  const profileScore = (skillsArray.length > 0 ? 4 : 0) + (expText.length > 20 ? 4 : 0) + (applicantName ? 2 : 0);
+  const totalScore = Math.max(15, Math.min(96, skillScore + expScore + msgScore + profileScore));
+
+  let reason = '';
+  if (totalScore >= 75) {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng chuyên môn (${skillScore}/40), Kinh nghiệm (${expScore}/30), Thư ứng tuyển (${msgScore}/20), Hồ sơ (${profileScore}/10). Độ tương thích rất tốt với vị trí ${jobTitle || 'tuyển dụng'}.`;
+  } else if (totalScore >= 50) {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng chuyên môn (${skillScore}/40), Kinh nghiệm (${expScore}/30), Thư ứng tuyển (${msgScore}/20). Đáp ứng một phần yêu cầu của vị trí ${jobTitle || 'tuyển dụng'}.`;
+  } else {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng và kinh nghiệm trong hồ sơ chưa tương thích với yêu cầu của vị trí ${jobTitle || 'tuyển dụng'}.`;
+  }
+
+  return { matchScore: totalScore, reason, matchSummary: reason };
+}
+
 // API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
 app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
-  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message } = req.body;
+  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message, cvUrl } = req.body;
   const apiKey = getGeminiApiKey();
 
   try {
-    const skillsText = Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật');
-    const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
+    let skillsText = Array.isArray(candidateSkills) ? candidateSkills.filter(Boolean).join(', ') : (candidateSkills || '');
+    let expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
+    let cvExtractedText = '';
+
+    if (cvUrl) {
+      try {
+        const uploadsDir = path.join(__dirname, '../uploads/cvs');
+        const urlParts = cvUrl.split('/');
+        const actualFileName = urlParts[urlParts.length - 1];
+        const diskPath = path.join(uploadsDir, actualFileName);
+        if (fs.existsSync(diskPath)) {
+          const fileBuffer = fs.readFileSync(diskPath);
+          const lowerName = actualFileName.toLowerCase();
+          if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+            const mammothRes = await mammoth.extractRawText({ buffer: fileBuffer });
+            cvExtractedText = (mammothRes.value || '').trim().substring(0, 3000);
+          }
+        }
+      } catch (e) {
+        console.warn('Lỗi đọc nội dung file CV cho AI match:', e);
+      }
+    }
+
+    if (!skillsText || skillsText === 'Chưa cập nhật') {
+      skillsText = 'Chưa có thông tin kỹ năng';
+    }
+    if (!expText || expText === '[]' || expText === '""') {
+      expText = 'Chưa có thông tin kinh nghiệm';
+    }
 
     const prompt = `
-Bạn là Chuyên gia Tuyển dụng AI cao cấp. Hãy đánh giá độ phù hợp của Ứng viên so với Vị trí tuyển dụng dựa theo 4 TIÊU CHUẨN ĐÁNH GIÁ (Tổng 100 điểm):
+Bạn là Chuyên gia Tuyển dụng HR & Đánh giá Năng lực Ứng viên công tâm và chính xác. Hãy đánh giá độ phù hợp của Ứng viên so với Vị trí tuyển dụng dựa theo 4 TIÊU CHUẨN ĐÁNH GIÁ (Tổng thang điểm 100):
 
 1. Kỹ năng chuyên môn (Tối đa 40 điểm): Độ tương thích kỹ năng (${skillsText}) với vị trí (${jobTitle}).
 2. Kinh nghiệm làm việc (Tối đa 30 điểm): Lịch sử công việc (${expText}) so với yêu cầu bài đăng.
 3. Độ phù hợp & Thư ứng tuyển (Tối đa 20 điểm): Lời nhắn (${message || 'Không có'}).
-4. Hoàn thiện hồ sơ (Tối đa 10 điểm): Sự chuẩn bị hồ sơ ứng viên.
+4. Hoàn thiện hồ sơ & Tệp đính kèm (Tối đa 10 điểm): Sự chuẩn bị hồ sơ ứng viên.
 
 [TIN TUYỂN DỤNG]
 - Vị trí: ${jobTitle || 'Công việc'}
@@ -2398,37 +2510,70 @@ Bạn là Chuyên gia Tuyển dụng AI cao cấp. Hãy đánh giá độ phù h
 - Kỹ năng: ${skillsText}
 - Kinh nghiệm: ${expText}
 - Thư ứng tuyển: ${message || 'Không có'}
+${cvExtractedText ? `- Nội dung trích xuất từ CV: ${cvExtractedText}` : ''}
 
-Hãy tính toán tổng điểm số thực tế từ 55 đến 98 điểm dựa vào 4 tiêu chí trên.
+[QUY TẮC ĐÁNH GIÁ KHÁCH QUAN & CHÍNH XÁC]
+- Nếu hồ sơ KHÔNG PHẢI LÀ CV (ví dụ: tài liệu rác, ảnh không liên quan, nội dung vô nghĩa, hoặc hoàn toàn không có kỹ năng/kinh nghiệm liên quan đến công việc), HÃY CHẤM ĐIỂM THẤP THỰC TẾ (từ 5 đến 30 điểm) và nêu rõ trong nhận xét là tệp/hồ sơ không hợp lệ hoặc thiếu thông tin chuyên môn.
+- Nếu ứng viên có kỹ năng nhưng chưa đủ kinh nghiệm: Chấm từ 40 đến 65 điểm.
+- Nếu ứng viên đáp ứng tốt yêu cầu công việc: Chấm từ 70 đến 95 điểm.
 
 [YÊU CẦU ĐẦU RA STRICT JSON]
-Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown):
+Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown block):
 {
-  "matchScore": 84,
-  "reason": "Ứng viên đạt 84%: Kỹ năng chuyên môn 34/40, Kinh nghiệm 26/30, Thư ứng tuyển 16/20, Hồ sơ 8/10. Phù hợp tốt với vị trí ${jobTitle || 'tuyển dụng'}."
+  "matchScore": 25,
+  "reason": "Ứng viên đạt 25%: Hồ sơ chưa cung cấp kỹ năng và kinh nghiệm phù hợp với vị trí ${jobTitle || 'tuyển dụng'}."
 }
     `;
 
-    const result = await generateGeminiContent(apiKey, prompt);
-    let text = result.response.text().trim();
-    const parsed = extractJsonFromText(text);
+    try {
+      const result = await generateGeminiContent(apiKey, prompt);
+      let text = result.response.text().trim();
+      const parsed = extractJsonFromText(text);
 
-    const matchScore = typeof parsed.matchScore === 'number' ? Math.max(50, Math.min(99, parsed.matchScore)) : 85;
-    const matchSummary = parsed.reason || parsed.matchSummary || `Ứng viên đáp ứng tốt các tiêu chí yêu cầu vị trí ${jobTitle || 'tuyển dụng'}.`;
+      if (parsed && typeof parsed.matchScore === 'number') {
+        const matchScore = Math.max(5, Math.min(99, Math.round(parsed.matchScore)));
+        const matchSummary = parsed.reason || parsed.matchSummary || `Độ phù hợp của ứng viên với vị trí ${jobTitle || 'tuyển dụng'} đạt ${matchScore}%.`;
+        return res.status(200).json({
+          success: true,
+          matchScore,
+          matchSummary,
+          reason: matchSummary
+        });
+      }
+    } catch (aiErr) {
+      console.warn('Gemini API call failed, using intelligent local evaluator:', aiErr);
+    }
+
+    // Fallback to intelligent local evaluator
+    const localResult = evaluateCandidateMatchWithLocalAI({
+      jobTitle,
+      jobDescription,
+      applicantName,
+      candidateSkills,
+      candidateExperience,
+      message,
+      cvUrl,
+      cvExtractedText
+    });
 
     return res.status(200).json({
       success: true,
-      matchScore,
-      matchSummary,
-      reason: matchSummary
+      ...localResult
     });
   } catch (error: any) {
     console.error('Error in Candidate Match Score:', error);
+    const localResult = evaluateCandidateMatchWithLocalAI({
+      jobTitle,
+      jobDescription,
+      applicantName,
+      candidateSkills,
+      candidateExperience,
+      message,
+      cvUrl
+    });
     return res.status(200).json({
       success: true,
-      matchScore: 85,
-      matchSummary: `Ứng viên có kỹ năng và hồ sơ đáp ứng tốt tiêu chuẩn vị trí ${jobTitle || 'tuyển dụng'}.`,
-      reason: `Ứng viên có kỹ năng và hồ sơ đáp ứng tốt tiêu chuẩn vị trí ${jobTitle || 'tuyển dụng'}.`
+      ...localResult
     });
   }
 });
