@@ -12,6 +12,7 @@ import {
   initialPaymentMethods,
   initialSkills
 } from '../data/mockData';
+import { getDeterministicMockTransactions, UnifiedTransaction } from '../utils/transactionUtils';
 
 interface DataContextType {
   users: any[];
@@ -32,6 +33,8 @@ interface DataContextType {
   setPaymentMethods: (paymentMethods: any[]) => void;
   skills: any[];
   setSkills: (skills: any[]) => void;
+  transactions: UnifiedTransaction[];
+  setTransactions: (transactions: UnifiedTransaction[]) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -96,8 +99,69 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [reviews, setReviewsState] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethodsState] = useState(() => loadData('bybitjobs_paymentMethods', initialPaymentMethods));
   const [skills, setSkillsState] = useState<any[]>([]);
+  const [transactions, setTransactionsState] = useState<UnifiedTransaction[]>(() => getDeterministicMockTransactions());
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+
+  useEffect(() => {
+    fetch(`${apiHost}/api/orders`)
+      .then(res => res.json())
+      .then(data => {
+        const mockList = getDeterministicMockTransactions();
+        let mapped: UnifiedTransaction[] = [];
+        if (Array.isArray(data)) {
+          mapped = data.map((item: any) => {
+            let dateObj = new Date(item.createdAt || item.created_at || Date.now());
+            if (isNaN(dateObj.getTime())) {
+              dateObj = new Date();
+            }
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const hours = dateObj.getHours().toString().padStart(2, '0');
+            const mins = dateObj.getMinutes().toString().padStart(2, '0');
+            const dateStr = `${day}/${month}/${year} ${hours}:${mins}`;
+
+            let finalStatus: 'Completed' | 'Pending' | 'Failed' = item.status === 'success' ? 'Completed' : (item.status === 'pending' ? 'Pending' : 'Failed');
+            if (item.status === 'pending') {
+              const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
+              if (isExpired) finalStatus = 'Failed';
+            }
+
+            const isSuccess = finalStatus === 'Completed';
+
+            return {
+              id: `#TXN-${item.orderCode}`,
+              orderCode: item.orderCode,
+              date: dateStr,
+              rawDate: dateObj,
+              company: item.companyName || 'Không xác định',
+              name: item.companyName || 'Không xác định',
+              package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
+              packageName: (item.packageName || 'Gói dịch vụ').toUpperCase(),
+              amount: `${Number(item.price || 0).toLocaleString('vi-VN')} đ`,
+              rawPrice: Number(item.price || 0),
+              rawAmount: Number(item.price || 0),
+              method: 'PayOS',
+              time: `${hours}:${mins} ${day}/${month}/${year}`,
+              status: finalStatus,
+              statusType: isSuccess ? 'success' : (finalStatus === 'Pending' ? 'warning' : 'danger'),
+              color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
+              bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
+            };
+          });
+        }
+
+        const combined = [...mapped, ...mockList];
+        combined.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
+        setTransactionsState(combined);
+      })
+      .catch(err => console.log('Lỗi fetch orders API:', err));
+  }, [apiHost]);
+
+  const setTransactions = (newTransactions: UnifiedTransaction[]) => {
+    setTransactionsState(newTransactions);
+  };
 
   // Load Real Users & Employers from API
   useEffect(() => {
@@ -386,7 +450,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       reports, setReports,
       reviews, setReviews,
       paymentMethods, setPaymentMethods,
-      skills, setSkills
+      skills, setSkills,
+      transactions, setTransactions
     }}>
       {children}
     </DataContext.Provider>

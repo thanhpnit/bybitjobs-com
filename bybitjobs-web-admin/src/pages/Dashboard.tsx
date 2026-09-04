@@ -9,15 +9,12 @@ import { MockChart } from '../components/ui/MockChart';
 import { DatePicker } from '../components/ui/DatePicker';
 import { useData } from '../context/DataContext';
 import { ModernBarChart } from '../components/ui/ModernBarChart';
-
-const screenWidth = Dimensions.get('window').width;
+import { buildRevenueChartData } from '../utils/transactionUtils';
 
 export const Dashboard: React.FC = () => {
   const { colors, theme } = useTheme();
   const isDark = theme === 'dark';
-  const { users, jobPosts, reports, reviews } = useData();
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const { users, jobPosts, reports, reviews, transactions } = useData();
 
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
@@ -29,92 +26,21 @@ export const Dashboard: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
 
-  useEffect(() => {
-    const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
-    fetch(`${apiHost}/api/orders`)
-      .then(res => res.json())
-      .then(data => {
-        const mockTransactions: any[] = [];
-        const startDate = new Date('2026-01-01T00:00:00');
-        const endDate = new Date();
-        const companyNames = ['Công ty TNHH Alpha', 'Tập đoàn Beta', 'Bybit', 'Global Tech', 'FPT', 'VNG'];
-        
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-          // Generate 1 to 3 transactions per day
-          const numTxns = Math.floor(Math.random() * 3) + 1;
-          for(let i=0; i<numTxns; i++) {
-            // Random amount between 50k and 1.5M
-            let finalAmount = Math.floor(Math.random() * 30 + 1) * 50000;
-            
-            // Hardcode today's peak to 499,000 to match screenshot exactly if they want
-            const isTargetDay = d.getDate() === 4 && d.getMonth() === 8 && d.getFullYear() === 2026;
-            if (isTargetDay && i === 0) finalAmount = 499000;
+  const [viewMode, setViewMode] = useState<'7days' | '30days' | 'month' | 'custom'>('7days');
 
-            const dateClone = new Date(d);
-            dateClone.setHours(Math.floor(Math.random() * 14) + 8); // 8am to 10pm
-            dateClone.setMinutes(Math.floor(Math.random() * 60));
+  const handleFromDateChange = (val: string) => {
+    setFromDate(val);
+    setViewMode('custom');
+  };
 
-            const dayStr = dateClone.getDate().toString().padStart(2, '0');
-            const monthStr = (dateClone.getMonth() + 1).toString().padStart(2, '0');
-            const yearStr = dateClone.getFullYear();
-            const hrStr = dateClone.getHours().toString().padStart(2, '0');
-            const minStr = dateClone.getMinutes().toString().padStart(2, '0');
+  const handleToDateChange = (val: string) => {
+    setToDate(val);
+    setViewMode('custom');
+  };
 
-            mockTransactions.push({
-              id: `#TXN-MOCK-${yearStr}${monthStr}${dayStr}-${i}`,
-              date: `${dayStr}/${monthStr}/${yearStr} ${hrStr}:${minStr}`,
-              rawDate: dateClone,
-              name: companyNames[Math.floor(Math.random() * companyNames.length)],
-              rawAmount: finalAmount,
-              amount: `${finalAmount.toLocaleString()}đ`,
-              method: 'PayOS',
-              status: 'success'
-            });
-          }
-        }
-
-        let mapped: any[] = [];
-        if (Array.isArray(data)) {
-          mapped = data.map((item: any) => {
-            let dateObj = new Date(item.createdAt || item.created_at || Date.now());
-            if (isNaN(dateObj.getTime())) {
-              dateObj = new Date();
-            }
-            const day = dateObj.getDate().toString().padStart(2, '0');
-            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-            const year = dateObj.getFullYear();
-            const hours = dateObj.getHours().toString().padStart(2, '0');
-            const mins = dateObj.getMinutes().toString().padStart(2, '0');
-            const dateStr = `${day}/${month}/${year} ${hours}:${mins}`;
-            
-            let finalStatus = item.status;
-            if (finalStatus === 'pending') {
-              const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
-              if (isExpired) finalStatus = 'failed';
-            }
-
-            return {
-              id: `#TXN-${item.orderCode}`,
-              date: dateStr,
-              rawDate: dateObj,
-              name: item.companyName || 'Không xác định',
-              rawAmount: Number(item.price || 0),
-              amount: `${Number(item.price || 0).toLocaleString()}đ`,
-              method: 'PayOS',
-              status: finalStatus === 'success' ? 'success' : (finalStatus === 'pending' ? 'warning' : 'danger')
-            };
-          });
-        }
-        
-        const combined = [...mockTransactions, ...mapped];
-        // Sort combined transactions by date descending
-        combined.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
-        
-        setAllTransactions(combined);
-        setRecentTransactions(combined.slice(0, 5));
-      })
-      .catch(err => console.error('Lỗi lấy giao dịch gần đây:', err));
-  }, []);
+  const recentTransactions = React.useMemo(() => {
+    return (transactions || []).slice(0, 5);
+  }, [transactions]);
 
   const filteredTransactions = React.useMemo(() => {
     const start = new Date(fromDate);
@@ -122,87 +48,18 @@ export const Dashboard: React.FC = () => {
     const end = new Date(toDate);
     end.setHours(23, 59, 59, 999);
     
-    return allTransactions.filter(t => t.rawDate >= start && t.rawDate <= end);
-  }, [allTransactions, fromDate, toDate]);
+    return (transactions || []).filter(t => t.rawDate >= start && t.rawDate <= end);
+  }, [transactions, fromDate, toDate]);
 
   const totalRevenue = React.useMemo(() => {
     return filteredTransactions
-      .filter(t => t.status === 'success')
-      .reduce((sum, t) => sum + t.rawAmount, 0);
+      .filter(t => t.status === 'Completed' || (t as any).statusType === 'success')
+      .reduce((sum, t) => sum + t.rawPrice, 0);
   }, [filteredTransactions]);
 
-  const [viewMode, setViewMode] = useState<'day' | 'month'>('day');
-
   const chartData = React.useMemo(() => {
-    if (viewMode === 'month') {
-      const currentYear = new Date().getFullYear();
-      const monthlyRows = [];
-
-      for (let m = 0; m < 12; m++) {
-        const monthStart = new Date(currentYear, m, 1, 0, 0, 0, 0);
-        const monthEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
-        const monthStr = `Tháng ${(m + 1).toString().padStart(2, '0')}/${currentYear}`;
-
-        const monthTxns = allTransactions.filter(t => {
-          if (t.status !== 'success' && t.status !== 'Completed') return false;
-          const tDate = t.rawDate || new Date(t.createdAt || t.created_at);
-          return tDate >= monthStart && tDate <= monthEnd;
-        });
-
-        const allMonthTxns = allTransactions.filter(t => {
-          const tDate = t.rawDate || new Date(t.createdAt || t.created_at);
-          return tDate >= monthStart && tDate <= monthEnd;
-        });
-        const dailyRev = monthTxns.reduce((sum, t) => sum + Number(t.rawAmount || t.price || 0), 0);
-
-        monthlyRows.push({
-          date: monthStr,
-          totalOrders: allMonthTxns.length,
-          successOrders: monthTxns.length,
-          revenue: dailyRev,
-        });
-      }
-
-      const activeRows = monthlyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...monthlyRows.map(r => r.revenue), 1);
-      return { allRows: monthlyRows, activeRows, maxRev };
-    } else {
-      const start = new Date(fromDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(toDate);
-      end.setHours(23, 59, 59, 999);
-      
-      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
-      
-      const allRows = [];
-      for (let i = 0; i < daysDiff; i++) {
-        const d = new Date(start);
-        d.setDate(start.getDate() + i);
-        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-        
-        const dayStart = new Date(d);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(d);
-        dayEnd.setHours(23, 59, 59, 999);
-        
-        const dayTxns = filteredTransactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
-        const successTxns = dayTxns.filter(t => t.status === 'success');
-        const dailyRev = successTxns.reduce((sum, t) => sum + t.rawAmount, 0);
-        
-        allRows.push({
-          date: dateStr,
-          totalOrders: dayTxns.length,
-          successOrders: successTxns.length,
-          revenue: dailyRev,
-        });
-      }
-
-      const activeRows = allRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...allRows.map(r => r.revenue), 1);
-      
-      return { allRows, activeRows, maxRev };
-    }
-  }, [viewMode, filteredTransactions, allTransactions, fromDate, toDate]);
+    return buildRevenueChartData(transactions || [], viewMode, fromDate, toDate);
+  }, [transactions, viewMode, fromDate, toDate]);
 
   const parseDDMMYYYY = (str: string) => {
     if (!str) return new Date();

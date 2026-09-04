@@ -12,23 +12,14 @@ import { Modal } from '../components/ui/Modal';
 import { ModernBarChart } from '../components/ui/ModernBarChart';
 import { Pagination } from '../components/ui/Pagination';
 
-export interface TransactionItem {
-  id: string;
-  company: string;
-  package: string;
-  amount: string;
-  rawPrice: number;
-  rawDate: Date;
-  method: string;
-  time: string;
-  status: 'Completed' | 'Pending' | 'Failed';
-  color: string;
-  bg: string;
-}
+import { useData } from '../context/DataContext';
+import { buildRevenueChartData, UnifiedTransaction } from '../utils/transactionUtils';
+
+export interface TransactionItem extends UnifiedTransaction {}
 
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const { transactions } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filterForm, setFilterForm] = useState({ company: '', minPrice: '', maxPrice: '' });
@@ -44,59 +35,21 @@ export const Payments: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
 
-  // Luôn luôn kết nối trực tiếp tới IP VPS thật
-  const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://160.250.246.119:4000';
-
-  useEffect(() => {
-    fetch(`${apiHost}/api/orders`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const mapped: TransactionItem[] = data.map((item: any) => {
-            const dateObj = new Date(item.createdAt);
-            let finalStatus: 'Completed' | 'Pending' | 'Failed' = item.status === 'success' ? 'Completed' : item.status === 'pending' ? 'Pending' : 'Failed';
-            if (item.status === 'pending') {
-              const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
-              if (isExpired) finalStatus = 'Failed';
-            }
-
-            return {
-              id: `#TXN-${item.orderCode}`,
-              company: item.companyName || 'Không xác định',
-              package: (item.packageName || 'Gói dịch vụ').toUpperCase(),
-              amount: `${Number(item.price || 0).toLocaleString()} đ`,
-              rawPrice: Number(item.price || 0),
-              rawDate: dateObj,
-              method: 'PayOS',
-              time: dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-              status: finalStatus,
-              color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
-              bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
-            };
-          });
-          setTransactions(mapped);
-        }
-      })
-      .catch(err => console.error('Lỗi lấy danh sách giao dịch:', err));
-  }, [apiHost]);
-
   const dateFilteredTransactions = useMemo(() => {
     const start = new Date(fromDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(toDate);
     end.setHours(23, 59, 59, 999);
-    return transactions.filter((item: TransactionItem) => item.rawDate >= start && item.rawDate <= end);
+    return (transactions || []).filter((item) => item.rawDate >= start && item.rawDate <= end);
   }, [transactions, fromDate, toDate]);
 
   const filteredTransactions = useMemo(() => {
-    return dateFilteredTransactions.filter((item: TransactionItem) => {
-      // Basic search
+    return dateFilteredTransactions.filter((item) => {
       const matchSearch = item.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
         item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.package.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchSearch) return false;
 
-      // Advanced filters
       if (appliedFilters.company && !item.company.toLowerCase().includes(appliedFilters.company.toLowerCase())) return false;
       
       if (appliedFilters.minPrice) {
@@ -114,9 +67,9 @@ export const Payments: React.FC = () => {
   }, [dateFilteredTransactions, searchQuery, appliedFilters]);
 
   const totalRevenue = useMemo(() => {
-    return dateFilteredTransactions
-      .filter((t: TransactionItem) => t.status === 'Completed')
-      .reduce((sum: number, t: TransactionItem) => sum + t.rawPrice, 0);
+    return (dateFilteredTransactions || [])
+      .filter((t) => t.status === 'Completed' || (t as any).statusType === 'success')
+      .reduce((sum: number, t) => sum + (t.rawPrice || t.rawAmount || 0), 0);
   }, [dateFilteredTransactions]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -159,143 +112,7 @@ export const Payments: React.FC = () => {
   };
 
   const chartData = React.useMemo(() => {
-    const now = new Date();
-
-    if (viewMode === 'month') {
-      const currentYear = now.getFullYear();
-      const monthlyRows = [];
-
-      for (let m = 0; m < 12; m++) {
-        const monthStart = new Date(currentYear, m, 1, 0, 0, 0, 0);
-        const monthEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
-        const monthStr = `Tháng ${(m + 1).toString().padStart(2, '0')}/${currentYear}`;
-
-        const monthTxns = transactions.filter((t: TransactionItem) => {
-          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
-          return t.rawDate >= monthStart && t.rawDate <= monthEnd;
-        });
-
-        const allMonthTxns = transactions.filter((t: TransactionItem) => t.rawDate >= monthStart && t.rawDate <= monthEnd);
-        const dailyRev = monthTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
-
-        monthlyRows.push({
-          date: monthStr,
-          totalOrders: allMonthTxns.length,
-          successOrders: monthTxns.length,
-          revenue: dailyRev,
-        });
-      }
-
-      const activeRows = monthlyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...monthlyRows.map(r => r.revenue), 1);
-      return { allRows: monthlyRows, activeRows, maxRev };
-    } else if (viewMode === '30days') {
-      const weeklyRows = [];
-      const twentyEightDaysAgo = new Date(now);
-      twentyEightDaysAgo.setDate(now.getDate() - 28);
-
-      for (let w = 0; w < 4; w++) {
-        const weekStart = new Date(twentyEightDaysAgo);
-        weekStart.setDate(twentyEightDaysAgo.getDate() + w * 7);
-        weekStart.setHours(0, 0, 0, 0);
-
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
-
-        const weekLabel = `Tuần ${w + 1} (${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1})`;
-
-        const weekTxns = transactions.filter((t: TransactionItem) => {
-          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
-          return t.rawDate >= weekStart && t.rawDate <= weekEnd;
-        });
-
-        const allWeekTxns = transactions.filter((t: TransactionItem) => t.rawDate >= weekStart && t.rawDate <= weekEnd);
-        const weekRev = weekTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
-
-        weeklyRows.push({
-          date: weekLabel,
-          totalOrders: allWeekTxns.length,
-          successOrders: weekTxns.length,
-          revenue: weekRev,
-        });
-      }
-
-      const activeRows = weeklyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...weeklyRows.map(r => r.revenue), 1);
-      return { allRows: weeklyRows, activeRows, maxRev };
-    } else if (viewMode === 'custom') {
-      const start = new Date(fromDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(toDate);
-      end.setHours(23, 59, 59, 999);
-
-      const daysDiff = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))) + 1;
-      const customRows = [];
-
-      for (let i = 0; i < daysDiff; i++) {
-        const d = new Date(start);
-        d.setDate(start.getDate() + i);
-        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-
-        const dayStart = new Date(d);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(d);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        const dayTxns = transactions.filter((t: TransactionItem) => {
-          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
-          return t.rawDate >= dayStart && t.rawDate <= dayEnd;
-        });
-
-        const allDayTxns = transactions.filter((t: TransactionItem) => t.rawDate >= dayStart && t.rawDate <= dayEnd);
-        const dailyRev = dayTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
-
-        customRows.push({
-          date: dateStr,
-          totalOrders: allDayTxns.length,
-          successOrders: dayTxns.length,
-          revenue: dailyRev,
-        });
-      }
-
-      const activeRows = customRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...customRows.map(r => r.revenue), 1);
-      return { allRows: customRows, activeRows, maxRev };
-    } else {
-      const dailyRows = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        
-        const dayStart = new Date(d);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(d);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-
-        const dayTxns = transactions.filter((t: TransactionItem) => {
-          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
-          return t.rawDate >= dayStart && t.rawDate <= dayEnd;
-        });
-
-        const allDayTxns = transactions.filter((t: TransactionItem) => t.rawDate >= dayStart && t.rawDate <= dayEnd);
-        const dailyRev = dayTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
-
-        dailyRows.push({
-          date: dateStr,
-          totalOrders: allDayTxns.length,
-          successOrders: dayTxns.length,
-          revenue: dailyRev,
-        });
-      }
-
-      const activeRows = dailyRows.filter(r => r.totalOrders > 0 || r.revenue > 0);
-      const maxRev = Math.max(...dailyRows.map(r => r.revenue), 1);
-      
-      return { allRows: dailyRows, activeRows, maxRev };
-    }
+    return buildRevenueChartData(transactions || [], viewMode, fromDate, toDate);
   }, [viewMode, transactions, fromDate, toDate]);
 
   const todayStats = useMemo(() => {
