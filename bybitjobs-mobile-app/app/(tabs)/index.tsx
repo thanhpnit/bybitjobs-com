@@ -908,6 +908,9 @@ function CandidateHomeScreen() {
   const [selectedCompany, setSelectedCompany] = React.useState<FeaturedCompany | null>(null);
   const [isCompanyModalVisible, setIsCompanyModalVisible] = React.useState(false);
   const [companyModalTab, setCompanyModalTab] = React.useState<'overview' | 'jobs'>('overview');
+  const [showAllPremium, setShowAllPremium] = React.useState(false);
+  const [showAllPro, setShowAllPro] = React.useState(false);
+  const [showAllStandard, setShowAllStandard] = React.useState(false);
 
   const getPosterName = (job: (typeof jobs)[number]) => {
     return (
@@ -1931,8 +1934,26 @@ function CandidateHomeScreen() {
                   <Text style={styles.resetFilterBtnText}>Xem tất cả công việc</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              filteredJobs.map((job) => {
+            ) : (() => {
+              // Group jobs by tier
+              const premiumList: JobItem[] = [];
+              const proList: JobItem[] = [];
+              const standardList: JobItem[] = [];
+
+              filteredJobs.forEach((job) => {
+                const isEmployerPremium = (job as any).employerId ? premiumEmployersById[(job as any).employerId] === true : false;
+                const isEmployerPro = (job as any).employerId ? proEmployersById[(job as any).employerId] === true : false;
+                const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
+
+                const isPremiumJob = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;
+                const isProJob = !isPremiumJob && ((job as any).isPro === true || rawPkg.includes('PRO') || isEmployerPro);
+
+                if (isPremiumJob) premiumList.push(job);
+                else if (isProJob) proList.push(job);
+                else standardList.push(job);
+              });
+
+              const renderSingleJob = (job: JobItem) => {
                 const isBookmarked = bookmarkedJobs.includes(job.id);
                 const isEmployerPremium = (job as any).employerId ? premiumEmployersById[(job as any).employerId] === true : false;
                 const isEmployerPro = (job as any).employerId ? proEmployersById[(job as any).employerId] === true : false;
@@ -1940,6 +1961,7 @@ function CandidateHomeScreen() {
 
                 const isPremiumJob = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;
                 const isProJob = !isPremiumJob && ((job as any).isPro === true || rawPkg.includes('PRO') || isEmployerPro);
+
                 return (
                   <TouchableOpacity
                     key={job.id}
@@ -1977,7 +1999,6 @@ function CandidateHomeScreen() {
                           <Image source={job.image} style={styles.jobImage} resizeMode="cover" />
                         ) : (
                           <View style={[styles.jobImageFallback, { backgroundColor: isDark ? '#2C2C2E' : '#FFF3E0' }]}>
-                            {/* Custom Vector Coder Girl Mock */}
                             <Ionicons name="desktop-outline" size={24} color="#FF9800" />
                           </View>
                         )}
@@ -2173,8 +2194,151 @@ function CandidateHomeScreen() {
                     </View>
                   </TouchableOpacity>
                 );
-              })
-            )}
+              };
+
+              const visiblePremium = showAllPremium ? premiumList : premiumList.slice(0, 3);
+              const visiblePro = showAllPro ? proList : proList.slice(0, 3);
+              const visibleStandard = showAllStandard ? standardList : standardList.slice(0, 3);
+
+              return (
+                <View style={{ width: '100%' }}>
+                  {/* --- PHÂN ĐOẠN 1: TIN PREMIUM --- */}
+                  {premiumList.length > 0 && (
+                    <View style={{ marginBottom: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#F59E0B' : '#B45309', letterSpacing: 0.3 }}>
+                            👑 TIN ƯU TIÊN PREMIUM (VIP)
+                          </Text>
+                          <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#B45309' }}>{premiumList.length}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {visiblePremium.map(renderSingleJob)}
+
+                      {premiumList.length > 3 && (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setShowAllPremium(!showAllPremium)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 10,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                            backgroundColor: isDark ? '#2C2A24' : '#FEF3C7',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#453517' : '#FDE68A',
+                            marginHorizontal: 4,
+                            marginTop: 4,
+                            marginBottom: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#F59E0B' : '#B45309' }}>
+                            {showAllPremium ? 'Thu gọn danh sách' : `Xem thêm (${premiumList.length - 3} tin Premium khác)`}
+                          </Text>
+                          <Ionicons name={showAllPremium ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#F59E0B' : '#B45309'} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+
+                  {/* --- PHÂN ĐOẠN 2: TIN PRO --- */}
+                  {proList.length > 0 && (
+                    <View style={{ marginBottom: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: premiumList.length > 0 ? 8 : 0, paddingHorizontal: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#60A5FA' : '#1E40AF', letterSpacing: 0.3 }}>
+                            ⭐ TIN NỔI BẬT PRO
+                          </Text>
+                          <View style={{ backgroundColor: '#DBEAFE', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#1E40AF' }}>{proList.length}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {visiblePro.map(renderSingleJob)}
+
+                      {proList.length > 3 && (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setShowAllPro(!showAllPro)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 10,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                            backgroundColor: isDark ? '#172554' : '#EFF6FF',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#1E40AF' : '#BFDBFE',
+                            marginHorizontal: 4,
+                            marginTop: 4,
+                            marginBottom: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#60A5FA' : '#1D4ED8' }}>
+                            {showAllPro ? 'Thu gọn danh sách' : `Xem thêm (${proList.length - 3} tin Pro khác)`}
+                          </Text>
+                          <Ionicons name={showAllPro ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#60A5FA' : '#1D4ED8'} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+
+                  {/* --- PHÂN ĐOẠN 3: TIN TIÊU CHUẨN / KHÁC --- */}
+                  {standardList.length > 0 && (
+                    <View style={{ marginBottom: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: (premiumList.length > 0 || proList.length > 0) ? 8 : 0, paddingHorizontal: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#E5E7EB' : '#374151', letterSpacing: 0.3 }}>
+                            💼 VIỆC LÀM MỚI NHẤT
+                          </Text>
+                          <View style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#E5E7EB' : '#4B5563' }}>{standardList.length}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {visibleStandard.map(renderSingleJob)}
+
+                      {standardList.length > 3 && (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setShowAllStandard(!showAllStandard)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 10,
+                            paddingHorizontal: 16,
+                            borderRadius: 12,
+                            backgroundColor: isDark ? '#1F2937' : '#F9FAFB',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#374151' : '#E5E7EB',
+                            marginHorizontal: 4,
+                            marginTop: 4,
+                            marginBottom: 8,
+                            gap: 6,
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#9CA3AF' : '#4B5563' }}>
+                            {showAllStandard ? 'Thu gọn danh sách' : `Xem thêm (${standardList.length - 3} việc làm khác)`}
+                          </Text>
+                          <Ionicons name={showAllStandard ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#9CA3AF' : '#4B5563'} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
           </View>
 
           {/* Safe padding bottom for scrolling */}
