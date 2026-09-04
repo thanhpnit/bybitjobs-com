@@ -69,7 +69,8 @@ async function generateGeminiContent(inputKey: string, contents: any): Promise<a
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-flash-latest'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
 
   let lastError: any = null;
@@ -143,7 +144,8 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-flash-latest'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
 
   let lastStreamError: any = null;
@@ -186,7 +188,7 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
                     fullText += textChunk;
                     onChunk(textChunk);
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             }
           }
@@ -226,7 +228,7 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
 function extractJsonFromText(text: string): any {
   let cleaned = text.trim();
   cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
-  
+
   try {
     return JSON.parse(cleaned);
   } catch (e) {
@@ -237,15 +239,15 @@ function extractJsonFromText(text: string): any {
           .replace(/,\s*([\]}])/g, '$1')
           .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
         return JSON.parse(jsonStr);
-      } catch (innerErr) {}
+      } catch (innerErr) { }
     }
-    
+
     console.warn('[Gemini API] Could not parse JSON directly, constructing fallback result. Raw text:', text);
     return {
-      score: 82,
-      strengths: ['Bố cục trình bày rõ ràng', 'Kinh nghiệm phù hợp với vị trí tuyển dụng'],
-      improvements: ['Cần bổ sung chi tiết số liệu và thành tích cụ thể', 'Tăng cường từ khóa chuyên ngành'],
-      suggestions: ['Thêm các dự án tiêu biểu', 'Bổ sung thêm kỹ năng và chứng chỉ liên quan'],
+      score: 45,
+      strengths: ['Đã nộp hồ sơ'],
+      improvements: ['Không thể phân tích nội dung CV - vui lòng đảm bảo file là CV hợp lệ', 'File cần ở định dạng PDF hoặc DOCX chứa thông tin hồ sơ'],
+      suggestions: ['Tải lên CV đúng định dạng để được chấm điểm chính xác'],
       analysisText: text
     };
   }
@@ -301,7 +303,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
 
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
-    
+
     // Sắp xếp người dùng từ cũ nhất đến mới nhất theo thời gian tạo để sinh ID tuần tự ổn định
     const sortedUsers = listUsersResult.users.sort((a, b) => {
       return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
@@ -324,7 +326,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       phone: userRecord.phoneNumber || firestoreUsers[userRecord.uid]?.phone || 'Chưa cập nhật',
       job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
       avatar: userRecord.photoURL || firestoreUsers[userRecord.uid]?.avatar || firestoreUsers[userRecord.uid]?.photoURL || '',
-      status: userRecord.disabled 
+      status: userRecord.disabled
         ? (firestoreUsers[userRecord.uid]?.disabledByUser ? 'Tự vô hiệu hóa' : 'Bị khóa')
         : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
       date: new Date(userRecord.metadata.creationTime).toLocaleDateString('vi-VN')
@@ -768,14 +770,14 @@ app.put('/api/users/:uid/avatar', async (req: Request, res: Response): Promise<a
   try {
     const db = admin.firestore();
     await db.collection('users').doc(uid).set({ avatar }, { merge: true });
-    
+
     // Cập nhật photoURL bên Firebase Auth luôn cho đồng bộ
     try {
       await admin.auth().updateUser(uid, { photoURL: avatar });
     } catch (authErr) {
       console.log('Không thể cập nhật photoURL trên Auth:', authErr);
     }
-    
+
     return res.status(200).json({ success: true, message: 'Cập nhật Avatar thành công' });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật Avatar:', error);
@@ -826,7 +828,7 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const cvUploadTime = doc.exists ? doc.data()?.cvUploadTime : undefined;
     const cvUrl = doc.exists ? doc.data()?.cvUrl : undefined;
     const avatar = doc.exists ? doc.data()?.avatar : userRecord.photoURL;
-    
+
     return res.status(200).json({
       uid: userRecord.uid,
       name: userRecord.displayName,
@@ -965,14 +967,14 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
 
   try {
     const db = admin.firestore();
-    
+
     // 1. Xóa tài khoản khỏi Firebase Auth
     try {
       await admin.auth().deleteUser(uid as string);
     } catch (authErr: any) {
       console.warn('Cảnh báo khi xóa trên Auth (có thể đã xóa trước đó):', authErr.message);
     }
-    
+
     // 2. Xóa tất cả các bài đăng tin tuyển dụng của nhà tuyển dụng này trong Firestore
     const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
     if (!jobsSnap.empty) {
@@ -986,10 +988,10 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
 
     // 3. Xóa thông tin doanh nghiệp trong Firestore
     await db.collection('employers').doc(uid).delete();
-    
+
     // 4. Xóa thông tin bổ sung user (ví dụ công việc mong muốn) trong Firestore
     await db.collection('users').doc(uid).delete();
-    
+
     // 5. Xóa các thông tin OTP liên quan
     await db.collection('otps').doc(uid).delete();
     await db.collection('passwordResetOtps').doc(uid).delete();
@@ -1110,7 +1112,7 @@ app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<
   try {
     const db = admin.firestore();
     const otpDoc = await db.collection('otps').doc(uid).get();
-    
+
     if (!otpDoc.exists) {
       return res.status(400).json({ error: 'Mã OTP không tồn tại hoặc chưa được gửi.' });
     }
@@ -1254,7 +1256,7 @@ app.get('/api/users/:uid/seq', async (req: Request, res: Response): Promise<any>
 
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
-    
+
     // Sắp xếp người dùng từ cũ nhất đến mới nhất theo creationTime
     const sortedUsers = listUsersResult.users.sort((a, b) => {
       return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
@@ -1578,7 +1580,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
   try {
     const db = admin.firestore();
     const usersSnapshot = await db.collection('users').get();
-    
+
     // Fetch employers to exclude them from the candidate search list
     const employersSnapshot = await db.collection('employers').get();
     const employerUids = new Set(employersSnapshot.docs.map(doc => doc.id));
@@ -1606,7 +1608,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
       const data = doc.data();
       const authUser = authUsers[uid];
-      
+
       let rawName = authUser?.displayName || data.fullName || data.full_name || data.displayName || data.display_name || data.name || data.username;
       if (!rawName && (data.emailOrPhone || authUser?.email || authUser?.phoneNumber)) {
         const contactStr = data.emailOrPhone || authUser?.email || authUser?.phoneNumber;
@@ -1616,7 +1618,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
       const role = resolveCandidateRole(data.desiredJob || data.job || data.roleTitle, uid);
       const email = authUser?.email || data.emailOrPhone || data.email || 'Chưa cập nhật email';
       const phone = data.phone || authUser?.phoneNumber || 'Chưa cập nhật';
-      
+
       realCandidates.push({
         id: uid,
         name: name,
@@ -1638,7 +1640,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     // Merge mock and real candidates
     let mergedCandidates = [...candidates];
-    
+
     // Add real candidates if they are not already in the list
     realCandidates.forEach(rc => {
       if (!mergedCandidates.some(c => c.id === rc.id)) {
@@ -1650,8 +1652,8 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     if (query) {
       const q = String(query).toLowerCase();
-      result = result.filter(c => 
-        c.name.toLowerCase().includes(q) || 
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(q) ||
         c.role.toLowerCase().includes(q) ||
         c.skills.some(s => s.toLowerCase().includes(q))
       );
@@ -1664,7 +1666,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     if (skills) {
       const skillList = String(skills).split(' ');
-      result = result.filter(c => 
+      result = result.filter(c =>
         c.skills.some(s => skillList.some(q => s.toLowerCase().includes(q.toLowerCase())))
       );
     }
@@ -1692,7 +1694,7 @@ app.get('/api/applications', (req: Request, res: Response) => {
 app.put('/api/applications/:id/status', (req: Request, res: Response): any => {
   const { id } = req.params;
   const { status } = req.body;
-  
+
   if (!status || !['Pending', 'Approved', 'Rejected'].includes(status)) {
     return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
   }
@@ -1752,7 +1754,7 @@ app.post('/api/invitations', async (req: Request, res: Response): Promise<any> =
     let jobTitle = 'Công việc';
     let employerId = '';
     let companyName = 'Nhà tuyển dụng';
-    
+
     // First check Firestore jobs
     const jobDoc = await db.collection('jobs').doc(jobId).get();
     if (jobDoc.exists) {
@@ -1850,7 +1852,7 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
     const db = admin.firestore();
     const docRef = db.collection('employers').doc(uid);
     const docSnap = await docRef.get();
-    
+
     if (docSnap.exists) {
       await docRef.update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     } else {
@@ -1890,7 +1892,7 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
         console.error('Lỗi đồng bộ thông tin công ty sang các bài tuyển dụng:', e);
       }
     }
-    
+
     const updatedDoc = await docRef.get();
     return res.status(200).json({ success: true, employer: { id: updatedDoc.id, ...updatedDoc.data() } });
   } catch (error: any) {
@@ -1989,11 +1991,11 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
     const limitCount = parseInt(req.query.limit as string) || 500;
     const db = admin.firestore();
     const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(limitCount).get();
-    
+
     // get unique employerIds
     const employerIds = [...new Set(snapshot.docs.map(doc => doc.data().employerId))];
     const employersMap: any = {};
-    
+
     // fetch employer names in parallel to map with orders
     await Promise.all(employerIds.map(async (uid) => {
       if (!uid) return;
@@ -2002,7 +2004,7 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
         employersMap[uid] = empDoc.data()?.company || 'Unknown';
       }
     }));
-    
+
     const orders = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -2011,7 +2013,7 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
         companyName: employersMap[data.employerId] || 'Không xác định'
       };
     });
-    
+
     return res.status(200).json(orders);
   } catch (error: any) {
     console.error('Lỗi lấy danh sách giao dịch:', error);
@@ -2063,7 +2065,7 @@ app.post('/api/payment/create', async (req: Request, res: Response): Promise<any
 // Webhook xử lý thanh toán tự động từ PayOS
 app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any> => {
   console.log("PayOS Webhook received:", JSON.stringify(req.body, null, 2));
-  
+
   let webhookData;
   try {
     webhookData = await payos.webhooks.verify(req.body);
@@ -2076,12 +2078,12 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
   try {
     if (webhookData && webhookData.orderCode) {
       const orderCode = String(webhookData.orderCode);
-      
+
       const db = admin.firestore();
       const ordersRef = db.collection('orders');
       const q = ordersRef.where('orderCode', '==', orderCode);
       const snapshot = await q.get();
-      
+
       if (!snapshot.empty) {
         // Cập nhật trạng thái đơn hàng thành success
         snapshot.forEach(async (doc) => {
@@ -2089,11 +2091,11 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
             status: 'success',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
-          
+
           const orderData = doc.data();
           const employerId = orderData.employerId;
           const packageId = orderData.packageId;
-          
+
           if (employerId && packageId) {
             const employerRef = db.collection('employers').doc(employerId);
             const employerDoc = await employerRef.get();
@@ -2103,7 +2105,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
               if (empData?.postsLimit && empData.postsLimit.includes('/')) {
                 usedPosts = parseInt(empData.postsLimit.split('/')[0], 10) || 0;
               }
-              
+
               const now = new Date();
               now.setDate(now.getDate() + 30);
               const expiresAt = now.toISOString();
@@ -2138,7 +2140,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
         });
       }
     }
-    
+
     return res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Lỗi xử lý webhook PayOS:', error);
@@ -2177,7 +2179,7 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
     usersSnap.forEach(doc => {
       const data = doc.data();
       if (data.job && data.name) {
-         candidates.push({ uid: doc.id, name: data.name, desiredJob: data.job, skills: data.skills || '' });
+        candidates.push({ uid: doc.id, name: data.name, desiredJob: data.job, skills: data.skills || '' });
       }
     });
 
@@ -2217,7 +2219,7 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
 
     if (Array.isArray(matchedUids) && matchedUids.length > 0) {
       const matchedNames = candidates.filter(c => matchedUids.includes(c.uid)).map(c => c.name);
-      
+
       if (matchedNames.length > 0) {
         await db.collection('notifications').add({
           title: 'Gợi ý ứng viên từ AI',
@@ -2372,22 +2374,134 @@ Trả về CHÍNH XÁC MỘT OBJECT JSON hợp lệ, KHÔNG bọc mã code block
   }
 });
 
+function evaluateCandidateMatchWithLocalAI(params: {
+  jobTitle: string;
+  jobDescription?: string;
+  applicantName?: string;
+  candidateSkills?: any;
+  candidateExperience?: any;
+  message?: string;
+  cvUrl?: string;
+  cvExtractedText?: string;
+}): { matchScore: number; reason: string; matchSummary: string } {
+  const { jobTitle = '', jobDescription = '', applicantName = 'Ứng viên', candidateSkills, candidateExperience, message = '', cvExtractedText = '' } = params;
+
+  const skillsArray: string[] = Array.isArray(candidateSkills) 
+    ? candidateSkills.map(s => String(s).trim()).filter(Boolean)
+    : (typeof candidateSkills === 'string' ? candidateSkills.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean) : []);
+  
+  const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || '');
+  const combinedCandidateText = [
+    ...skillsArray,
+    expText,
+    cvExtractedText,
+    message
+  ].join(' ').toLowerCase();
+
+  const invalidKeywords = ['hóa đơn', 'hoa don', 'tiền điện', 'invoice', 'receipt', 'sao kê', 'biên lai', 'chứng minh nhân dân', 'bài hát', 'ảnh'];
+  const hasInvalidKeywords = invalidKeywords.some(kw => combinedCandidateText.includes(kw));
+
+  const isMeaningful = combinedCandidateText.replace(/[^a-z0-9à-ỹ]/gi, '').length > 25 && !hasInvalidKeywords;
+
+  if (!isMeaningful || (skillsArray.length === 0 && expText.length < 15 && cvExtractedText.length < 15)) {
+    const score = 15;
+    const reason = `Hồ sơ đạt 15/100: Tệp đính kèm hoặc hồ sơ không phải là CV hợp lệ, chưa cung cấp đầy đủ kỹ năng và kinh nghiệm cho vị trí ${jobTitle || 'tuyển dụng'}.`;
+    return { matchScore: score, reason, matchSummary: reason };
+  }
+
+  const jobKeywords = [
+    jobTitle.toLowerCase(),
+    ...(jobDescription.toLowerCase().match(/[a-z0-9à-ỹ#+.-]{2,}/gi) || [])
+  ];
+  const uniqueJobKeywords = Array.from(new Set(jobKeywords)).filter(k => k.length > 2);
+
+  let matchedSkillsCount = 0;
+  for (const skill of skillsArray) {
+    const sLower = skill.toLowerCase();
+    if (uniqueJobKeywords.some(jk => jk.includes(sLower) || sLower.includes(jk))) {
+      matchedSkillsCount++;
+    }
+  }
+
+  let skillScore = 8;
+  if (skillsArray.length > 0) {
+    const skillRatio = matchedSkillsCount / Math.max(1, skillsArray.length);
+    skillScore = Math.min(40, Math.round(10 + skillRatio * 30));
+  }
+
+  let expScore = 8;
+  if (expText.length > 30) {
+    const hasJobKeyword = uniqueJobKeywords.some(jk => expText.toLowerCase().includes(jk));
+    if (hasJobKeyword) {
+      expScore = Math.min(30, 20 + (expText.length > 80 ? 8 : 4));
+    } else {
+      expScore = 12;
+    }
+  }
+
+  let msgScore = 5;
+  if (message && message.length > 10) {
+    msgScore = Math.min(20, 10 + Math.min(10, Math.floor(message.length / 20)));
+  }
+
+  const profileScore = (skillsArray.length > 0 ? 4 : 0) + (expText.length > 20 ? 4 : 0) + (applicantName ? 2 : 0);
+  const totalScore = Math.max(15, Math.min(96, skillScore + expScore + msgScore + profileScore));
+
+  let reason = '';
+  if (totalScore >= 75) {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng chuyên môn (${skillScore}/40), Kinh nghiệm (${expScore}/30), Thư ứng tuyển (${msgScore}/20), Hồ sơ (${profileScore}/10). Độ tương thích rất tốt với vị trí ${jobTitle || 'tuyển dụng'}.`;
+  } else if (totalScore >= 50) {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng chuyên môn (${skillScore}/40), Kinh nghiệm (${expScore}/30), Thư ứng tuyển (${msgScore}/20). Đáp ứng một phần yêu cầu của vị trí ${jobTitle || 'tuyển dụng'}.`;
+  } else {
+    reason = `Ứng viên đạt ${totalScore}%: Kỹ năng và kinh nghiệm trong hồ sơ chưa tương thích với yêu cầu của vị trí ${jobTitle || 'tuyển dụng'}.`;
+  }
+
+  return { matchScore: totalScore, reason, matchSummary: reason };
+}
+
 // API AI Candidate Match Score & Review (Cho Nhà tuyển dụng)
 app.post('/api/ai/candidate-match-score', async (req: Request, res: Response): Promise<any> => {
-  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message } = req.body;
+  const { jobTitle, jobDescription, applicantName, candidateSkills, candidateExperience, message, cvUrl } = req.body;
   const apiKey = getGeminiApiKey();
 
   try {
-    const skillsText = Array.isArray(candidateSkills) ? candidateSkills.join(', ') : (candidateSkills || 'Chưa cập nhật');
-    const expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
+    let skillsText = Array.isArray(candidateSkills) ? candidateSkills.filter(Boolean).join(', ') : (candidateSkills || '');
+    let expText = typeof candidateExperience === 'string' ? candidateExperience : JSON.stringify(candidateExperience || []);
+    let cvExtractedText = '';
+
+    if (cvUrl) {
+      try {
+        const uploadsDir = path.join(__dirname, '../uploads/cvs');
+        const urlParts = cvUrl.split('/');
+        const actualFileName = urlParts[urlParts.length - 1];
+        const diskPath = path.join(uploadsDir, actualFileName);
+        if (fs.existsSync(diskPath)) {
+          const fileBuffer = fs.readFileSync(diskPath);
+          const lowerName = actualFileName.toLowerCase();
+          if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+            const mammothRes = await mammoth.extractRawText({ buffer: fileBuffer });
+            cvExtractedText = (mammothRes.value || '').trim().substring(0, 3000);
+          }
+        }
+      } catch (e) {
+        console.warn('Lỗi đọc nội dung file CV cho AI match:', e);
+      }
+    }
+
+    if (!skillsText || skillsText === 'Chưa cập nhật') {
+      skillsText = 'Chưa có thông tin kỹ năng';
+    }
+    if (!expText || expText === '[]' || expText === '""') {
+      expText = 'Chưa có thông tin kinh nghiệm';
+    }
 
     const prompt = `
-Bạn là Chuyên gia Tuyển dụng AI cao cấp. Hãy đánh giá độ phù hợp của Ứng viên so với Vị trí tuyển dụng dựa theo 4 TIÊU CHUẨN ĐÁNH GIÁ (Tổng 100 điểm):
+Bạn là Chuyên gia Tuyển dụng HR & Đánh giá Năng lực Ứng viên công tâm và chính xác. Hãy đánh giá độ phù hợp của Ứng viên so với Vị trí tuyển dụng dựa theo 4 TIÊU CHUẨN ĐÁNH GIÁ (Tổng thang điểm 100):
 
 1. Kỹ năng chuyên môn (Tối đa 40 điểm): Độ tương thích kỹ năng (${skillsText}) với vị trí (${jobTitle}).
 2. Kinh nghiệm làm việc (Tối đa 30 điểm): Lịch sử công việc (${expText}) so với yêu cầu bài đăng.
 3. Độ phù hợp & Thư ứng tuyển (Tối đa 20 điểm): Lời nhắn (${message || 'Không có'}).
-4. Hoàn thiện hồ sơ (Tối đa 10 điểm): Sự chuẩn bị hồ sơ ứng viên.
+4. Hoàn thiện hồ sơ & Tệp đính kèm (Tối đa 10 điểm): Sự chuẩn bị hồ sơ ứng viên.
 
 [TIN TUYỂN DỤNG]
 - Vị trí: ${jobTitle || 'Công việc'}
@@ -2398,37 +2512,70 @@ Bạn là Chuyên gia Tuyển dụng AI cao cấp. Hãy đánh giá độ phù h
 - Kỹ năng: ${skillsText}
 - Kinh nghiệm: ${expText}
 - Thư ứng tuyển: ${message || 'Không có'}
+${cvExtractedText ? `- Nội dung trích xuất từ CV: ${cvExtractedText}` : ''}
 
-Hãy tính toán tổng điểm số thực tế từ 55 đến 98 điểm dựa vào 4 tiêu chí trên.
+[QUY TẮC ĐÁNH GIÁ KHÁCH QUAN & CHÍNH XÁC]
+- Nếu hồ sơ KHÔNG PHẢI LÀ CV (ví dụ: tài liệu rác, ảnh không liên quan, nội dung vô nghĩa, hoặc hoàn toàn không có kỹ năng/kinh nghiệm liên quan đến công việc), HÃY CHẤM ĐIỂM THẤP THỰC TẾ (từ 5 đến 30 điểm) và nêu rõ trong nhận xét là tệp/hồ sơ không hợp lệ hoặc thiếu thông tin chuyên môn.
+- Nếu ứng viên có kỹ năng nhưng chưa đủ kinh nghiệm: Chấm từ 40 đến 65 điểm.
+- Nếu ứng viên đáp ứng tốt yêu cầu công việc: Chấm từ 70 đến 95 điểm.
 
 [YÊU CẦU ĐẦU RA STRICT JSON]
-Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown):
+Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown block):
 {
-  "matchScore": 84,
-  "reason": "Ứng viên đạt 84%: Kỹ năng chuyên môn 34/40, Kinh nghiệm 26/30, Thư ứng tuyển 16/20, Hồ sơ 8/10. Phù hợp tốt với vị trí ${jobTitle || 'tuyển dụng'}."
+  "matchScore": 25,
+  "reason": "Ứng viên đạt 25%: Hồ sơ chưa cung cấp kỹ năng và kinh nghiệm phù hợp với vị trí ${jobTitle || 'tuyển dụng'}."
 }
     `;
 
-    const result = await generateGeminiContent(apiKey, prompt);
-    let text = result.response.text().trim();
-    const parsed = extractJsonFromText(text);
+    try {
+      const result = await generateGeminiContent(apiKey, prompt);
+      let text = result.response.text().trim();
+      const parsed = extractJsonFromText(text);
 
-    const matchScore = typeof parsed.matchScore === 'number' ? Math.max(50, Math.min(99, parsed.matchScore)) : 85;
-    const matchSummary = parsed.reason || parsed.matchSummary || `Ứng viên đáp ứng tốt các tiêu chí yêu cầu vị trí ${jobTitle || 'tuyển dụng'}.`;
+      if (parsed && typeof parsed.matchScore === 'number') {
+        const matchScore = Math.max(5, Math.min(99, Math.round(parsed.matchScore)));
+        const matchSummary = parsed.reason || parsed.matchSummary || `Độ phù hợp của ứng viên với vị trí ${jobTitle || 'tuyển dụng'} đạt ${matchScore}%.`;
+        return res.status(200).json({
+          success: true,
+          matchScore,
+          matchSummary,
+          reason: matchSummary
+        });
+      }
+    } catch (aiErr) {
+      console.warn('Gemini API call failed, using intelligent local evaluator:', aiErr);
+    }
+
+    // Fallback to intelligent local evaluator
+    const localResult = evaluateCandidateMatchWithLocalAI({
+      jobTitle,
+      jobDescription,
+      applicantName,
+      candidateSkills,
+      candidateExperience,
+      message,
+      cvUrl,
+      cvExtractedText
+    });
 
     return res.status(200).json({
       success: true,
-      matchScore,
-      matchSummary,
-      reason: matchSummary
+      ...localResult
     });
   } catch (error: any) {
     console.error('Error in Candidate Match Score:', error);
+    const localResult = evaluateCandidateMatchWithLocalAI({
+      jobTitle,
+      jobDescription,
+      applicantName,
+      candidateSkills,
+      candidateExperience,
+      message,
+      cvUrl
+    });
     return res.status(200).json({
       success: true,
-      matchScore: 85,
-      matchSummary: `Ứng viên có kỹ năng và hồ sơ đáp ứng tốt tiêu chuẩn vị trí ${jobTitle || 'tuyển dụng'}.`,
-      reason: `Ứng viên có kỹ năng và hồ sơ đáp ứng tốt tiêu chuẩn vị trí ${jobTitle || 'tuyển dụng'}.`
+      ...localResult
     });
   }
 });
@@ -2559,7 +2706,7 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
   try {
     const db = admin.firestore();
     const userDoc = await db.collection('users').doc(uid).get();
-    
+
     let userData: any = {};
     if (userDoc.exists) {
       userData = userDoc.data()!;
@@ -2617,17 +2764,28 @@ Giới thiệu bản thân: ${userData.bio || userData.about || 'Ứng viên tì
 
     const prompt = `
 [VAI TRÒ VÀ NHIỆM VỤ]
-Bạn là Chuyên gia Tuyển dụng và Tối ưu hóa CV chuẩn ATS. Hãy đánh giá CV/Hồ sơ ứng viên cho vị trí mong muốn: "${targetPosition}".
+Bạn là Chuyên gia Tuyển dụng Cao cấp và Hệ thống Đánh giá CV chuẩn ATS (Applicant Tracking System). Hãy phân tích kỹ lưỡng CV/Hồ sơ ứng viên đối chiếu với vị trí mong muốn: "${targetPosition}".
 
-${docxText ? `NỘI DUNG CV:\n${docxText}` : `TÓM TẮT HỒ SƠ ỨNG VIÊN:\n${profileSummary}`}
+${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ FILE CV:\n${docxText}` : `TÓM TẮT HỒ SƠ ỨNG VIÊN TỪ HỆ THỐNG:\n${profileSummary}`}
+
+[TIÊU CHÍ CHẤM ĐIỂM CHUẨN ATS (THANG ĐIỂM 100)]:
+1. Khả năng tương thích & Định dạng ATS (25 điểm): Tệp có phải là CV hợp lệ, bố cục rõ ràng, dễ phân tích nội dung hay không.
+2. Từ khóa chuyên ngành (35 điểm): Mật độ từ khóa kỹ năng, công nghệ, nghiệp vụ khớp với vị trí "${targetPosition}".
+3. Số liệu & Thành tích định lượng (25 điểm): Các số liệu đo lường kết quả công việc (%, doanh số, quy mô dự án...).
+4. Cấu trúc & Đầy đủ thông tin (15 điểm): Thông tin liên hệ, học vấn, kinh nghiệm, mục tiêu nghề nghiệp.
+
+[QUY TẮC ĐÁNH GIÁ THỰC TẾ]:
+- Nếu tệp tải lên KHÔNG PHẢI CV (ảnh rác, hóa đơn, bài hát, tệp không liên quan) hoặc hồ sơ hoàn toàn trống/không có kỹ năng: Hãy chấm điểm THẤP THỰC TẾ (10 - 30 điểm). Nêu rõ trong điểm cần cải thiện là cần tải lên đúng file CV chuẩn.
+- Nếu CV cơ bản, thiếu số liệu và từ khóa ATS: Chấm từ 40 - 65 điểm.
+- Nếu CV chuyên nghiệp, đầy đủ từ khóa và số liệu đo lường tốt: Chấm từ 70 - 95 điểm.
 
 [YÊU CẦU ĐẦU RA STRICT JSON]
-Trả về CHÍNH XÁC MỘT OBJECT JSON KHÔNG BỌC CODE BLOCK:
+Trả về CHÍNH XÁC MỘT OBJECT JSON (không bọc mã markdown code block):
 {
-  "score": 88,
+  "score": 78,
   "strengths": ["Điểm mạnh 1 súc tích", "Điểm mạnh 2 súc tích", "Điểm mạnh 3 súc tích"],
   "improvements": ["Điểm cần cải thiện 1 súc tích", "Điểm cần cải thiện 2 súc tích"],
-  "suggestions": ["Gợi ý nâng cao điểm số 1", "Gợi ý nâng cao điểm số 2"]
+  "suggestions": ["Gợi ý cụ thể để tăng điểm ATS 1", "Gợi ý cụ thể để tăng điểm ATS 2"]
 }
     `;
 
@@ -2641,8 +2799,8 @@ Trả về CHÍNH XÁC MỘT OBJECT JSON KHÔNG BỌC CODE BLOCK:
     let text = result.response.text().trim();
     const analysisResult = extractJsonFromText(text);
 
-    const score = typeof analysisResult.score === 'number' ? analysisResult.score : (typeof analysisResult.overallScore === 'number' ? analysisResult.overallScore : 85);
-    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục hồ sơ trình bày rõ ràng', `Kỹ năng phù hợp với vị trí ${targetPosition}`];
+    const score = typeof analysisResult.score === 'number' ? Math.max(10, Math.min(99, Math.round(analysisResult.score))) : (typeof analysisResult.overallScore === 'number' ? Math.max(10, Math.min(99, Math.round(analysisResult.overallScore))) : 50);
+    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục hồ sơ cơ bản rõ ràng', `Có định hướng theo vị trí ${targetPosition}`];
     const improvements = Array.isArray(analysisResult.improvements) && analysisResult.improvements.length > 0 ? analysisResult.improvements : ['Cần bổ sung thêm số liệu thành tích cụ thể', 'Tăng cường từ khóa chuyên ngành chuẩn ATS'];
     const suggestions = Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 ? analysisResult.suggestions : ['Thêm từ khóa kỹ năng chính vào phần mục tiêu', 'Cập nhật thêm chứng chỉ và các dự án thực tế'];
 
