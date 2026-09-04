@@ -11,7 +11,6 @@ import { Employers } from './pages/Employers';
 import { JobPosts } from './pages/JobPosts';
 import { ServicePackages } from './pages/ServicePackages';
 import { Industries } from './pages/Industries';
-import { Skills } from './pages/Skills';
 import { Payments } from './pages/Payments';
 import { Reports } from './pages/Reports';
 import { Reviews } from './pages/Reviews';
@@ -42,7 +41,6 @@ function App() {
                   <Route path="job-posts" element={<JobPosts />} />
                   <Route path="service-packages" element={<ServicePackages />} />
                   <Route path="industries" element={<Industries />} />
-                  <Route path="skills" element={<Skills />} />
                   <Route path="payments" element={<Payments />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="reviews" element={<Reviews />} />
