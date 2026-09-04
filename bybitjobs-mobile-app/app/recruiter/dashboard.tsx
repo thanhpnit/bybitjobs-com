@@ -79,6 +79,9 @@ export default function RecruiterDashboardScreen() {
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom;
   const isIphoneWithNotch = bottomInset > 0;
+  const [showAllPremium, setShowAllPremium] = React.useState(false);
+  const [showAllPro, setShowAllPro] = React.useState(false);
+  const [showAllStandard, setShowAllStandard] = React.useState(false);
 
   const employerJobIds = React.useMemo(() => {
     if (!userData?.uid) return new Set<string>();
@@ -968,11 +971,26 @@ export default function RecruiterDashboardScreen() {
                 Chưa có yêu cầu công việc phù hợp tại địa điểm/lĩnh vực này
               </Text>
             </View>
-          ) : (
-            filteredJobs.map((job) => {
+          ) : (() => {
+            const premiumList: any[] = [];
+            const proList: any[] = [];
+            const standardList: any[] = [];
+
+            filteredJobs.forEach((job) => {
+              const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
+              const isPremiumJob = (job as any).isPremium || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || ((job as any).employerId ? isPremiumEmployer(employerData) : false);
+              const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO' || rawPkg.includes('PRO') || ((job as any).employerId ? isProEmployer(employerData) : false));
+
+              if (isPremiumJob) premiumList.push(job);
+              else if (isProJob) proList.push(job);
+              else standardList.push(job);
+            });
+
+            const renderSingleMarketJob = (job: any) => {
               const isBookmarked = bookmarkedJobs.includes(job.id);
               const isPremiumJob = (job as any).isPremium || ((job as any).employerId ? isPremiumEmployer(employerData) : false);
               const isProJob = !isPremiumJob && ((job as any).isPro || (job as any).packageTier === 'PRO' || ((job as any).employerId ? isProEmployer(employerData) : false));
+
               return (
                 <TouchableOpacity
                   key={job.id}
@@ -1170,7 +1188,7 @@ export default function RecruiterDashboardScreen() {
 
                   <View style={styles.jobCardBottom}>
                     <View style={styles.tagsContainer}>
-                      {job.tags.map((tag, idx) => {
+                      {job.tags.map((tag: any, idx: number) => {
                         const isPoints = tag.type === 'points';
                         return (
                           <View
@@ -1209,52 +1227,155 @@ export default function RecruiterDashboardScreen() {
                   </View>
                 </TouchableOpacity>
               );
-            })
-          )}
+            };
+
+            const visiblePremium = showAllPremium ? premiumList : premiumList.slice(0, 3);
+            const visiblePro = showAllPro ? proList : proList.slice(0, 3);
+            const visibleStandard = showAllStandard ? standardList : standardList.slice(0, 3);
+
+            return (
+              <View style={{ width: '100%' }}>
+                {/* --- PHÂN ĐOẠN 1: TIN PREMIUM --- */}
+                {premiumList.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#F59E0B' : '#B45309', letterSpacing: 0.3 }}>
+                          👑 TIN THỊ TRƯỜNG PREMIUM (VIP)
+                        </Text>
+                        <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: '#B45309' }}>{premiumList.length}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {visiblePremium.map(renderSingleMarketJob)}
+
+                    {premiumList.length > 3 && (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setShowAllPremium(!showAllPremium)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 16,
+                          borderRadius: 12,
+                          backgroundColor: isDark ? '#2C2A24' : '#FEF3C7',
+                          borderWidth: 1,
+                          borderColor: isDark ? '#453517' : '#FDE68A',
+                          marginHorizontal: 4,
+                          marginTop: 4,
+                          marginBottom: 8,
+                          gap: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#F59E0B' : '#B45309' }}>
+                          {showAllPremium ? 'Thu gọn danh sách' : `Xem thêm (${premiumList.length - 3} tin Premium khác)`}
+                        </Text>
+                        <Ionicons name={showAllPremium ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#F59E0B' : '#B45309'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* --- PHÂN ĐOẠN 2: TIN PRO --- */}
+                {proList.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: premiumList.length > 0 ? 8 : 0, paddingHorizontal: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#60A5FA' : '#1E40AF', letterSpacing: 0.3 }}>
+                          ⭐ TIN NỔI BẬT PRO
+                        </Text>
+                        <View style={{ backgroundColor: '#DBEAFE', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: '#1E40AF' }}>{proList.length}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {visiblePro.map(renderSingleMarketJob)}
+
+                    {proList.length > 3 && (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setShowAllPro(!showAllPro)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 16,
+                          borderRadius: 12,
+                          backgroundColor: isDark ? '#172554' : '#EFF6FF',
+                          borderWidth: 1,
+                          borderColor: isDark ? '#1E40AF' : '#BFDBFE',
+                          marginHorizontal: 4,
+                          marginTop: 4,
+                          marginBottom: 8,
+                          gap: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#60A5FA' : '#1D4ED8' }}>
+                          {showAllPro ? 'Thu gọn danh sách' : `Xem thêm (${proList.length - 3} tin Pro khác)`}
+                        </Text>
+                        <Ionicons name={showAllPro ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#60A5FA' : '#1D4ED8'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* --- PHÂN ĐOẠN 3: TIN TIÊU CHUẨN / KHÁC --- */}
+                {standardList.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: (premiumList.length > 0 || proList.length > 0) ? 8 : 0, paddingHorizontal: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#E5E7EB' : '#374151', letterSpacing: 0.3 }}>
+                          💼 VIỆC LÀM MỚI NHẤT
+                        </Text>
+                        <View style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 }}>
+                          <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#E5E7EB' : '#4B5563' }}>{standardList.length}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {visibleStandard.map(renderSingleMarketJob)}
+
+                    {standardList.length > 3 && (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setShowAllStandard(!showAllStandard)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 16,
+                          borderRadius: 12,
+                          backgroundColor: isDark ? '#1F2937' : '#F9FAFB',
+                          borderWidth: 1,
+                          borderColor: isDark ? '#374151' : '#E5E7EB',
+                          marginHorizontal: 4,
+                          marginTop: 4,
+                          marginBottom: 8,
+                          gap: 6,
+                        }}
+                      >
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#9CA3AF' : '#4B5563' }}>
+                          {showAllStandard ? 'Thu gọn danh sách' : `Xem thêm (${standardList.length - 3} việc làm khác)`}
+                        </Text>
+                        <Ionicons name={showAllStandard ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? '#9CA3AF' : '#4B5563'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })()}
         </View>
 
         <View style={styles.scrollSpacer} />
       </ScrollView>
-
-      {false && (
-      <View style={[
-        styles.bottomNavBar, 
-        { 
-          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', 
-          borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
-          height: isIphoneWithNotch ? 82 : 64,
-          paddingBottom: isIphoneWithNotch ? 22 : 6,
-          paddingTop: 8
-        }
-      ]}>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Trang chủ')} style={styles.navItem}>
-          <Ionicons name="home" size={24} color="#0084FF" />
-          <Text style={[styles.navItemText, { color: '#0084FF' }]}>Trang chủ</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Quản lý ứng viên')} style={styles.navItem}>
-          <Ionicons name="people-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Quản lý ứng viên</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.85} onPress={() => handleNavItemPress('Đăng tin')} style={styles.fabNavItem}>
-          <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
-            <Ionicons name="add" size={32} color="#FFF" />
-          </View>
-          <Text style={styles.fabItemText}>Đăng tin</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Quản lý tin tuyển dụng')} style={styles.navItem}>
-          <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.7} onPress={() => handleNavItemPress('Cá nhân')} style={styles.navItem}>
-          <Ionicons name="person-outline" size={24} color="#8E8E93" />
-          <Text style={styles.navItemText}>Cá nhân</Text>
-        </TouchableOpacity>
-      </View>
-      )}
 
       <Modal
         visible={isMenuVisible}

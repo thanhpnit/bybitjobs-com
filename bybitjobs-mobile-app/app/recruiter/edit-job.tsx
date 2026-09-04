@@ -125,25 +125,36 @@ export default function RecruiterEditJobScreen() {
     }
   };
 
-  // Date Picker Modal States
-  const [isDatePickerVisible, setIsDatePickerVisible] = React.useState(false);
-  const [pickerDate, setPickerDate] = React.useState(() => {
-    if (existingJob?.deadline && existingJob.deadline.includes('/')) {
-      const parts = existingJob.deadline.split('/');
+  const parseDateString = (dateStr?: string): Date => {
+    if (!dateStr) return getThirtyDaysFromNow();
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
       if (parts.length === 3) {
-        let p1 = parseInt(parts[0], 10);
-        let p2 = parseInt(parts[1], 10);
-        let y = parseInt(parts[2], 10);
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
         if (!isNaN(p1) && !isNaN(p2) && !isNaN(y)) {
-          if (p1 > 12) {
-            return new Date(y, p2 - 1, p1);
+          // Định dạng chuẩn của app là DD/MM/YYYY: p1 là Ngày, p2 là Tháng
+          let day = p1;
+          let month = p2;
+          if (p1 <= 12 && p2 > 12) {
+            // Định dạng dự phòng nếu là MM/DD/YYYY
+            day = p2;
+            month = p1;
           }
-          return new Date(y, p1 - 1, p2);
+          // Đảm bảo tháng luôn trong phạm vi 1 - 12
+          const validMonth = Math.max(0, Math.min(11, month - 1));
+          return new Date(y, validMonth, day);
         }
       }
     }
-    return getThirtyDaysFromNow();
-  });
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? getThirtyDaysFromNow() : parsed;
+  };
+
+  // Date Picker Modal States
+  const [isDatePickerVisible, setIsDatePickerVisible] = React.useState(false);
+  const [pickerDate, setPickerDate] = React.useState(() => parseDateString(existingJob?.deadline));
   
   const [activeMonth, setActiveMonth] = React.useState(() => pickerDate.getMonth());
   const [activeYear, setActiveYear] = React.useState(() => pickerDate.getFullYear());
@@ -151,6 +162,8 @@ export default function RecruiterEditJobScreen() {
   const selectDate = (date: Date) => {
     setDeadline(formatDeadlineDate(date));
     setPickerDate(date);
+    setActiveMonth(date.getMonth());
+    setActiveYear(date.getFullYear());
     setIsDatePickerVisible(false);
   };
 
@@ -158,6 +171,9 @@ export default function RecruiterEditJobScreen() {
     const days = [];
     const firstDayIndex = new Date(activeYear, activeMonth, 1).getDay();
     const totalDays = new Date(activeYear, activeMonth + 1, 0).getDate();
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < firstDayIndex; i++) {
       days.push(
@@ -167,6 +183,11 @@ export default function RecruiterEditJobScreen() {
 
     for (let i = 1; i <= totalDays; i++) {
       const cellDate = new Date(activeYear, activeMonth, i);
+      const cellDateStart = new Date(activeYear, activeMonth, i);
+      cellDateStart.setHours(0, 0, 0, 0);
+      
+      const isPast = cellDateStart.getTime() < todayStart.getTime();
+
       const isSelected = 
         pickerDate.getDate() === i && 
         pickerDate.getMonth() === activeMonth && 
@@ -181,11 +202,13 @@ export default function RecruiterEditJobScreen() {
         <TouchableOpacity
           key={`day-${i}`}
           activeOpacity={0.7}
+          disabled={isPast}
           onPress={() => selectDate(cellDate)}
           style={[
             styles.dayGridCell,
             isToday && styles.todayGridCell,
             isSelected && styles.selectedGridCell,
+            isPast && { opacity: 0.35 },
           ]}
         >
           <Text
@@ -194,6 +217,7 @@ export default function RecruiterEditJobScreen() {
               { color: isDark ? '#FFF' : '#11181C' },
               isToday && { color: '#0084FF', fontWeight: 'bold' },
               isSelected && { color: '#FFF', fontWeight: 'bold' },
+              isPast && { color: isDark ? '#6B7280' : '#9CA3AF' },
             ]}
           >
             {i}
@@ -231,6 +255,15 @@ export default function RecruiterEditJobScreen() {
     }
     if (!description.trim()) {
       Alert.alert('Cảnh báo', 'Mô tả công việc không được để trống.');
+      return;
+    }
+
+    // Kiểm tra tính hợp lệ của hạn nộp hồ sơ (Không được chọn ngày trong quá khứ)
+    if (deadline && checkIsJobExpired(deadline)) {
+      Alert.alert(
+        'Hạn nộp hồ sơ không hợp lệ',
+        'Hạn chót ứng tuyển không được ở trong quá khứ. Vui lòng chọn một ngày từ hôm nay trở đi.'
+      );
       return;
     }
 
@@ -657,20 +690,10 @@ export default function RecruiterEditJobScreen() {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => {
-                  if (deadline && deadline.includes('/')) {
-                    const parts = deadline.split('/');
-                    if (parts.length === 3) {
-                      const m = parseInt(parts[0], 10) - 1;
-                      const d = parseInt(parts[1], 10);
-                      const y = parseInt(parts[2], 10);
-                      if (!isNaN(m) && !isNaN(d) && !isNaN(y)) {
-                        const newD = new Date(y, m, d);
-                        setPickerDate(newD);
-                        setActiveMonth(m);
-                        setActiveYear(y);
-                      }
-                    }
-                  }
+                  const targetDate = parseDateString(deadline);
+                  setPickerDate(targetDate);
+                  setActiveMonth(targetDate.getMonth());
+                  setActiveYear(targetDate.getFullYear());
                   setIsDatePickerVisible(true);
                 }}
                 style={[styles.inputBoxWithIcon, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB', backgroundColor: isDark ? '#151718' : '#F8F9FA' }]}
