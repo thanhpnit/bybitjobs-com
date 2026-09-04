@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../src/config/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'expo-router';
@@ -1028,41 +1028,76 @@ function CandidateProfileScreen() {
     const [servicePackages, setServicePackages] = React.useState<any[]>([]);
 
     React.useEffect(() => {
-      let intervalId: any = null;
-      const fetchPackages = async () => {
-        try {
-          const res = await fetch('http://160.250.246.119:4000/api/packages');
-          if (!res.ok) throw new Error('API response was not ok');
-          const rawData = await res.json();
-          const data: any[] = [];
+      // 1. Real-time Firestore listener for packages
+      const unsub = onSnapshot(
+        collection(db, 'packages'),
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const data: any[] = [];
+            snapshot.forEach((docSnap) => {
+              const pkg = { id: docSnap.id, ...docSnap.data() } as any;
+              const rawPriceNum = typeof pkg.priceNum === 'number' && !isNaN(pkg.priceNum)
+                ? pkg.priceNum
+                : (parseInt(String(pkg.priceNum || pkg.price || '').replace(/[^0-9]/g, ''), 10) || 0);
 
-          rawData.forEach((pkg: any) => {
-            data.push({
-              id: pkg.id,
-              name: pkg.name,
-              price: pkg.price,
-              priceNum: pkg.priceNum || 0,
-              duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
-              tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
-              features: [
-                `Số lượng: ${pkg.posts || ''}`,
-                `Lượt nhận CV: ${pkg.cvs || ''}`,
-              ],
-              isPopular: pkg.isPopular,
-              isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
+              const displayPrice = pkg.price || (rawPriceNum > 0 ? `${rawPriceNum.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ');
+
+              data.push({
+                id: pkg.id,
+                name: pkg.name,
+                price: displayPrice,
+                priceNum: rawPriceNum,
+                duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
+                tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
+                features: [
+                  `Số lượng: ${pkg.posts || ''}`,
+                  `Lượt nhận CV: ${pkg.cvs || ''}`,
+                ],
+                isPopular: pkg.isPopular,
+                isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
+              });
             });
-          });
 
-          data.sort((a, b) => a.priceNum - b.priceNum);
-          setServicePackages(data);
-        } catch (err) {
-          console.log('Lỗi fetch packages in profile:', err);
+            data.sort((a, b) => a.priceNum - b.priceNum);
+            setServicePackages(data);
+          }
+        },
+        async (error) => {
+          console.log('Lỗi onSnapshot packages, fallback to API:', error);
+          // Fallback to API if firestore listener fails
+          try {
+            const res = await fetch('http://160.250.246.119:4000/api/packages');
+            if (res.ok) {
+              const rawData = await res.json();
+              const data: any[] = [];
+              rawData.forEach((pkg: any) => {
+                const rawPriceNum = typeof pkg.priceNum === 'number' && !isNaN(pkg.priceNum)
+                  ? pkg.priceNum
+                  : (parseInt(String(pkg.priceNum || pkg.price || '').replace(/[^0-9]/g, ''), 10) || 0);
+                const displayPrice = pkg.price || (rawPriceNum > 0 ? `${rawPriceNum.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ');
+                data.push({
+                  id: pkg.id,
+                  name: pkg.name,
+                  price: displayPrice,
+                  priceNum: rawPriceNum,
+                  duration: pkg.period ? pkg.period.replace('/', '').trim() : '',
+                  tag: `TRẠNG THÁI: ${pkg.badge || ''}`,
+                  features: [
+                    `Số lượng: ${pkg.posts || ''}`,
+                    `Lượt nhận CV: ${pkg.cvs || ''}`,
+                  ],
+                  isPopular: pkg.isPopular,
+                  isVip: pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium'),
+                });
+              });
+              data.sort((a, b) => a.priceNum - b.priceNum);
+              setServicePackages(data);
+            }
+          } catch (e) {}
         }
-      };
+      );
 
-      fetchPackages();
-      intervalId = setInterval(fetchPackages, 5000);
-      return () => clearInterval(intervalId);
+      return () => unsub();
     }, []);
 
     const benefits = [

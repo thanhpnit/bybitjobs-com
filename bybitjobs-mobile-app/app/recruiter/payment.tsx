@@ -38,12 +38,20 @@ export default function RecruiterPaymentScreen() {
 
   const [createdOrderId, setCreatedOrderId] = React.useState<string | null>(null);
 
+  const rawAmount = React.useMemo(() => {
+    return Number(packagePriceNum) || parseInt(String(packagePrice || '').replace(/[^0-9]/g, ''), 10) || 0;
+  }, [packagePriceNum, packagePrice]);
+
+  const displayPriceText = React.useMemo(() => {
+    return packagePrice || (rawAmount > 0 ? `${rawAmount.toLocaleString('vi-VN')}đ` : '0đ');
+  }, [packagePrice, rawAmount]);
+
   React.useEffect(() => {
     const initPayment = async () => {
-      if (!packagePriceNum) return;
+      if (!rawAmount) return;
 
       // Tạo đơn hàng ở trạng thái pending trước để webhook PayOS có thể tìm thấy
-      const oId = await createOrder(packageId, packageName, packagePriceNum, orderCode);
+      const oId = await createOrder(packageId, packageName, String(rawAmount), orderCode);
       setCreatedOrderId(oId || null);
 
       try {
@@ -51,7 +59,7 @@ export default function RecruiterPaymentScreen() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: packagePriceNum,
+            amount: rawAmount,
             description: 'Thanh toan goi BybitJobs',
             orderCode: orderCode
           })
@@ -66,7 +74,7 @@ export default function RecruiterPaymentScreen() {
     };
     
     initPayment();
-  }, [packagePriceNum, orderCode]);
+  }, [rawAmount, orderCode]);
 
   // Copy helper
   const handleCopy = (text: string) => {
@@ -120,7 +128,7 @@ export default function RecruiterPaymentScreen() {
             <Text style={styles.receiptName}>{packageName || 'Standard Package'}</Text>
             <Text style={styles.receiptDuration}>Thời hạn: {packageDuration || '30 ngày'}</Text>
           </View>
-          <Text style={styles.receiptPrice}>{packagePrice || '200.000đ'}</Text>
+          <Text style={styles.receiptPrice}>{displayPriceText}</Text>
         </View>
 
         <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : '#11181C' }]}>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, User, Star, Award, Check, X, Filter, Download, Wallet } from 'lucide-react-native';
+import { Plus, Check, X, Filter, Download, Wallet } from 'lucide-react-native';
 import { MockChart } from '../components/ui/MockChart';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -12,19 +12,13 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useData } from '../context/DataContext';
 import * as Icons from 'lucide-react-native';
 import { db } from '../config/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, setDoc } from 'firebase/firestore';
 
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
 
-const features = [
-  { name: 'Số lượng tin đăng tối đa', starter: '5 tin', pro: '15 tin', premium: '🔥 Không giới hạn' },
-  { name: 'Lượt mở khóa CV & SĐT ứng viên', starter: '10 CV', pro: '50 CV', premium: '🔥 Không giới hạn CV' },
-  { name: 'Thứ tự ghim bài hiển thị', starter: 'Tiêu chuẩn', pro: '⚡ ƯU TIÊN TOP 2', premium: '👑 ĐỘC QUYỀN TOP 1' },
-  { name: 'Huy hiệu phát sáng viền bài', starter: 'Mặc định', pro: '⚡ PRO (Xanh Royal)', premium: '👑 ★ PREMIUM (Vàng Amber)' },
-  { name: 'Trợ lý AI HR (Soạn JD & Phỏng vấn)', starter: false, pro: 'Đánh giá AI CV', premium: '👑 Trợ lý AI HR Độc quyền' },
-];
+
 
 const parseFlexibleDate = (raw: any): Date => {
   if (!raw) return new Date();
@@ -52,7 +46,7 @@ const formatDateVN = (d: Date): string => {
 };
 
 export const ServicePackages: React.FC = () => {
-  const { colors, theme } = useTheme();
+  const { colors } = useTheme();
   const { packages, setPackages, employers } = useData();
   const navigate = useNavigate();
   const { width } = useWindowDimensions();
@@ -90,7 +84,6 @@ export const ServicePackages: React.FC = () => {
 
     const actualPro = Math.max(proEmployers, proOrders);
     const actualPrem = Math.max(premEmployers, premOrders);
-    const actualFree = Math.max(0, totalEmp - actualPro - actualPrem);
 
     const proPct = Math.round((actualPro / totalEmp) * 100);
     const premPct = Math.round((actualPrem / totalEmp) * 100);
@@ -331,15 +324,46 @@ export const ServicePackages: React.FC = () => {
   const [formData, setFormData] = useState({ name: '', price: '', priceNum: 0, period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
 
   const handleOpenAdd = () => {
-    setFormData({ name: '', price: '', priceNum: 0, period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
+    setFormData({ name: '', price: '0 VNĐ', priceNum: 0, period: '/ tháng', posts: '10 bài', cvs: '100 / bài' });
     setEditingId(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (item: any) => {
-    setFormData({ name: item.name, price: item.price, priceNum: item.priceNum || 0, period: item.period, posts: item.posts, cvs: item.cvs });
+    const rawNum = typeof item.priceNum === 'number' && !isNaN(item.priceNum)
+      ? item.priceNum
+      : (parseInt(String(item.price || '').replace(/[^0-9]/g, ''), 10) || 0);
+
+    const formattedPrice = item.price || (rawNum > 0 ? `${rawNum.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ');
+
+    setFormData({ 
+      name: item.name || '', 
+      price: formattedPrice, 
+      priceNum: rawNum, 
+      period: item.period || '/ tháng', 
+      posts: item.posts || '10 bài', 
+      cvs: item.cvs || '100 / bài' 
+    });
     setEditingId(item.id);
     setIsModalOpen(true);
+  };
+
+  const handlePriceChange = (text: string) => {
+    const num = parseInt(text.replace(/[^0-9]/g, ''), 10) || 0;
+    setFormData(prev => ({
+      ...prev,
+      price: text,
+      priceNum: num
+    }));
+  };
+
+  const handlePriceNumChange = (numText: string) => {
+    const num = parseInt(numText.replace(/[^0-9]/g, ''), 10) || 0;
+    setFormData(prev => ({
+      ...prev,
+      priceNum: num,
+      price: num > 0 ? `${num.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ'
+    }));
   };
 
   const requestDelete = (id: string) => {
@@ -367,7 +391,21 @@ export const ServicePackages: React.FC = () => {
     if (formData.cvs.toLowerCase().includes('không giới hạn')) maxCVs = 99999;
     else maxCVs = parseInt(formData.cvs.replace(/[^0-9]/g, ''), 10) || 0;
 
-    const dataToSave = { ...formData, maxPosts, maxCVs };
+    const rawPriceNum = typeof formData.priceNum === 'number' && !isNaN(formData.priceNum)
+      ? formData.priceNum
+      : (parseInt(String(formData.price || '').replace(/[^0-9]/g, ''), 10) || 0);
+
+    const formattedPrice = formData.price && formData.price.trim() !== ''
+      ? formData.price
+      : (rawPriceNum > 0 ? `${rawPriceNum.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ');
+
+    const dataToSave = { 
+      ...formData, 
+      price: formattedPrice,
+      priceNum: rawPriceNum,
+      maxPosts, 
+      maxCVs 
+    };
 
     try {
       const targetId = editingId || `pkg-${Date.now()}`;
@@ -564,7 +602,7 @@ export const ServicePackages: React.FC = () => {
                     <Typography variant="caption" color="secondary">{emp.email}</Typography>
                   </View>
                   <View style={{ flex: 1.5 }}>
-                    <Badge status={emp.isVip ? 'warning' : emp.isPro ? 'brand' : 'default'}>
+                    <Badge status={emp.isVip ? 'warning' : emp.isPro ? 'info' : 'default'}>
                       {emp.packageName}
                     </Badge>
                   </View>
@@ -589,7 +627,6 @@ export const ServicePackages: React.FC = () => {
 
         <Pagination
           currentPage={empPage}
-          totalPages={Math.ceil(filteredEmpSubscriptions.length / empItemsPerPage) || 1}
           onPageChange={setEmpPage}
           totalItems={filteredEmpSubscriptions.length}
           itemsPerPage={empItemsPerPage}
@@ -754,13 +791,13 @@ export const ServicePackages: React.FC = () => {
           label="Mức giá (Hiển thị, VD: 50.000 VNĐ)" 
           placeholder="Nhập mức giá hiển thị..." 
           value={formData.price}
-          onChangeText={(text) => setFormData({...formData, price: text})}
+          onChangeText={handlePriceChange}
         />
         <Input 
-          label="Giá tiền thật sự (Số nguyên, VD: 50000)" 
-          placeholder="Dùng để thanh toán PayOS..." 
-          value={String(formData.priceNum || '')}
-          onChangeText={(text) => setFormData({...formData, priceNum: parseInt(text, 10) || 0})}
+          label="Giá tiền thanh toán PayOS (Số nguyên VNĐ, VD: 50000)" 
+          placeholder="Dùng để tạo mã QR thanh toán PayOS..." 
+          value={String(formData.priceNum || 0)}
+          onChangeText={handlePriceNumChange}
         />
         <Input 
           label="Giới hạn bài đăng" 

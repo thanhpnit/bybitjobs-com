@@ -131,14 +131,15 @@ export default function RecruiterPricingScreen() {
           dataFromDb.forEach((pkg: any) => {
             const isVip = pkg.id === 'premium' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('vip');
             const isPopular = pkg.id === 'pro' || pkg.isPopular || pkg.name?.toLowerCase().includes('pro');
-            const isFree = pkg.id === 'free' || pkg.priceNum === 0 || pkg.name?.toLowerCase().includes('miễn phí') || pkg.name?.toLowerCase().includes('starter');
+            const isFree = pkg.id === 'free' || pkg.id === 'starter' || pkg.name?.toLowerCase().includes('miễn phí') || pkg.name?.toLowerCase().includes('starter') || (!isVip && !isPopular);
 
-            let key = 'free';
-            if (isVip) key = 'premium';
-            else if (isPopular) key = 'pro';
+            let key = pkg.id || (isVip ? 'premium' : isPopular ? 'pro' : 'free');
 
-            let displayPrice = pkg.price || (isFree ? '0 VNĐ' : isPopular ? '499,000đ' : '799,000đ');
-            let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isFree ? 0 : isPopular ? 499000 : 799000);
+            const parsedPriceNum = typeof pkg.priceNum === 'number' && !isNaN(pkg.priceNum)
+              ? pkg.priceNum
+              : (parseInt(String(pkg.priceNum || pkg.price || '').replace(/[^0-9]/g, ''), 10) || 0);
+
+            const displayPrice = pkg.price || (parsedPriceNum > 0 ? `${parsedPriceNum.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ');
 
             let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '25 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
             let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? 'Không giới hạn CV' : 'KHÔNG GIỚI HẠN mở khóa CV');
@@ -147,9 +148,9 @@ export default function RecruiterPricingScreen() {
               id: key,
               name: pkg.name || (isVip ? 'Gói PREMIUM (VIP 👑)' : isPopular ? 'Gói PRO (Phổ Biến ⭐)' : 'Gói MIỄN PHÍ'),
               price: displayPrice,
-              priceNum: priceNum,
-              duration: isFree ? 'Vĩnh viễn' : '30 ngày',
-              tag: isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER',
+              priceNum: parsedPriceNum,
+              duration: pkg.period ? pkg.period.replace('/', '').trim() : (isFree ? 'Vĩnh viễn' : '30 ngày'),
+              tag: pkg.badge || (isVip ? 'ĐỘC QUYỀN TOP 1 👑' : isPopular ? 'BÁN CHẠY NHẤT ⭐' : 'CƠ BẢN STARTER'),
               subTag: isVip ? 'TIẾT KIỆM 47%' : isPopular ? 'TIẾT KIỆM 40%' : 'MIỄN PHÍ',
               features: [
                 `Đăng tối đa: ${postsText}`,

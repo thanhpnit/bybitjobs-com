@@ -1,24 +1,34 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Typography } from '../components/ui/Typography';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { Filter, Download, ArrowUpRight, MoreVertical } from 'lucide-react-native';
-import { MockChart } from '../components/ui/MockChart';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { ModernBarChart } from '../components/ui/ModernBarChart';
 import { Pagination } from '../components/ui/Pagination';
 
-const screenWidth = Dimensions.get('window').width;
+export interface TransactionItem {
+  id: string;
+  company: string;
+  package: string;
+  amount: string;
+  rawPrice: number;
+  rawDate: Date;
+  method: string;
+  time: string;
+  status: 'Completed' | 'Pending' | 'Failed';
+  color: string;
+  bg: string;
+}
 
-import { useEffect } from 'react';
 export const Payments: React.FC = () => {
   const { colors } = useTheme();
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filterForm, setFilterForm] = useState({ company: '', minPrice: '', maxPrice: '' });
@@ -35,19 +45,19 @@ export const Payments: React.FC = () => {
   });
 
   // Luôn luôn kết nối trực tiếp tới IP VPS thật
-  const apiHost = import.meta.env.VITE_API_URL || 'http://160.250.246.119:4000';
+  const apiHost = (import.meta as any).env?.VITE_API_URL || 'http://160.250.246.119:4000';
 
   useEffect(() => {
     fetch(`${apiHost}/api/orders`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const mapped = data.map((item: any) => {
+          const mapped: TransactionItem[] = data.map((item: any) => {
             const dateObj = new Date(item.createdAt);
-            let finalStatus = item.status;
-            if (finalStatus === 'pending') {
+            let finalStatus: 'Completed' | 'Pending' | 'Failed' = item.status === 'success' ? 'Completed' : item.status === 'pending' ? 'Pending' : 'Failed';
+            if (item.status === 'pending') {
               const isExpired = Date.now() - dateObj.getTime() > 10 * 60 * 1000;
-              if (isExpired) finalStatus = 'failed';
+              if (isExpired) finalStatus = 'Failed';
             }
 
             return {
@@ -59,7 +69,7 @@ export const Payments: React.FC = () => {
               rawDate: dateObj,
               method: 'PayOS',
               time: dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-              status: finalStatus === 'success' ? 'Completed' : finalStatus === 'pending' ? 'Pending' : 'Failed',
+              status: finalStatus,
               color: item.packageId === 'premium' ? '#D97706' : (item.packageId === 'diamond' ? '#0066FF' : '#6B7280'),
               bg: item.packageId === 'premium' ? '#FEF3C7' : (item.packageId === 'diamond' ? '#E6F0FF' : '#F3F4F6')
             };
@@ -68,18 +78,18 @@ export const Payments: React.FC = () => {
         }
       })
       .catch(err => console.error('Lỗi lấy danh sách giao dịch:', err));
-  }, []);
+  }, [apiHost]);
 
-  const dateFilteredTransactions = React.useMemo(() => {
+  const dateFilteredTransactions = useMemo(() => {
     const start = new Date(fromDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(toDate);
     end.setHours(23, 59, 59, 999);
-    return transactions.filter(item => item.rawDate >= start && item.rawDate <= end);
+    return transactions.filter((item: TransactionItem) => item.rawDate >= start && item.rawDate <= end);
   }, [transactions, fromDate, toDate]);
 
-  const filteredTransactions = React.useMemo(() => {
-    return dateFilteredTransactions.filter(item => {
+  const filteredTransactions = useMemo(() => {
+    return dateFilteredTransactions.filter((item: TransactionItem) => {
       // Basic search
       const matchSearch = item.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
         item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -103,10 +113,10 @@ export const Payments: React.FC = () => {
     });
   }, [dateFilteredTransactions, searchQuery, appliedFilters]);
 
-  const totalRevenue = React.useMemo(() => {
+  const totalRevenue = useMemo(() => {
     return dateFilteredTransactions
-      .filter(t => t.status === 'Completed')
-      .reduce((sum, t) => sum + t.rawPrice, 0);
+      .filter((t: TransactionItem) => t.status === 'Completed')
+      .reduce((sum: number, t: TransactionItem) => sum + t.rawPrice, 0);
   }, [dateFilteredTransactions]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -160,13 +170,13 @@ export const Payments: React.FC = () => {
         const monthEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
         const monthStr = `Tháng ${(m + 1).toString().padStart(2, '0')}/${currentYear}`;
 
-        const monthTxns = transactions.filter(t => {
-          if (t.status !== 'Completed' && t.status !== 'success') return false;
+        const monthTxns = transactions.filter((t: TransactionItem) => {
+          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
           return t.rawDate >= monthStart && t.rawDate <= monthEnd;
         });
 
-        const allMonthTxns = transactions.filter(t => t.rawDate >= monthStart && t.rawDate <= monthEnd);
-        const dailyRev = monthTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+        const allMonthTxns = transactions.filter((t: TransactionItem) => t.rawDate >= monthStart && t.rawDate <= monthEnd);
+        const dailyRev = monthTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
 
         monthlyRows.push({
           date: monthStr,
@@ -195,13 +205,13 @@ export const Payments: React.FC = () => {
 
         const weekLabel = `Tuần ${w + 1} (${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1})`;
 
-        const weekTxns = transactions.filter(t => {
-          if (t.status !== 'Completed' && t.status !== 'success') return false;
+        const weekTxns = transactions.filter((t: TransactionItem) => {
+          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
           return t.rawDate >= weekStart && t.rawDate <= weekEnd;
         });
 
-        const allWeekTxns = transactions.filter(t => t.rawDate >= weekStart && t.rawDate <= weekEnd);
-        const weekRev = weekTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+        const allWeekTxns = transactions.filter((t: TransactionItem) => t.rawDate >= weekStart && t.rawDate <= weekEnd);
+        const weekRev = weekTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
 
         weeklyRows.push({
           date: weekLabel,
@@ -233,13 +243,13 @@ export const Payments: React.FC = () => {
         const dayEnd = new Date(d);
         dayEnd.setHours(23, 59, 59, 999);
 
-        const dayTxns = transactions.filter(t => {
-          if (t.status !== 'Completed' && t.status !== 'success') return false;
+        const dayTxns = transactions.filter((t: TransactionItem) => {
+          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
           return t.rawDate >= dayStart && t.rawDate <= dayEnd;
         });
 
-        const allDayTxns = transactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
-        const dailyRev = dayTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+        const allDayTxns = transactions.filter((t: TransactionItem) => t.rawDate >= dayStart && t.rawDate <= dayEnd);
+        const dailyRev = dayTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
 
         customRows.push({
           date: dateStr,
@@ -265,13 +275,13 @@ export const Payments: React.FC = () => {
 
         const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
 
-        const dayTxns = transactions.filter(t => {
-          if (t.status !== 'Completed' && t.status !== 'success') return false;
+        const dayTxns = transactions.filter((t: TransactionItem) => {
+          if (t.status !== 'Completed' && (t.status as string) !== 'success') return false;
           return t.rawDate >= dayStart && t.rawDate <= dayEnd;
         });
 
-        const allDayTxns = transactions.filter(t => t.rawDate >= dayStart && t.rawDate <= dayEnd);
-        const dailyRev = dayTxns.reduce((sum, t) => sum + (t.rawPrice || 0), 0);
+        const allDayTxns = transactions.filter((t: TransactionItem) => t.rawDate >= dayStart && t.rawDate <= dayEnd);
+        const dailyRev = dayTxns.reduce((sum: number, t: TransactionItem) => sum + (t.rawPrice || 0), 0);
 
         dailyRows.push({
           date: dateStr,
@@ -288,7 +298,7 @@ export const Payments: React.FC = () => {
     }
   }, [viewMode, transactions, fromDate, toDate]);
 
-  const todayStats = React.useMemo(() => {
+  const todayStats = useMemo(() => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -299,8 +309,8 @@ export const Payments: React.FC = () => {
     const yesterdayEnd = new Date(todayEnd);
     yesterdayEnd.setDate(todayEnd.getDate() - 1);
     
-    const todayCount = transactions.filter(t => t.rawDate >= todayStart && t.rawDate <= todayEnd).length;
-    const yesterdayCount = transactions.filter(t => t.rawDate >= yesterdayStart && t.rawDate <= yesterdayEnd).length;
+    const todayCount = transactions.filter((t: TransactionItem) => t.rawDate >= todayStart && t.rawDate <= todayEnd).length;
+    const yesterdayCount = transactions.filter((t: TransactionItem) => t.rawDate >= yesterdayStart && t.rawDate <= yesterdayEnd).length;
     
     let growth = 0;
     let growthText = "Không đổi";
@@ -315,9 +325,9 @@ export const Payments: React.FC = () => {
     return { count: todayCount, growthText };
   }, [transactions]);
 
-  const successRate = React.useMemo(() => {
+  const successRate = useMemo(() => {
     if (dateFilteredTransactions.length === 0) return "0.0";
-    const successCount = dateFilteredTransactions.filter(t => t.status === 'Completed').length;
+    const successCount = dateFilteredTransactions.filter((t: TransactionItem) => t.status === 'Completed').length;
     return ((successCount / dateFilteredTransactions.length) * 100).toFixed(1);
   }, [dateFilteredTransactions]);
 
@@ -463,7 +473,7 @@ export const Payments: React.FC = () => {
               <Typography variant="caption" color="muted" style={styles.colAction}>Hành động</Typography>
             </View>
 
-            {filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
+            {filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: TransactionItem, index: number) => (
               <View key={index} style={[styles.tableRow, { borderBottomColor: colors.borderLight }]}>
                 <Typography variant="subtitle2" color="brand" style={styles.colId}>{item.id}</Typography>
                 <View style={[styles.colCompany, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
@@ -510,7 +520,7 @@ export const Payments: React.FC = () => {
           label="Tên nhà tuyển dụng" 
           placeholder="Ví dụ: Bybit..." 
           value={filterForm.company}
-          onChangeText={(t) => setFilterForm({...filterForm, company: t})}
+          onChangeText={(t: string) => setFilterForm(prev => ({...prev, company: t}))}
         />
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
@@ -518,7 +528,7 @@ export const Payments: React.FC = () => {
               label="Giá trị từ (VNĐ)" 
               placeholder="VD: 100000" 
               value={filterForm.minPrice}
-              onChangeText={(t) => setFilterForm({...filterForm, minPrice: t})}
+              onChangeText={(t: string) => setFilterForm(prev => ({...prev, minPrice: t}))}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -526,7 +536,7 @@ export const Payments: React.FC = () => {
               label="Đến (VNĐ)" 
               placeholder="VD: 500000" 
               value={filterForm.maxPrice}
-              onChangeText={(t) => setFilterForm({...filterForm, maxPrice: t})}
+              onChangeText={(t: string) => setFilterForm(prev => ({...prev, maxPrice: t}))}
             />
           </View>
         </View>

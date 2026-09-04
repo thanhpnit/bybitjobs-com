@@ -10,7 +10,7 @@ const {
   doc, 
   setDoc, 
   addDoc, 
-  serverTimestamp 
+  serverTimestamp
 } = require('c:/Users/LENOVO/Desktop/bybitjobs-com/bybitjobs-mobile-app/node_modules/firebase/firestore');
 
 const firebaseConfig = {

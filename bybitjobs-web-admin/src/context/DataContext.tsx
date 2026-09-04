@@ -147,7 +147,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 2. Packages
     const unsubPackages = onSnapshot(collection(db, 'packages'), (snapshot) => {
       const data: any[] = [];
-      snapshot.forEach(d => data.push(d.data()));
+      snapshot.forEach(d => {
+        data.push({ id: d.id, ...d.data() });
+      });
 
       if (data.length === 0) {
         initialPackages.forEach(async (pkg) => {
@@ -307,7 +309,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPackagesState(data);
     try {
       const batch = data.map(async (pkg) => {
-        await setDoc(doc(db, 'packages', pkg.id), pkg);
+        const pkgId = pkg.id;
+        if (pkgId) {
+          await setDoc(doc(db, 'packages', pkgId), pkg, { merge: true });
+        }
       });
       await Promise.all(batch);
     } catch (e) {
