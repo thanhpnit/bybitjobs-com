@@ -308,7 +308,7 @@ export default function RecruiterEditJobScreen() {
           {
             text: 'Đồng ý',
             onPress: () => {
-              router.replace('/recruiter/jobs');
+              router.replace('/(tabs)/community');
             },
           },
         ]);
@@ -319,7 +319,7 @@ export default function RecruiterEditJobScreen() {
         {
           text: 'Đồng ý',
           onPress: () => {
-            router.replace('/recruiter/jobs');
+            router.replace('/(tabs)/community');
           },
         },
       ]);

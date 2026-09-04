@@ -101,7 +101,19 @@ export default function RecruiterJobsScreen() {
 
       {/* Top Header Bar */}
       <View style={styles.headerBar}>
-        <View style={styles.iconBtn} />
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          style={styles.iconBtn} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.push('/recruiter/dashboard');
+            }
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
         <Text style={styles.headerBarTitle}>Quản lý tuyển dụng</Text>
         <TouchableOpacity 
           activeOpacity={0.7} 
@@ -486,7 +498,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 110,
   },
   emptyContainer: {
     paddingVertical: 60,

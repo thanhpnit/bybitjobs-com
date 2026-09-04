@@ -1083,7 +1083,19 @@ export default function RecruiterProfileScreen() {
 
         {/* Header Bar */}
         <View style={styles.headerBar}>
-          <View style={styles.iconBtn} />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={styles.iconBtn}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.push('/recruiter/dashboard');
+              }
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
           <Text style={[styles.headerBarTitle, { color: '#FFF' }]}>Cá nhân</Text>
           <TouchableOpacity
             activeOpacity={0.7}

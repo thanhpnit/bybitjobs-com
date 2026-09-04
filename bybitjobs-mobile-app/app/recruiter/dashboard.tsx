@@ -386,13 +386,19 @@ export default function RecruiterDashboardScreen() {
 
   const combinedJobs: MarketJobItem[] = openJobs.map((job) => {
     const posterName = getPosterName(job);
-    const isPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
-    const titleLower = (job.title || '').toLowerCase();
-    const isUrgent = (job as any).urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
-    const isHot = isPremium || (job as any).isHot === true || (job as any).isFeatured === true || ((job as any).viewsCount || 0) > 10;
     const dynamicRating = getCompanyRating(posterName, Number((job as any).companyRating || (employerData as any)?.rating || 5.0));
 
+    const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
+    const isEmployerPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
+    const isPremium = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;
+    const isPro = !isPremium && (job.isPro === true || rawPkg.includes('PRO') || (job as any).packageTier === 'PRO');
+
+    const titleLower = (job.title || '').toLowerCase();
+    const isUrgent = (job as any).urgent === true || (job as any).isUrgent === true || titleLower.includes('gấp') || titleLower.includes('urgent');
+    const isHot = isPremium || isPro || (job as any).isHot === true || (job as any).isFeatured === true || ((job as any).viewsCount || 0) > 10;
+
     return {
+      ...job,
       id: job.id,
       title: job.title,
       image: null,
@@ -411,6 +417,8 @@ export default function RecruiterDashboardScreen() {
       originalIndustry: job.industry,
       createdAt: job.createdAt,
       isPremium,
+      isPro,
+      packageTier: isPremium ? 'PREMIUM' : isPro ? 'PRO' : 'FREE',
       isHot,
       isUrgent,
     } as any;

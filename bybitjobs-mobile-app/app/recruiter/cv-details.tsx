@@ -128,7 +128,7 @@ export default function RecruiterCvDetailsScreen() {
     const fetchAIMatchScore = async () => {
       setIsLoadingMatch(true);
       try {
-        const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.bybitjobs.com';
+        const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://160.250.246.119:4000';
         const response = await fetch(`${baseUrl}/api/ai/candidate-match-score`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
