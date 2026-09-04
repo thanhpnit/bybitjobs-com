@@ -37,7 +37,7 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, updateBanner, disableAccount } = useAuth();
+  const { employerData, updateCompany, jobs, logout, resetAppData, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, updateBanner, disableAccount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -378,6 +378,28 @@ export default function RecruiterProfileScreen() {
             router.replace('/(tabs)');
           },
         },
+      ]
+    );
+  };
+
+  const handleResetAppData = () => {
+    Alert.alert(
+      'Khôi phục dữ liệu gốc',
+      'Bạn có chắc chắn muốn đặt lại ứng dụng về trạng thái mới ban đầu? Toàn bộ tài khoản đã lưu, bộ nhớ đệm và dữ liệu trên thiết bị sẽ bị xóa sạch.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đặt lại ngay',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await resetAppData();
+            if (res.success) {
+              Alert.alert('Thành công', 'Đã đặt lại dữ liệu ứng dụng về trạng thái ban đầu.');
+            } else {
+              Alert.alert('Lỗi', res.message || 'Không thể đặt lại dữ liệu.');
+            }
+          }
+        }
       ]
     );
   };
@@ -1533,6 +1555,7 @@ export default function RecruiterProfileScreen() {
                       ]
                     );
                   })}
+                  {renderSettingRow('refresh-circle-outline', 'Khôi phục dữ liệu gốc (Reset App)', handleResetAppData)}
                 </View>
 
                 <TouchableOpacity
@@ -1562,10 +1585,30 @@ export default function RecruiterProfileScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={handleLogout}
-                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 20, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
+                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 12, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
                 >
                   <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
                   <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleResetAppData}
+                  style={[
+                    styles.bigLogoutButton,
+                    {
+                      marginHorizontal: 16,
+                      marginTop: 0,
+                      marginBottom: 24,
+                      backgroundColor: isDark ? '#262015' : '#FFF9E6',
+                      borderColor: '#FF9500',
+                      borderWidth: 1,
+                      width: undefined,
+                    }
+                  ]}
+                >
+                  <Ionicons name="refresh-outline" size={20} color="#FF9500" style={{ marginRight: 8 }} />
+                  <Text style={[styles.bigLogoutButtonText, { color: '#FF9500' }]}>Khôi phục dữ liệu gốc (Reset App)</Text>
                 </TouchableOpacity>
 
               </ScrollView>

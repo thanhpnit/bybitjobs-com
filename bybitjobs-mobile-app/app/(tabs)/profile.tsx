@@ -32,6 +32,7 @@ function CandidateProfileScreen() {
   const {
     isLoggedIn,
     logout,
+    resetAppData,
     userData,
     userRole,
     employerData,
@@ -455,6 +456,28 @@ function CandidateProfileScreen() {
       [
         { text: 'Hủy', style: 'cancel' },
         { text: 'Đăng xuất', style: 'destructive', onPress: logout }
+      ]
+    );
+  };
+
+  const handleResetAppData = () => {
+    Alert.alert(
+      'Khôi phục dữ liệu gốc',
+      'Bạn có chắc chắn muốn đặt lại ứng dụng về trạng thái mới ban đầu? Toàn bộ tài khoản đã lưu, bộ nhớ đệm, lịch sử xem và dữ liệu tạm trên thiết bị sẽ được xóa sạch.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đặt lại ngay',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await resetAppData();
+            if (res.success) {
+              Alert.alert('Thành công', 'Đã đặt lại dữ liệu ứng dụng về trạng thái ban đầu.');
+            } else {
+              Alert.alert('Lỗi', res.message || 'Không thể đặt lại dữ liệu.');
+            }
+          }
+        }
       ]
     );
   };
@@ -2120,6 +2143,7 @@ function CandidateProfileScreen() {
             {renderSettingRow('information-circle-outline', 'Trung tâm trợ giúp', () => { setPolicyModalType('help'); setIsPolicyModalVisible(true); })}
             {renderSettingRow('chatbox-ellipses-outline', 'Gửi ý kiến phản hồi', () => { setPolicyModalType('feedback'); setIsPolicyModalVisible(true); })}
             {renderSettingRow('call-outline', 'Liên hệ hỗ trợ 24/7', () => { setPolicyModalType('contact'); setIsPolicyModalVisible(true); })}
+            {renderSettingRow('refresh-circle-outline', 'Khôi phục dữ liệu gốc (Reset App)', handleResetAppData)}
           </View>
 
           {/* 8. Elegant Bottom Logout Button */}
@@ -2142,6 +2166,23 @@ function CandidateProfileScreen() {
               <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleResetAppData}
+            style={[
+              styles.bigLogoutButton,
+              {
+                backgroundColor: isDark ? '#262015' : '#FFF9E6',
+                borderColor: '#FF9500',
+                borderWidth: 1,
+                marginTop: 10,
+              }
+            ]}
+          >
+            <Ionicons name="refresh-outline" size={20} color="#FF9500" style={{ marginRight: 8 }} />
+            <Text style={[styles.bigLogoutButtonText, { color: '#FF9500' }]}>Khôi phục dữ liệu gốc (Reset App)</Text>
+          </TouchableOpacity>
 
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
