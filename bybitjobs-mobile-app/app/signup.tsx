@@ -102,7 +102,7 @@ export default function SignupScreen() {
       return;
     }
 
-    const result = await signup(fullName.trim(), email.trim(), password);
+    const result = await signup(email.trim(), fullName.trim(), password);
 
     if (!result.success) {
       Alert.alert('Đăng ký thất bại', result.message);
