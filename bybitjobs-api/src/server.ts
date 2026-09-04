@@ -2433,6 +2433,55 @@ Trả về CHÍNH XÁC 1 Object JSON (không bọc markdown):
   }
 });
 
+// API AI Viết thư giới thiệu (Cover Letter Generator cho Ứng viên)
+app.post('/api/ai/cover-letter', async (req: Request, res: Response): Promise<any> => {
+  const { jobTitle, companyName, candidateName, desiredJob } = req.body;
+  const apiKey = getGeminiApiKey();
+
+  try {
+    const prompt = `
+Bạn là Trợ lý Tuyển dụng AI chuyên nghiệp. Hãy viết một bức Thư Giới Thiệu (Cover Letter) ấn tượng, tự nhiên và thuyết phục bằng Tiếng Việt cho ứng viên ứng tuyển công việc.
+
+[THÔNG TIN ỨNG VIÊN VÀ VỊ TRÍ]
+- Họ và tên ứng viên: ${candidateName || 'Ứng viên'}
+- Vị trí ứng tuyển: ${jobTitle || desiredJob || 'Vị trí chuyên môn'}
+- Tên công ty/nhà tuyển dụng: ${companyName || 'Công ty'}
+
+[YÊU CẦU BÀI VIẾT]
+1. Văn phong: Chuyên nghiệp, tự tin, lịch sự, trôi chảy bằng Tiếng Việt.
+2. Cấu trúc: 
+   - Lời chào trang trọng đến Nhà tuyển dụng / Trưởng phòng Nhân sự ${companyName || ''}.
+   - Nêu lý do hào hứng ứng tuyển vào vị trí ${jobTitle || 'công việc'}.
+   - Tóm tắt ngắn gọn thế mạnh, tinh thần trách nhiệm và mong muốn đóng góp cho công ty.
+   - Lời cảm ơn và đề nghị một buổi trao đổi / phỏng vấn trực tiếp.
+3. Độ dài: Khoảng 3-4 đoạn ngắn gọn (150 - 250 từ). Tuyệt đối không xuất mã code block hay ký tự lạ.
+
+Hãy trả về CHÍNH XÁC duy nhất nội dung Thư Giới Thiệu thuần văn bản (không bọc markdown block).
+    `;
+
+    const result = await generateGeminiContent(apiKey, prompt);
+    let coverLetter = result.response.text().trim();
+
+    coverLetter = coverLetter.replace(/^```[a-z]*\n?/gi, '').replace(/\n?```$/gi, '').trim();
+
+    if (!coverLetter || coverLetter.includes('Hệ thống AI đang sử dụng chế độ tạo nội dung')) {
+      coverLetter = `Kính gửi Nhà tuyển dụng ${companyName || 'Công ty'},\n\nTôi tên là ${candidateName || 'Ứng viên'}, tôi viết thư này để bày tỏ sự quan tâm sâu sắc đến vị trí ${jobTitle || 'công việc'} tại quý công ty. Với tinh thần học hỏi cao, trách nhiệm và kỹ năng phù hợp, tôi tin rằng mình có thể đóng góp tích cực vào sự phát triển của công ty.\n\nRất mong có cơ hội được trao đổi trực tiếp với anh/chị trong buổi phỏng vấn.\n\nXin chân thành cảm ơn,\n${candidateName || 'Ứng viên'}`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      coverLetter
+    });
+  } catch (error: any) {
+    console.error('Error generating cover letter:', error);
+    const fallbackLetter = `Kính gửi Nhà tuyển dụng ${companyName || 'Công ty'},\n\nTôi tên là ${candidateName || 'Ứng viên'}, tôi viết thư này để ứng tuyển vào vị trí ${jobTitle || 'công việc'}. Tôi mong muốn mang năng lực và sự nhiệt huyết của mình để cống hiến cho quý công ty.\n\nRất mong nhận được phản hồi từ anh/chị.\n\nTrân trọng,\n${candidateName || 'Ứng viên'}`;
+    return res.status(200).json({
+      success: true,
+      coverLetter: fallbackLetter
+    });
+  }
+});
+
 // API AI Career & Recruitment Advisor Chatbot
 app.post('/api/ai/career-advisor', async (req: Request, res: Response): Promise<any> => {
   const { messages, userRole, mode, jobPosition } = req.body;
