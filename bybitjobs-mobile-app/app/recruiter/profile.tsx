@@ -37,7 +37,7 @@ export default function RecruiterProfileScreen() {
   const isIphoneWithNotch = bottomInset > 0;
 
   // Destructure needed properties from useAuth
-  const { employerData, updateCompany, jobs, logout, resetAppData, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, updateBanner, disableAccount } = useAuth();
+  const { employerData, updateCompany, jobs, logout, userData, switchRole, unreadNotificationsCount, changePassword, updateAvatar, updateBanner, disableAccount } = useAuth();
 
   // Mode state: false for dashboard/packages overview, true for edit profile form
   const [isEditing, setIsEditing] = React.useState(false);
@@ -62,7 +62,7 @@ export default function RecruiterProfileScreen() {
   const [phone, setPhone] = React.useState(employerData?.phoneNumber || '0123 456 789');
   const [address, setAddress] = React.useState(employerData?.address || 'Quận 7, TP. Hồ Chí Minh');
   const [industry, setIndustry] = React.useState(employerData?.industry || 'Sản xuất / Vận tải');
-  
+
   const [isIndustryModalVisible, setIsIndustryModalVisible] = React.useState(false);
   const [isScaleModalVisible, setIsScaleModalVisible] = React.useState(false);
   const [industryOptions, setIndustryOptions] = React.useState<string[]>(['Công nghệ thông tin', 'Khác']);
@@ -174,7 +174,7 @@ export default function RecruiterProfileScreen() {
         Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập thư viện ảnh để tải lên logo.');
         return;
       }
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -188,8 +188,8 @@ export default function RecruiterProfileScreen() {
         const asset = result.assets[0];
         let imageUri = asset.uri;
         if (asset.base64) {
-          imageUri = asset.base64.startsWith('data:image') 
-            ? asset.base64 
+          imageUri = asset.base64.startsWith('data:image')
+            ? asset.base64
             : `data:image/jpeg;base64,${asset.base64}`;
         }
         setLogoImageFailed(false);
@@ -382,28 +382,6 @@ export default function RecruiterProfileScreen() {
     );
   };
 
-  const handleResetAppData = () => {
-    Alert.alert(
-      'Khôi phục dữ liệu gốc',
-      'Bạn có chắc chắn muốn đặt lại ứng dụng về trạng thái mới ban đầu? Toàn bộ tài khoản đã lưu, bộ nhớ đệm và dữ liệu trên thiết bị sẽ bị xóa sạch.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đặt lại ngay',
-          style: 'destructive',
-          onPress: async () => {
-            const res = await resetAppData();
-            if (res.success) {
-              Alert.alert('Thành công', 'Đã đặt lại dữ liệu ứng dụng về trạng thái ban đầu.');
-            } else {
-              Alert.alert('Lỗi', res.message || 'Không thể đặt lại dữ liệu.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   // Reusable row for settings
   const renderSettingRow = (
     iconName: any,
@@ -476,11 +454,11 @@ export default function RecruiterProfileScreen() {
           if (isVip) key = 'premium';
           else if (isPopular) key = 'pro';
 
-          let displayPrice = pkg.price || (isVip ? '799,000đ' : isPopular ? '499,000đ' : '0 VNĐ');
-          let priceNum = typeof pkg.priceNum === 'number' ? pkg.priceNum : (isVip ? 799000 : isPopular ? 499000 : 0);
+          let displayPrice = isVip ? '799,000đ' : isPopular ? '299,000đ' : '0 VNĐ';
+          let priceNum = isVip ? 799000 : isPopular ? 299000 : 0;
 
-          let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '25 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
-          let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? 'Không giới hạn CV' : 'KHÔNG GIỚI HẠN mở khóa CV');
+          let postsText = pkg.posts || (isFree ? '5 tin tuyển dụng' : isPopular ? '15 tin tuyển dụng' : 'KHÔNG GIỚI HẠN tin đăng');
+          let cvsText = pkg.cvs || (isFree ? '10 CV ứng viên' : isPopular ? '50 CV ứng viên' : 'KHÔNG GIỚI HẠN mở khóa CV');
 
           mapByTier[key] = {
             id: key,
@@ -1144,7 +1122,7 @@ export default function RecruiterProfileScreen() {
                   {(() => {
                     const rawLogo = employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url;
                     const hasLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.trim().length > 5 && !logoImageFailed;
-                    
+
                     if (hasLogo) {
                       let formattedUri = rawLogo.trim();
                       if (!formattedUri.startsWith('http') && !formattedUri.startsWith('data:image') && !formattedUri.startsWith('file:')) {
@@ -1333,7 +1311,7 @@ export default function RecruiterProfileScreen() {
             const currentPkgInfo = getEmployerPackageTier(employerData);
             const currentTier = (currentPkgInfo?.tier || 'FREE').toUpperCase();
             const isExpired = currentPkgInfo?.isExpired;
-            
+
             let isCurrentActivePkg = false;
             if (!isExpired) {
               if (pkg.id === 'premium' || pkg.isVip) isCurrentActivePkg = currentTier === 'PREMIUM';
@@ -1450,212 +1428,191 @@ export default function RecruiterProfileScreen() {
             );
           })}
 
-                {/* 7. Benefits Section */}
-                <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 20, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>
-                  Lợi ích khi nâng cấp
+          {/* 7. Benefits Section */}
+          <Text style={[styles.empSectionTitle, { paddingHorizontal: 16, marginTop: 20, marginBottom: 16, color: isDark ? '#FFF' : '#11181C' }]}>
+            Lợi ích khi nâng cấp
+          </Text>
+
+          {benefits.map((benefit, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.empBenefitCard,
+                { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' },
+              ]}
+            >
+              <View style={[styles.empBenefitIconFrame, { backgroundColor: isDark ? '#2C2C2E' : '#E6F4FE' }]}>
+                <Ionicons name={benefit.icon} size={20} color="#0084FF" />
+              </View>
+              <View style={styles.empBenefitTextCol}>
+                <Text style={[styles.empBenefitCardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                  {benefit.title}
                 </Text>
+                <Text style={[styles.empBenefitCardDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
+                  {benefit.desc}
+                </Text>
+              </View>
+            </View>
+          ))}
 
-                {benefits.map((benefit, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.empBenefitCard,
-                      { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? '#2C2C2E' : '#E5E7EB' },
-                    ]}
-                  >
-                    <View style={[styles.empBenefitIconFrame, { backgroundColor: isDark ? '#2C2C2E' : '#E6F4FE' }]}>
-                      <Ionicons name={benefit.icon} size={20} color="#0084FF" />
-                    </View>
-                    <View style={styles.empBenefitTextCol}>
-                      <Text style={[styles.empBenefitCardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                        {benefit.title}
-                      </Text>
-                      <Text style={[styles.empBenefitCardDesc, { color: isDark ? '#9BA1A6' : '#687076' }]}>
-                        {benefit.desc}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
+          {/* 8. Elegant Bottom Promo Banner */}
+          <View style={styles.empPromoFrame}>
+            <Image
+              source={require('../../assets/images/small_jobs_banner.png')}
+              style={styles.empPromoImage}
+              resizeMode="cover"
+            />
+            <View style={styles.empPromoOverlay}>
+              <Text style={styles.empPromoText}>Hàng ngàn doanh nghiệp đã tin dùng</Text>
+            </View>
+          </View>
 
-                {/* 8. Elegant Bottom Promo Banner */}
-                <View style={styles.empPromoFrame}>
-                  <Image
-                    source={require('../../assets/images/small_jobs_banner.png')}
-                    style={styles.empPromoImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.empPromoOverlay}>
-                    <Text style={styles.empPromoText}>Hàng ngàn doanh nghiệp đã tin dùng</Text>
-                  </View>
-                </View>
+          {/* 9. Settings Options & Logout for Employer */}
+          <View style={[styles.whiteCard, isDark && styles.darkCard, { marginHorizontal: 16, paddingBottom: 6 }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="settings-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
+              <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
+                Cài đặt tài khoản & Hỗ trợ
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
 
-                {/* 9. Settings Options & Logout for Employer */}
-                <View style={[styles.whiteCard, isDark && styles.darkCard, { marginHorizontal: 16, paddingBottom: 6 }]}>
-                  <View style={styles.cardHeader}>
-                    <Ionicons name="settings-outline" size={20} color="#0084FF" style={styles.cardHeaderIcon} />
-                    <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
-                      Cài đặt tài khoản & Hỗ trợ
-                    </Text>
-                  </View>
-                  <View style={[styles.divider, { backgroundColor: isDark ? '#2C2C2E' : '#ECEFF1' }]} />
-
-                  {renderSettingRow('business-outline', 'Thông tin công ty', () => setIsEditing(true))}
-                  {renderSettingRow('key-outline', 'Đổi mật khẩu tài khoản', () => setIsChangePasswordModalVisible(true))}
-                  {renderSettingRow('receipt-outline', 'Lịch sử giao dịch', () => router.push('/recruiter/transactions' as any))}
-                  {renderSettingRow('notifications-outline', 'Cài đặt thông báo', () => {
-                    Alert.alert('Cài đặt thông báo', 'Thông báo đẩy (Push Notifications) và Email thông báo ứng viên mới hiện đang được BẬT.', [{ text: 'Đóng' }]);
-                  })}
-                  {renderSettingRow('call-outline', 'Tổng đài Hỗ trợ CSKH 24/7 (1900 6888)', () => {
-                    Alert.alert(
-                      'Tổng đài CSKH VIP',
-                      'Bạn có muốn gọi trực tiếp tới Tổng đài hỗ trợ tuyển dụng 1900 6888 không?',
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Gọi ngay', onPress: () => Linking.openURL('tel:19006888') }
-                      ]
-                    );
-                  })}
-                  {renderSettingRow('chatbubbles-outline', 'Hỗ trợ trực tuyến / Zalo OA', () => {
-                    Alert.alert(
-                      'Hỗ trợ trực tuyến',
-                      'Gửi email hỗ trợ trực tiếp đến bộ phận Chăm sóc khách hàng BybitJobs:',
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        { text: 'Gửi Mail CSKH', onPress: () => Linking.openURL('mailto:support@bybitjobs.com?subject=Ho%20tro%20Nha%20tuyen%20dung') }
-                      ]
-                    );
-                  })}
-                  {renderSettingRow('book-outline', 'Hướng dẫn đăng tin & Mẹo tuyển dụng', () => setIsGuideModalVisible(true))}
-                  {renderSettingRow('alert-circle-outline', 'Vô hiệu hóa tài khoản doanh nghiệp', () => {
-                    Alert.alert(
-                      'Xác nhận vô hiệu hóa tài khoản',
-                      'Bạn có chắc chắn muốn vô hiệu hóa tài khoản Nhà tuyển dụng không? Tất cả tin tuyển dụng đang mở sẽ tạm ẩn khỏi hệ thống.',
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        {
-                          text: 'Vô hiệu hóa ngay',
-                          style: 'destructive',
-                          onPress: async () => {
-                            const res = await disableAccount();
-                            if (res.success) {
-                              Alert.alert('Đã vô hiệu hóa', res.message, [
-                                {
-                                  text: 'Đăng xuất',
-                                  onPress: async () => {
-                                    await logout();
-                                    router.replace('/(tabs)');
-                                  }
-                                }
-                              ]);
-                            } else {
-                              Alert.alert('Thất bại', res.message);
+            {renderSettingRow('business-outline', 'Thông tin công ty', () => setIsEditing(true))}
+            {renderSettingRow('key-outline', 'Đổi mật khẩu tài khoản', () => setIsChangePasswordModalVisible(true))}
+            {renderSettingRow('receipt-outline', 'Lịch sử giao dịch', () => router.push('/recruiter/transactions' as any))}
+            {renderSettingRow('notifications-outline', 'Cài đặt thông báo', () => {
+              Alert.alert('Cài đặt thông báo', 'Thông báo đẩy (Push Notifications) và Email thông báo ứng viên mới hiện đang được BẬT.', [{ text: 'Đóng' }]);
+            })}
+            {renderSettingRow('call-outline', 'Tổng đài Hỗ trợ CSKH 24/7 (1900 6888)', () => {
+              Alert.alert(
+                'Tổng đài CSKH VIP',
+                'Bạn có muốn gọi trực tiếp tới Tổng đài hỗ trợ tuyển dụng 1900 6888 không?',
+                [
+                  { text: 'Hủy', style: 'cancel' },
+                  { text: 'Gọi ngay', onPress: () => Linking.openURL('tel:19006888') }
+                ]
+              );
+            })}
+            {renderSettingRow('chatbubbles-outline', 'Hỗ trợ trực tuyến / Zalo OA', () => {
+              Alert.alert(
+                'Hỗ trợ trực tuyến',
+                'Gửi email hỗ trợ trực tiếp đến bộ phận Chăm sóc khách hàng BybitJobs:',
+                [
+                  { text: 'Hủy', style: 'cancel' },
+                  { text: 'Gửi Mail CSKH', onPress: () => Linking.openURL('mailto:support@bybitjobs.com?subject=Ho%20tro%20Nha%20tuyen%20dung') }
+                ]
+              );
+            })}
+            {renderSettingRow('book-outline', 'Hướng dẫn đăng tin & Mẹo tuyển dụng', () => setIsGuideModalVisible(true))}
+            {renderSettingRow('alert-circle-outline', 'Vô hiệu hóa tài khoản doanh nghiệp', () => {
+              Alert.alert(
+                'Xác nhận vô hiệu hóa tài khoản',
+                'Bạn có chắc chắn muốn vô hiệu hóa tài khoản Nhà tuyển dụng không? Tất cả tin tuyển dụng đang mở sẽ tạm ẩn khỏi hệ thống.',
+                [
+                  { text: 'Hủy', style: 'cancel' },
+                  {
+                    text: 'Vô hiệu hóa ngay',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const res = await disableAccount();
+                      if (res.success) {
+                        Alert.alert('Đã vô hiệu hóa', res.message, [
+                          {
+                            text: 'Đăng xuất',
+                            onPress: async () => {
+                              await logout();
+                              router.replace('/(tabs)');
                             }
                           }
-                        }
-                      ]
-                    );
-                  })}
-                  {renderSettingRow('refresh-circle-outline', 'Khôi phục dữ liệu gốc (Reset App)', handleResetAppData)}
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    Alert.alert(
-                      'Chuyển vai trò',
-                      'Bạn có chắc chắn muốn quay lại giao diện Người tìm việc không?',
-                      [
-                        { text: 'Hủy', style: 'cancel' },
-                        {
-                          text: 'Đồng ý',
-                          onPress: () => {
-                            switchRole('candidate');
-                            router.replace('/(tabs)/profile');
-                          }
-                        }
-                      ]
-                    );
-                  }}
-                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 16, marginBottom: 8, backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', width: undefined }]}
-                >
-                  <Ionicons name="people-outline" size={20} color="#0084FF" style={{ marginRight: 8 }} />
-                  <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Quay lại vai trò Người tìm việc</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleLogout}
-                  style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 12, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
-                >
-                  <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
-                  <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleResetAppData}
-                  style={[
-                    styles.bigLogoutButton,
-                    {
-                      marginHorizontal: 16,
-                      marginTop: 0,
-                      marginBottom: 24,
-                      backgroundColor: isDark ? '#262015' : '#FFF9E6',
-                      borderColor: '#FF9500',
-                      borderWidth: 1,
-                      width: undefined,
+                        ]);
+                      } else {
+                        Alert.alert('Thất bại', res.message);
+                      }
                     }
-                  ]}
-                >
-                  <Ionicons name="refresh-outline" size={20} color="#FF9500" style={{ marginRight: 8 }} />
-                  <Text style={[styles.bigLogoutButtonText, { color: '#FF9500' }]}>Khôi phục dữ liệu gốc (Reset App)</Text>
-                </TouchableOpacity>
-
-              </ScrollView>
-
-        {/* Custom Raised FAB Bottom Navigation Bar for Recruiter */ }
-            {
-              false && (
-                <View style={[
-                  styles.bottomNavBar,
-                  {
-                    backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                    borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
-                    height: isIphoneWithNotch ? 82 : 64,
-                    paddingBottom: isIphoneWithNotch ? 22 : 6,
-                    paddingTop: 8
                   }
-                ]}>
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
-                    <Ionicons name="home-outline" size={24} color="#8E8E93" />
-                    <Text style={styles.navItemText}>Trang chủ</Text>
-                  </TouchableOpacity>
+                ]
+              );
+            })}
+          </View>
 
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
-                    <Ionicons name="people-outline" size={24} color="#8E8E93" />
-                    <Text style={styles.navItemText}>Quản lý ứng viên</Text>
-                  </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              Alert.alert(
+                'Chuyển vai trò',
+                'Bạn có chắc chắn muốn quay lại giao diện Người tìm việc không?',
+                [
+                  { text: 'Hủy', style: 'cancel' },
+                  {
+                    text: 'Đồng ý',
+                    onPress: () => {
+                      switchRole('candidate');
+                      router.replace('/(tabs)/profile');
+                    }
+                  }
+                ]
+              );
+            }}
+            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 16, marginBottom: 8, backgroundColor: isDark ? '#1C2A3A' : '#E6F4FE', width: undefined }]}
+          >
+            <Ionicons name="people-outline" size={20} color="#0084FF" style={{ marginRight: 8 }} />
+            <Text style={[styles.bigLogoutButtonText, { color: '#0084FF' }]}>Quay lại vai trò Người tìm việc</Text>
+          </TouchableOpacity>
 
-                  {/* Center Raised FAB */}
-                  <TouchableOpacity activeOpacity={0.85} onPress={handlePostJob} style={styles.fabNavItem}>
-                    <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
-                      <Ionicons name="add" size={32} color="#FFF" />
-                    </View>
-                    <Text style={styles.fabItemText}>Đăng tin</Text>
-                  </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleLogout}
+            style={[styles.bigLogoutButton, { marginHorizontal: 16, marginTop: 8, marginBottom: 20, backgroundColor: isDark ? '#2C1A1D' : '#FFEBEE', width: undefined }]}
+          >
+            <Ionicons name="log-out" size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+            <Text style={styles.bigLogoutButtonText}>Đăng xuất tài khoản</Text>
+          </TouchableOpacity>
 
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
-                    <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
-                    <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
-                  </TouchableOpacity>
+        </ScrollView>
 
-                  <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
-                    <Ionicons name="person" size={24} color="#0084FF" />
-                    <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
-                  </TouchableOpacity>
+        {/* Custom Raised FAB Bottom Navigation Bar for Recruiter */}
+        {
+          false && (
+            <View style={[
+              styles.bottomNavBar,
+              {
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                borderTopColor: isDark ? '#2C2C2E' : '#E5E5EA',
+                height: isIphoneWithNotch ? 82 : 64,
+                paddingBottom: isIphoneWithNotch ? 22 : 6,
+                paddingTop: 8
+              }
+            ]}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/dashboard')} style={styles.navItem}>
+                <Ionicons name="home-outline" size={24} color="#8E8E93" />
+                <Text style={styles.navItemText}>Trang chủ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/my-jobs')} style={styles.navItem}>
+                <Ionicons name="people-outline" size={24} color="#8E8E93" />
+                <Text style={styles.navItemText}>Quản lý ứng viên</Text>
+              </TouchableOpacity>
+
+              {/* Center Raised FAB */}
+              <TouchableOpacity activeOpacity={0.85} onPress={handlePostJob} style={styles.fabNavItem}>
+                <View style={[styles.fabCircle, { backgroundColor: '#0060B6', borderColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
+                  <Ionicons name="add" size={32} color="#FFF" />
                 </View>
-              )
-            }
+                <Text style={styles.fabItemText}>Đăng tin</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/jobs')} style={styles.navItem}>
+                <Ionicons name="briefcase-outline" size={24} color="#8E8E93" />
+                <Text style={styles.navItemText}>Quản lý tin tuyển dụng</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/recruiter/profile')} style={styles.navItem}>
+                <Ionicons name="person" size={24} color="#0084FF" />
+                <Text style={[styles.navItemText, { color: '#0084FF' }]}>Cá nhân</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
         {/* Modal Đổi mật khẩu cho Nhà tuyển dụng */}
         <Modal
           visible={isChangePasswordModalVisible}

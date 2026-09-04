@@ -2,7 +2,6 @@ import React from 'react';
 import { Alert, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 import { router } from 'expo-router';
@@ -199,7 +198,7 @@ export const getEmployerPackageTier = (employerData: any): {
     };
   }
 
-  // Tier 2: PRO (Gold / Pro / Standard / Silver / Vàng / Chuyên Nghiệp / 299k / 499k)
+  // Tier 2: PRO (Gold / Pro / Standard / Silver / Vàng / Chuyên Nghiệp / 299k)
   if (
     employerData.isPro === true ||
     employerData.is_pro === true ||
@@ -208,8 +207,7 @@ export const getEmployerPackageTier = (employerData: any): {
     packageText.includes('silver') ||
     packageText.includes('standard') ||
     packageText.includes('vàng') ||
-    packageText.includes('299') ||
-    packageText.includes('499')
+    packageText.includes('299')
   ) {
     return {
       tier: 'PRO',
@@ -1626,70 +1624,8 @@ export function useAuth() {
   const logout = async () => {
     try {
       await firebaseSignOut(auth);
-      await AsyncStorage.clear();
-      globalUserDataExtra = {};
-      globalEmployerData = null;
-      globalUserRole = null;
-      globalSavedJobs = [];
-      globalViewedJobs = [];
-      globalReadIds = [];
-      globalDeletedNotificationIds = [];
-      globalApplications = [];
-      globalInvitations = [];
-      globalOrders = [];
-      globalNotifications = [];
-      globalActiveToast = null;
-      setUserDataExtra({});
-      setEmployerData(null);
-      setUserRole(null);
-      setSavedJobs([]);
-      setViewedJobs([]);
-      setReadIds([]);
-      setDeletedNotificationIds([]);
-      setApplications([]);
-      setInvitations([]);
-      setOrders([]);
-      setNotifications([]);
-      notifyAll();
-      router.replace('/');
     } catch (error) {
       console.error("Lỗi đăng xuất", error);
-    }
-  };
-
-  const resetAppData = async (): Promise<{ success: boolean; message: string }> => {
-    try {
-      await firebaseSignOut(auth);
-      await AsyncStorage.clear();
-      globalUserDataExtra = {};
-      globalEmployerData = null;
-      globalUserRole = null;
-      globalSavedJobs = [];
-      globalViewedJobs = [];
-      globalReadIds = [];
-      globalDeletedNotificationIds = [];
-      globalApplications = [];
-      globalInvitations = [];
-      globalOrders = [];
-      globalNotifications = [];
-      globalActiveToast = null;
-      setUserDataExtra({});
-      setEmployerData(null);
-      setUserRole(null);
-      setSavedJobs([]);
-      setViewedJobs([]);
-      setReadIds([]);
-      setDeletedNotificationIds([]);
-      setApplications([]);
-      setInvitations([]);
-      setOrders([]);
-      setNotifications([]);
-      notifyAll();
-      router.replace('/');
-      return { success: true, message: 'Đã xóa toàn bộ bộ nhớ đệm và đưa ứng dụng về trạng thái mới ban đầu.' };
-    } catch (error: any) {
-      console.error('Lỗi khi reset app data:', error);
-      return { success: false, message: error.message };
     }
   };
 
@@ -2801,7 +2737,6 @@ export function useAuth() {
     upgradePackage: updatePackage,
     createOrder,
     logout,
-    resetAppData,
     switchRole,
     disableAccount,
     getEmployerPackageTier: (overrideData?: any) => getEmployerPackageTier(overrideData || employerData),

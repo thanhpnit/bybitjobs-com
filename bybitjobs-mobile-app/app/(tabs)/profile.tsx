@@ -32,7 +32,6 @@ function CandidateProfileScreen() {
   const {
     isLoggedIn,
     logout,
-    resetAppData,
     userData,
     userRole,
     employerData,
@@ -78,7 +77,7 @@ function CandidateProfileScreen() {
         Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập thư viện ảnh để tải lên avatar.');
         return;
       }
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -456,28 +455,6 @@ function CandidateProfileScreen() {
       [
         { text: 'Hủy', style: 'cancel' },
         { text: 'Đăng xuất', style: 'destructive', onPress: logout }
-      ]
-    );
-  };
-
-  const handleResetAppData = () => {
-    Alert.alert(
-      'Khôi phục dữ liệu gốc',
-      'Bạn có chắc chắn muốn đặt lại ứng dụng về trạng thái mới ban đầu? Toàn bộ tài khoản đã lưu, bộ nhớ đệm, lịch sử xem và dữ liệu tạm trên thiết bị sẽ được xóa sạch.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đặt lại ngay',
-          style: 'destructive',
-          onPress: async () => {
-            const res = await resetAppData();
-            if (res.success) {
-              Alert.alert('Thành công', 'Đã đặt lại dữ liệu ứng dụng về trạng thái ban đầu.');
-            } else {
-              Alert.alert('Lỗi', res.message || 'Không thể đặt lại dữ liệu.');
-            }
-          }
-        }
       ]
     );
   };
@@ -1026,11 +1003,11 @@ function CandidateProfileScreen() {
 
   const renderEmployerProfile = () => {
     const employerJobs = jobs.filter(job => job.employerId === userData?.uid);
-    
+
     // Stats calculation
     const totalJobsCount = employerJobs.length;
     const activeJobsCount = employerJobs.filter(j => j.isOpen).length;
-    
+
     let realApplicantsCount = 0;
     employerJobs.forEach(job => {
       realApplicantsCount += job.applicantsCount || 0;
@@ -1058,7 +1035,7 @@ function CandidateProfileScreen() {
           if (!res.ok) throw new Error('API response was not ok');
           const rawData = await res.json();
           const data: any[] = [];
-          
+
           rawData.forEach((pkg: any) => {
             data.push({
               id: pkg.id,
@@ -1151,7 +1128,7 @@ function CandidateProfileScreen() {
                   {(() => {
                     const rawLogo = employerData?.logo || (employerData as any)?.logoUrl || (employerData as any)?.logo_url;
                     const hasLogo = rawLogo && typeof rawLogo === 'string' && rawLogo.trim().length > 5;
-                    
+
                     if (hasLogo) {
                       let formattedUri = rawLogo.trim();
                       if (!formattedUri.startsWith('http') && !formattedUri.startsWith('data:image') && !formattedUri.startsWith('file:')) {
@@ -1988,9 +1965,9 @@ function CandidateProfileScreen() {
                         'Bạn có chắc muốn xóa tệp CV này khỏi tài khoản?',
                         [
                           { text: 'Hủy', style: 'cancel' },
-                          { 
-                            text: 'Xóa ngay', 
-                            style: 'destructive', 
+                          {
+                            text: 'Xóa ngay',
+                            style: 'destructive',
                             onPress: async () => {
                               if (updateCandidateCV) {
                                 try {
@@ -2000,7 +1977,7 @@ function CandidateProfileScreen() {
                                 }
                               }
                               setCvFile(null);
-                            } 
+                            }
                           }
                         ]
                       );
@@ -2143,7 +2120,6 @@ function CandidateProfileScreen() {
             {renderSettingRow('information-circle-outline', 'Trung tâm trợ giúp', () => { setPolicyModalType('help'); setIsPolicyModalVisible(true); })}
             {renderSettingRow('chatbox-ellipses-outline', 'Gửi ý kiến phản hồi', () => { setPolicyModalType('feedback'); setIsPolicyModalVisible(true); })}
             {renderSettingRow('call-outline', 'Liên hệ hỗ trợ 24/7', () => { setPolicyModalType('contact'); setIsPolicyModalVisible(true); })}
-            {renderSettingRow('refresh-circle-outline', 'Khôi phục dữ liệu gốc (Reset App)', handleResetAppData)}
           </View>
 
           {/* 8. Elegant Bottom Logout Button */}
@@ -2167,23 +2143,6 @@ function CandidateProfileScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleResetAppData}
-            style={[
-              styles.bigLogoutButton,
-              {
-                backgroundColor: isDark ? '#262015' : '#FFF9E6',
-                borderColor: '#FF9500',
-                borderWidth: 1,
-                marginTop: 10,
-              }
-            ]}
-          >
-            <Ionicons name="refresh-outline" size={20} color="#FF9500" style={{ marginRight: 8 }} />
-            <Text style={[styles.bigLogoutButtonText, { color: '#FF9500' }]}>Khôi phục dữ liệu gốc (Reset App)</Text>
-          </TouchableOpacity>
-
           <View style={styles.scrollPaddingBottom} />
         </ScrollView>
       </SafeAreaView>
@@ -2202,24 +2161,24 @@ function CandidateProfileScreen() {
             {/* Header */}
             <View style={[styles.explorerHeader, { borderBottomColor: isDark ? '#2C2C2E' : '#E5E5EA' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Ionicons 
+                <Ionicons
                   name={
                     policyModalType === 'tos' ? 'document-text-outline' :
-                    policyModalType === 'privacy' ? 'shield-outline' :
-                    policyModalType === 'help' ? 'information-circle-outline' :
-                    policyModalType === 'feedback' ? 'chatbox-ellipses-outline' :
-                    'call-outline'
-                  } 
-                  size={22} 
-                  color="#0084FF" 
-                  style={{ marginRight: 8 }} 
+                      policyModalType === 'privacy' ? 'shield-outline' :
+                        policyModalType === 'help' ? 'information-circle-outline' :
+                          policyModalType === 'feedback' ? 'chatbox-ellipses-outline' :
+                            'call-outline'
+                  }
+                  size={22}
+                  color="#0084FF"
+                  style={{ marginRight: 8 }}
                 />
                 <Text style={[styles.explorerTitle, { color: isDark ? '#FFF' : '#11181C' }]}>
                   {policyModalType === 'tos' ? 'Điều khoản dịch vụ' :
-                   policyModalType === 'privacy' ? 'Chính sách bảo mật' :
-                   policyModalType === 'help' ? 'Trung tâm trợ giúp' :
-                   policyModalType === 'feedback' ? 'Ý kiến phản hồi' :
-                   'Liên hệ hỗ trợ 24/7'}
+                    policyModalType === 'privacy' ? 'Chính sách bảo mật' :
+                      policyModalType === 'help' ? 'Trung tâm trợ giúp' :
+                        policyModalType === 'feedback' ? 'Ý kiến phản hồi' :
+                          'Liên hệ hỗ trợ 24/7'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -2238,15 +2197,15 @@ function CandidateProfileScreen() {
             </View>
 
             {/* Content body */}
-            <ScrollView 
-              showsVerticalScrollIndicator={true} 
+            <ScrollView
+              showsVerticalScrollIndicator={true}
               contentContainerStyle={{ padding: 20 }}
             >
               {policyModalType === 'tos' && (
                 <View>
                   <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Điều khoản & Điều kiện Sử dụng BybitJobs</Text>
                   <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076' }]}>Cập nhật lần cuối: Ngày 02 tháng 07 năm 2026</Text>
-                  
+
                   <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>1. Chấp thuận Điều khoản</Text>
                   <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
                     Bằng việc tải xuống, truy cập hoặc sử dụng ứng dụng BybitJobs, bạn đồng ý tuân thủ và chịu sự ràng buộc bởi các điều khoản dịch vụ này. Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng không sử dụng dịch vụ của chúng tôi.
@@ -2281,7 +2240,7 @@ function CandidateProfileScreen() {
                 <View>
                   <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C' }]}>Chính sách Bảo mật BybitJobs</Text>
                   <Text style={[styles.policyMeta, { color: isDark ? '#9BA1A6' : '#687076' }]}>Cập nhật lần cuối: Ngày 02 tháng 07 năm 2026</Text>
-                  
+
                   <Text style={[styles.policySubTitle, { color: isDark ? '#FFF' : '#11181C' }]}>1. Thông tin Chúng tôi Thu thập</Text>
                   <Text style={[styles.policyText, { color: isDark ? '#9BA1A6' : '#687076' }]}>
                     Chúng tôi thu thập các thông tin sau để cải thiện dịch vụ:{'\n'}
@@ -2314,7 +2273,7 @@ function CandidateProfileScreen() {
               {policyModalType === 'help' && (
                 <View>
                   <Text style={[styles.policyTitle, { color: isDark ? '#FFF' : '#11181C', marginBottom: 20 }]}>Câu hỏi thường gặp (FAQ)</Text>
-                  
+
                   {[
                     {
                       q: 'Làm thế nào để ứng tuyển công việc?',
@@ -2339,11 +2298,11 @@ function CandidateProfileScreen() {
                   ].map((faq, idx) => {
                     const isExpanded = expandedFaqIndex === idx;
                     return (
-                      <View 
-                        key={idx} 
+                      <View
+                        key={idx}
                         style={[
-                          styles.faqItemContainer, 
-                          { 
+                          styles.faqItemContainer,
+                          {
                             backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
                             borderColor: isDark ? '#3E3E42' : '#ECEFF1'
                           }
@@ -2355,13 +2314,13 @@ function CandidateProfileScreen() {
                           style={styles.faqHeader}
                         >
                           <Text style={[styles.faqQuestionText, { color: isDark ? '#FFF' : '#11181C', flex: 1 }]}>{faq.q}</Text>
-                          <Ionicons 
-                            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                            size={18} 
-                            color={isDark ? '#9BA1A6' : '#687076'} 
+                          <Ionicons
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                            color={isDark ? '#9BA1A6' : '#687076'}
                           />
                         </TouchableOpacity>
-                        
+
                         {isExpanded && (
                           <View style={styles.faqAnswerContainer}>
                             <View style={styles.faqDivider} />
@@ -2390,10 +2349,10 @@ function CandidateProfileScreen() {
                         onPress={() => setFeedbackRating(star)}
                         style={{ marginRight: 10 }}
                       >
-                        <Ionicons 
-                          name={star <= feedbackRating ? 'star' : 'star-outline'} 
-                          size={36} 
-                          color="#FFB800" 
+                        <Ionicons
+                          name={star <= feedbackRating ? 'star' : 'star-outline'}
+                          size={36}
+                          color="#FFB800"
                         />
                       </TouchableOpacity>
                     ))}
@@ -2403,7 +2362,7 @@ function CandidateProfileScreen() {
                   <TextInput
                     style={[
                       styles.feedbackInputBox,
-                      { 
+                      {
                         backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
                         color: isDark ? '#FFF' : '#11181C',
                         borderColor: isDark ? '#3E3E42' : '#E0E0E0'
@@ -2429,7 +2388,7 @@ function CandidateProfileScreen() {
                         return;
                       }
                       setIsSubmittingFeedback(true);
-                      
+
                       try {
                         const userIdentifier = (userData as any)?.displayName || (userData as any)?.name || userData?.fullName || 'Ứng viên';
                         const userContact = userData?.emailOrPhone || 'guest@bybitjobs.com';
@@ -2528,7 +2487,7 @@ function CandidateProfileScreen() {
                       onPress={card.onPress}
                       style={[
                         styles.contactCardContainer,
-                        { 
+                        {
                           backgroundColor: isDark ? '#2C2C2E' : '#F9F9F9',
                           borderColor: isDark ? '#3E3E42' : '#ECEFF1'
                         }
@@ -2762,7 +2721,7 @@ function CandidateProfileScreen() {
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{ width: '100%', maxWidth: 360, backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderRadius: 24, padding: 24, elevation: 16, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16 }}>
-            
+
             {/* Header Icon Circle */}
             <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#DBEAFE' }}>
               <Ionicons name="sparkles" size={28} color="#2563EB" />
@@ -2772,7 +2731,7 @@ function CandidateProfileScreen() {
             <Text style={{ fontSize: 19, fontWeight: '800', color: isDark ? '#FFF' : '#0F172A', textAlign: 'center', marginBottom: 6 }}>
               AI Gợi Ý Vị Trí Việc Làm
             </Text>
-            
+
             {/* File Name Pill */}
             <View style={{ backgroundColor: isDark ? '#2C2C2E' : '#F1F5F9', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
@@ -3394,7 +3353,7 @@ function CandidateProfileScreen() {
                   </Text>
                   <Text style={styles.scoreMax}>/100</Text>
                 </View>
-                
+
                 <Text style={[styles.scoreStatusText, {
                   color: cvAnalysisResult && cvAnalysisResult.score >= 80 ? '#34C759' : (cvAnalysisResult && cvAnalysisResult.score >= 50 ? '#FFCC00' : '#FF3B30')
                 }]}>
@@ -3481,7 +3440,7 @@ function CandidateProfileScreen() {
             <Text style={[styles.verificationSubtitle, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 20 }]}>
               Nhập vị trí hoặc công việc bạn mong muốn để nhà tuyển dụng dễ dàng tìm thấy bạn.
             </Text>
-            
+
             <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
               <TextInput
                 style={[styles.verificationTextInput, { color: isDark ? '#FFF' : '#11181C', letterSpacing: 0, textAlign: 'left', width: '100%' }]}
@@ -3555,7 +3514,7 @@ function CandidateProfileScreen() {
             <Text style={[styles.verificationSubtitle, { color: isDark ? '#9BA1A6' : '#687076', marginBottom: 20 }]}>
               Nhập số điện thoại liên hệ của bạn để cập nhật vào thông tin cá nhân và đồng bộ với trang quản trị.
             </Text>
-            
+
             <View style={[styles.verificationInputWrapper, { borderColor: isDark ? '#2C2C2E' : '#E5E5EA', backgroundColor: isDark ? '#2C2C2E' : '#F4F5F7' }]}>
               <TextInput
                 style={[styles.verificationTextInput, { color: isDark ? '#FFF' : '#11181C', letterSpacing: 0, textAlign: 'left', width: '100%' }]}
