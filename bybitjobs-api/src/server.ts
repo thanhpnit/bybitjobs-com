@@ -186,7 +186,7 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
                     fullText += textChunk;
                     onChunk(textChunk);
                   }
-                } catch (e) {}
+                } catch (e) { }
               }
             }
           }
@@ -226,7 +226,7 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
 function extractJsonFromText(text: string): any {
   let cleaned = text.trim();
   cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
-  
+
   try {
     return JSON.parse(cleaned);
   } catch (e) {
@@ -237,9 +237,9 @@ function extractJsonFromText(text: string): any {
           .replace(/,\s*([\]}])/g, '$1')
           .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
         return JSON.parse(jsonStr);
-      } catch (innerErr) {}
+      } catch (innerErr) { }
     }
-    
+
     console.warn('[Gemini API] Could not parse JSON directly, constructing fallback result. Raw text:', text);
     return {
       score: 82,
@@ -301,7 +301,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
 
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
-    
+
     // Sắp xếp người dùng từ cũ nhất đến mới nhất theo thời gian tạo để sinh ID tuần tự ổn định
     const sortedUsers = listUsersResult.users.sort((a, b) => {
       return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
@@ -324,7 +324,7 @@ app.get('/api/users', async (req: Request, res: Response): Promise<any> => {
       phone: userRecord.phoneNumber || firestoreUsers[userRecord.uid]?.phone || 'Chưa cập nhật',
       job: firestoreUsers[userRecord.uid]?.job || 'Ứng viên (Mobile App)',
       avatar: userRecord.photoURL || firestoreUsers[userRecord.uid]?.avatar || firestoreUsers[userRecord.uid]?.photoURL || '',
-      status: userRecord.disabled 
+      status: userRecord.disabled
         ? (firestoreUsers[userRecord.uid]?.disabledByUser ? 'Tự vô hiệu hóa' : 'Bị khóa')
         : (userRecord.emailVerified ? 'Đã xác minh' : 'Chưa xác minh'),
       date: new Date(userRecord.metadata.creationTime).toLocaleDateString('vi-VN')
@@ -768,14 +768,14 @@ app.put('/api/users/:uid/avatar', async (req: Request, res: Response): Promise<a
   try {
     const db = admin.firestore();
     await db.collection('users').doc(uid).set({ avatar }, { merge: true });
-    
+
     // Cập nhật photoURL bên Firebase Auth luôn cho đồng bộ
     try {
       await admin.auth().updateUser(uid, { photoURL: avatar });
     } catch (authErr) {
       console.log('Không thể cập nhật photoURL trên Auth:', authErr);
     }
-    
+
     return res.status(200).json({ success: true, message: 'Cập nhật Avatar thành công' });
   } catch (error: any) {
     console.error('Lỗi khi cập nhật Avatar:', error);
@@ -826,7 +826,7 @@ app.get('/api/users/:uid', async (req: Request, res: Response): Promise<any> => 
     const cvUploadTime = doc.exists ? doc.data()?.cvUploadTime : undefined;
     const cvUrl = doc.exists ? doc.data()?.cvUrl : undefined;
     const avatar = doc.exists ? doc.data()?.avatar : userRecord.photoURL;
-    
+
     return res.status(200).json({
       uid: userRecord.uid,
       name: userRecord.displayName,
@@ -965,14 +965,14 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
 
   try {
     const db = admin.firestore();
-    
+
     // 1. Xóa tài khoản khỏi Firebase Auth
     try {
       await admin.auth().deleteUser(uid as string);
     } catch (authErr: any) {
       console.warn('Cảnh báo khi xóa trên Auth (có thể đã xóa trước đó):', authErr.message);
     }
-    
+
     // 2. Xóa tất cả các bài đăng tin tuyển dụng của nhà tuyển dụng này trong Firestore
     const jobsSnap = await db.collection('jobs').where('employerId', '==', uid).get();
     if (!jobsSnap.empty) {
@@ -986,10 +986,10 @@ app.delete('/api/users/:uid', async (req: Request, res: Response): Promise<any> 
 
     // 3. Xóa thông tin doanh nghiệp trong Firestore
     await db.collection('employers').doc(uid).delete();
-    
+
     // 4. Xóa thông tin bổ sung user (ví dụ công việc mong muốn) trong Firestore
     await db.collection('users').doc(uid).delete();
-    
+
     // 5. Xóa các thông tin OTP liên quan
     await db.collection('otps').doc(uid).delete();
     await db.collection('passwordResetOtps').doc(uid).delete();
@@ -1110,7 +1110,7 @@ app.post('/api/users/:uid/verify', async (req: Request, res: Response): Promise<
   try {
     const db = admin.firestore();
     const otpDoc = await db.collection('otps').doc(uid).get();
-    
+
     if (!otpDoc.exists) {
       return res.status(400).json({ error: 'Mã OTP không tồn tại hoặc chưa được gửi.' });
     }
@@ -1254,7 +1254,7 @@ app.get('/api/users/:uid/seq', async (req: Request, res: Response): Promise<any>
 
   try {
     const listUsersResult = await admin.auth().listUsers(1000);
-    
+
     // Sắp xếp người dùng từ cũ nhất đến mới nhất theo creationTime
     const sortedUsers = listUsersResult.users.sort((a, b) => {
       return new Date(a.metadata.creationTime).getTime() - new Date(b.metadata.creationTime).getTime();
@@ -1578,7 +1578,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
   try {
     const db = admin.firestore();
     const usersSnapshot = await db.collection('users').get();
-    
+
     // Fetch employers to exclude them from the candidate search list
     const employersSnapshot = await db.collection('employers').get();
     const employerUids = new Set(employersSnapshot.docs.map(doc => doc.id));
@@ -1606,7 +1606,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
       const data = doc.data();
       const authUser = authUsers[uid];
-      
+
       let rawName = authUser?.displayName || data.fullName || data.full_name || data.displayName || data.display_name || data.name || data.username;
       if (!rawName && (data.emailOrPhone || authUser?.email || authUser?.phoneNumber)) {
         const contactStr = data.emailOrPhone || authUser?.email || authUser?.phoneNumber;
@@ -1616,7 +1616,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
       const role = resolveCandidateRole(data.desiredJob || data.job || data.roleTitle, uid);
       const email = authUser?.email || data.emailOrPhone || data.email || 'Chưa cập nhật email';
       const phone = data.phone || authUser?.phoneNumber || 'Chưa cập nhật';
-      
+
       realCandidates.push({
         id: uid,
         name: name,
@@ -1638,7 +1638,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     // Merge mock and real candidates
     let mergedCandidates = [...candidates];
-    
+
     // Add real candidates if they are not already in the list
     realCandidates.forEach(rc => {
       if (!mergedCandidates.some(c => c.id === rc.id)) {
@@ -1650,8 +1650,8 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     if (query) {
       const q = String(query).toLowerCase();
-      result = result.filter(c => 
-        c.name.toLowerCase().includes(q) || 
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(q) ||
         c.role.toLowerCase().includes(q) ||
         c.skills.some(s => s.toLowerCase().includes(q))
       );
@@ -1664,7 +1664,7 @@ app.get('/api/candidates', async (req: Request, res: Response): Promise<any> => 
 
     if (skills) {
       const skillList = String(skills).split(' ');
-      result = result.filter(c => 
+      result = result.filter(c =>
         c.skills.some(s => skillList.some(q => s.toLowerCase().includes(q.toLowerCase())))
       );
     }
@@ -1692,7 +1692,7 @@ app.get('/api/applications', (req: Request, res: Response) => {
 app.put('/api/applications/:id/status', (req: Request, res: Response): any => {
   const { id } = req.params;
   const { status } = req.body;
-  
+
   if (!status || !['Pending', 'Approved', 'Rejected'].includes(status)) {
     return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
   }
@@ -1752,7 +1752,7 @@ app.post('/api/invitations', async (req: Request, res: Response): Promise<any> =
     let jobTitle = 'Công việc';
     let employerId = '';
     let companyName = 'Nhà tuyển dụng';
-    
+
     // First check Firestore jobs
     const jobDoc = await db.collection('jobs').doc(jobId).get();
     if (jobDoc.exists) {
@@ -1850,7 +1850,7 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
     const db = admin.firestore();
     const docRef = db.collection('employers').doc(uid);
     const docSnap = await docRef.get();
-    
+
     if (docSnap.exists) {
       await docRef.update({ ...data, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     } else {
@@ -1890,7 +1890,7 @@ app.post('/api/employers/:uid', async (req: Request, res: Response): Promise<any
         console.error('Lỗi đồng bộ thông tin công ty sang các bài tuyển dụng:', e);
       }
     }
-    
+
     const updatedDoc = await docRef.get();
     return res.status(200).json({ success: true, employer: { id: updatedDoc.id, ...updatedDoc.data() } });
   } catch (error: any) {
@@ -1989,11 +1989,11 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
     const limitCount = parseInt(req.query.limit as string) || 500;
     const db = admin.firestore();
     const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(limitCount).get();
-    
+
     // get unique employerIds
     const employerIds = [...new Set(snapshot.docs.map(doc => doc.data().employerId))];
     const employersMap: any = {};
-    
+
     // fetch employer names in parallel to map with orders
     await Promise.all(employerIds.map(async (uid) => {
       if (!uid) return;
@@ -2002,7 +2002,7 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
         employersMap[uid] = empDoc.data()?.company || 'Unknown';
       }
     }));
-    
+
     const orders = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -2011,7 +2011,7 @@ app.get('/api/orders', async (req: Request, res: Response): Promise<any> => {
         companyName: employersMap[data.employerId] || 'Không xác định'
       };
     });
-    
+
     return res.status(200).json(orders);
   } catch (error: any) {
     console.error('Lỗi lấy danh sách giao dịch:', error);
@@ -2063,7 +2063,7 @@ app.post('/api/payment/create', async (req: Request, res: Response): Promise<any
 // Webhook xử lý thanh toán tự động từ PayOS
 app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any> => {
   console.log("PayOS Webhook received:", JSON.stringify(req.body, null, 2));
-  
+
   let webhookData;
   try {
     webhookData = await payos.webhooks.verify(req.body);
@@ -2076,12 +2076,12 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
   try {
     if (webhookData && webhookData.orderCode) {
       const orderCode = String(webhookData.orderCode);
-      
+
       const db = admin.firestore();
       const ordersRef = db.collection('orders');
       const q = ordersRef.where('orderCode', '==', orderCode);
       const snapshot = await q.get();
-      
+
       if (!snapshot.empty) {
         // Cập nhật trạng thái đơn hàng thành success
         snapshot.forEach(async (doc) => {
@@ -2089,11 +2089,11 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
             status: 'success',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
-          
+
           const orderData = doc.data();
           const employerId = orderData.employerId;
           const packageId = orderData.packageId;
-          
+
           if (employerId && packageId) {
             const employerRef = db.collection('employers').doc(employerId);
             const employerDoc = await employerRef.get();
@@ -2103,7 +2103,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
               if (empData?.postsLimit && empData.postsLimit.includes('/')) {
                 usedPosts = parseInt(empData.postsLimit.split('/')[0], 10) || 0;
               }
-              
+
               const now = new Date();
               now.setDate(now.getDate() + 30);
               const expiresAt = now.toISOString();
@@ -2138,7 +2138,7 @@ app.post('/api/webhooks/payos', async (req: Request, res: Response): Promise<any
         });
       }
     }
-    
+
     return res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Lỗi xử lý webhook PayOS:', error);
@@ -2177,7 +2177,7 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
     usersSnap.forEach(doc => {
       const data = doc.data();
       if (data.job && data.name) {
-         candidates.push({ uid: doc.id, name: data.name, desiredJob: data.job, skills: data.skills || '' });
+        candidates.push({ uid: doc.id, name: data.name, desiredJob: data.job, skills: data.skills || '' });
       }
     });
 
@@ -2217,7 +2217,7 @@ app.post('/api/jobs/:jobId/ai-match', async (req: Request, res: Response): Promi
 
     if (Array.isArray(matchedUids) && matchedUids.length > 0) {
       const matchedNames = candidates.filter(c => matchedUids.includes(c.uid)).map(c => c.name);
-      
+
       if (matchedNames.length > 0) {
         await db.collection('notifications').add({
           title: 'Gợi ý ứng viên từ AI',
@@ -2559,7 +2559,7 @@ app.post('/api/users/:uid/cv-analyze', async (req: Request, res: Response): Prom
   try {
     const db = admin.firestore();
     const userDoc = await db.collection('users').doc(uid).get();
-    
+
     let userData: any = {};
     if (userDoc.exists) {
       userData = userDoc.data()!;
