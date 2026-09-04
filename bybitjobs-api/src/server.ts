@@ -2617,17 +2617,28 @@ Giới thiệu bản thân: ${userData.bio || userData.about || 'Ứng viên tì
 
     const prompt = `
 [VAI TRÒ VÀ NHIỆM VỤ]
-Bạn là Chuyên gia Tuyển dụng và Tối ưu hóa CV chuẩn ATS. Hãy đánh giá CV/Hồ sơ ứng viên cho vị trí mong muốn: "${targetPosition}".
+Bạn là Chuyên gia Tuyển dụng Cao cấp và Hệ thống Đánh giá CV chuẩn ATS (Applicant Tracking System). Hãy phân tích kỹ lưỡng CV/Hồ sơ ứng viên đối chiếu với vị trí mong muốn: "${targetPosition}".
 
-${docxText ? `NỘI DUNG CV:\n${docxText}` : `TÓM TẮT HỒ SƠ ỨNG VIÊN:\n${profileSummary}`}
+${docxText ? `NỘI DUNG VĂN BẢN TRÍCH XUẤT TỪ FILE CV:\n${docxText}` : `TÓM TẮT HỒ SƠ ỨNG VIÊN TỪ HỆ THỐNG:\n${profileSummary}`}
+
+[TIÊU CHÍ CHẤM ĐIỂM CHUẨN ATS (THANG ĐIỂM 100)]:
+1. Khả năng tương thích & Định dạng ATS (25 điểm): Tệp có phải là CV hợp lệ, bố cục rõ ràng, dễ phân tích nội dung hay không.
+2. Từ khóa chuyên ngành (35 điểm): Mật độ từ khóa kỹ năng, công nghệ, nghiệp vụ khớp với vị trí "${targetPosition}".
+3. Số liệu & Thành tích định lượng (25 điểm): Các số liệu đo lường kết quả công việc (%, doanh số, quy mô dự án...).
+4. Cấu trúc & Đầy đủ thông tin (15 điểm): Thông tin liên hệ, học vấn, kinh nghiệm, mục tiêu nghề nghiệp.
+
+[QUY TẮC ĐÁNH GIÁ THỰC TẾ]:
+- Nếu tệp tải lên KHÔNG PHẢI CV (ảnh rác, hóa đơn, bài hát, tệp không liên quan) hoặc hồ sơ hoàn toàn trống/không có kỹ năng: Hãy chấm điểm THẤP THỰC TẾ (10 - 30 điểm). Nêu rõ trong điểm cần cải thiện là cần tải lên đúng file CV chuẩn.
+- Nếu CV cơ bản, thiếu số liệu và từ khóa ATS: Chấm từ 40 - 65 điểm.
+- Nếu CV chuyên nghiệp, đầy đủ từ khóa và số liệu đo lường tốt: Chấm từ 70 - 95 điểm.
 
 [YÊU CẦU ĐẦU RA STRICT JSON]
-Trả về CHÍNH XÁC MỘT OBJECT JSON KHÔNG BỌC CODE BLOCK:
+Trả về CHÍNH XÁC MỘT OBJECT JSON (không bọc mã markdown code block):
 {
-  "score": 88,
+  "score": 78,
   "strengths": ["Điểm mạnh 1 súc tích", "Điểm mạnh 2 súc tích", "Điểm mạnh 3 súc tích"],
   "improvements": ["Điểm cần cải thiện 1 súc tích", "Điểm cần cải thiện 2 súc tích"],
-  "suggestions": ["Gợi ý nâng cao điểm số 1", "Gợi ý nâng cao điểm số 2"]
+  "suggestions": ["Gợi ý cụ thể để tăng điểm ATS 1", "Gợi ý cụ thể để tăng điểm ATS 2"]
 }
     `;
 
@@ -2641,8 +2652,8 @@ Trả về CHÍNH XÁC MỘT OBJECT JSON KHÔNG BỌC CODE BLOCK:
     let text = result.response.text().trim();
     const analysisResult = extractJsonFromText(text);
 
-    const score = typeof analysisResult.score === 'number' ? analysisResult.score : (typeof analysisResult.overallScore === 'number' ? analysisResult.overallScore : 85);
-    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục hồ sơ trình bày rõ ràng', `Kỹ năng phù hợp với vị trí ${targetPosition}`];
+    const score = typeof analysisResult.score === 'number' ? Math.max(10, Math.min(99, Math.round(analysisResult.score))) : (typeof analysisResult.overallScore === 'number' ? Math.max(10, Math.min(99, Math.round(analysisResult.overallScore))) : 50);
+    const strengths = Array.isArray(analysisResult.strengths) && analysisResult.strengths.length > 0 ? analysisResult.strengths : ['Bố cục hồ sơ cơ bản rõ ràng', `Có định hướng theo vị trí ${targetPosition}`];
     const improvements = Array.isArray(analysisResult.improvements) && analysisResult.improvements.length > 0 ? analysisResult.improvements : ['Cần bổ sung thêm số liệu thành tích cụ thể', 'Tăng cường từ khóa chuyên ngành chuẩn ATS'];
     const suggestions = Array.isArray(analysisResult.suggestions) && analysisResult.suggestions.length > 0 ? analysisResult.suggestions : ['Thêm từ khóa kỹ năng chính vào phần mục tiêu', 'Cập nhật thêm chứng chỉ và các dự án thực tế'];
 
