@@ -66,7 +66,7 @@ export default function LoginScreen() {
       return;
     }
 
-    const result = await login(emailOrPhone, password);
+    const result = await login(emailOrPhone.trim(), password);
 
     if (!result.success) {
       Alert.alert('Lỗi đăng nhập', result.message);
