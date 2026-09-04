@@ -2076,7 +2076,7 @@ export function useAuth() {
     try {
       await setDoc(doc(db, 'applications', newApplication.id), sanitizedApp);
 
-      const targetEmpId = job?.employerId || job?.userId || (job as any)?.posterEmail || '';
+      const targetEmpId = job?.employerId || (job as any)?.userId || (job as any)?.posterEmail || '';
       try {
         await addDoc(collection(db, 'notifications'), {
           target: targetEmpId || 'RECRUITER',
