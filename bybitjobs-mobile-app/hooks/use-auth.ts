@@ -914,16 +914,25 @@ export function useAuth() {
               }
               return {
                 id: doc.id,
-                category: data.category || (['ALL', 'RECRUITER', 'USER'].includes(data.target) ? 'system' : 'security') as any,
+                category: data.category || (['ALL', 'RECRUITER', 'USER', 'all', 'candidate', 'employer'].includes(data.target || data.targetRole) ? 'system' : 'security') as any,
                 title: data.title || '',
-                description: data.body || '',
+                description: data.body || data.description || data.message || '',
                 time: getRelativeTimeLabel(date),
+                createdAtMs: date.getTime(),
                 isRead: false,
-                target: data.target || 'ALL',
-                role: data.role || (data.target === 'RECRUITER' ? 'employer' : data.target === 'USER' ? 'candidate' : undefined),
+                target: data.target || data.targetRole || 'ALL',
+                recipientId: data.recipientId || data.userId || data.candidateId || data.employerId,
+                role: data.role || (['RECRUITER', 'employer'].includes(data.target || data.targetRole) ? 'employer' : ['USER', 'candidate'].includes(data.target || data.targetRole) ? 'candidate' : undefined),
               };
             })
-            .filter((item) => ['ALL', 'RECRUITER', 'USER'].includes(item.target) || item.target === user.uid);
+            .filter((item) => {
+              if (!user) return false;
+              if (item.target === user.uid || item.target === user.email || item.recipientId === user.uid || item.recipientId === user.email) return true;
+              if (['ALL', 'all'].includes(item.target)) return true;
+              if (['RECRUITER', 'employer'].includes(item.target) && globalUserRole === 'employer') return true;
+              if (['USER', 'candidate'].includes(item.target) && globalUserRole === 'candidate') return true;
+              return false;
+            });
 
           if (isFirstLoad) {
             isFirstLoad = false;
@@ -961,11 +970,12 @@ export function useAuth() {
                 }
 
                 const target = data.target;
+                const recipientId = data.recipientId || data.userId;
                 let isMatch = false;
-                if (target === 'ALL') isMatch = true;
-                else if (target === 'RECRUITER') isMatch = globalUserRole === 'employer';
-                else if (target === 'USER' || target === undefined) isMatch = globalUserRole === 'candidate';
-                else if (target === user.uid) isMatch = true;
+                if (target === user.uid || target === user.email || recipientId === user.uid || recipientId === user.email) isMatch = true;
+                else if (target === 'ALL') isMatch = true;
+                else if (target === 'RECRUITER' && globalUserRole === 'employer') isMatch = true;
+                else if (target === 'USER' && globalUserRole === 'candidate') isMatch = true;
 
                 if (isMatch) {
                   globalActiveToast = {
@@ -2065,6 +2075,17 @@ export function useAuth() {
     globalApplications = [newApplication, ...globalApplications];
     try {
       await setDoc(doc(db, 'applications', newApplication.id), sanitizedApp);
+
+      if (job && job.employerId) {
+        await addDoc(collection(db, 'notifications'), {
+          target: job.employerId,
+          role: 'employer',
+          category: 'job',
+          title: 'Có hồ sơ ứng tuyển mới',
+          body: `Ứng viên "${newApplication.applicantName}" vừa nộp hồ sơ cho vị trí "${newApplication.jobTitle}".`,
+          createdAt: serverTimestamp(),
+        });
+      }
     } catch (error) {
       console.error('Lỗi lưu việc đã ứng tuyển lên Firestore:', error);
     }
@@ -2599,44 +2620,62 @@ export function useAuth() {
   };
 
   const mergedNotifications = firebaseUser
-    ? [...notifications, ...mockNotifications]
-      .filter((item) => {
-        // If explicit role is set, it must strictly match current userRole
-        if (item.role) {
-          return item.role === userRole;
-        }
+    ? (() => {
+        const uid = firebaseUser.uid;
+        const email = firebaseUser.email;
+        const userCreationMs = firebaseUser.metadata?.creationTime
+          ? new Date(firebaseUser.metadata.creationTime).getTime()
+          : 0;
 
-        const title = (item.title || '').toLowerCase();
-        const desc = (item.description || '').toLowerCase();
-        const isJobApprovalNotif = title.includes('bài đăng') || title.includes('phê duyệt') || title.includes('từ chối') || desc.includes('bài đăng');
+        // Filter notifications strictly for current user account
+        const userSpecificDbNotifs = notifications.filter((item) => {
+          // If explicit role is set and doesn't match current userRole, filter out
+          if (item.role && item.role !== userRole) return false;
 
-        if (userRole === 'candidate') {
-          // Candidates MUST NOT see job approval notifications from admin
-          if (isJobApprovalNotif || item.target === 'RECRUITER') return false;
-        }
+          // 1. Direct target match to user UID or Email (ALWAYS show direct notifications)
+          if (item.target === uid || item.target === email || item.recipientId === uid || item.recipientId === email) {
+            return true;
+          }
 
-        if (userRole === 'employer') {
-          if (item.target === 'USER') return false;
-          if (isJobApprovalNotif) return true;
-        }
+          // 2. Reject old general broadcast notifications created BEFORE this account was registered
+          if (userCreationMs > 0 && item.createdAtMs && item.createdAtMs < userCreationMs - 60000) {
+            return false;
+          }
 
-        // Target check
-        if (item.target === 'ALL') return true;
-        if (item.target === 'RECRUITER') return userRole === 'employer';
-        if (item.target === 'USER') return userRole === 'candidate';
+          // 3. Broadcast for ALL (sent AFTER account registration)
+          if (['ALL', 'all'].includes(item.target)) return true;
 
-        // Direct target match to user UID
-        if (item.target === firebaseUser.uid) {
-          if (isJobApprovalNotif) return userRole === 'employer';
-          return true;
-        }
+          // Reject if notification belongs to a specific UID/Email of another user
+          if (item.target && !['ALL', 'all', 'USER', 'candidate', 'RECRUITER', 'employer'].includes(item.target)) {
+            return false;
+          }
 
-        if (userRole === 'employer') {
+          // 4. Category role broadcasts (sent AFTER account registration)
+          if (userRole === 'candidate' && ['USER', 'candidate'].includes(item.target)) return true;
+          if (userRole === 'employer' && ['RECRUITER', 'employer'].includes(item.target)) return true;
+
           return false;
+        });
+
+        // If account has no notifications yet, provide a personalized welcome notification
+        if (userSpecificDbNotifs.length === 0) {
+          const welcomeNotif = {
+            id: `welcome-${uid}`,
+            category: 'system',
+            title: userRole === 'employer' ? 'Chào mừng Nhà tuyển dụng' : 'Chào mừng bạn đến với BybitJobs',
+            description: userRole === 'employer'
+              ? 'Chào mừng bạn đến với hệ thống tuyển dụng BybitJobs. Hãy đăng tin tuyển dụng để tìm kiếm ứng viên ngay!'
+              : 'Khám phá ngay hàng ngàn công việc chất lượng và tạo CV chuyên nghiệp miễn phí.',
+            time: 'Vừa xong',
+            isRead: false,
+            target: uid,
+            role: userRole,
+          };
+          return [welcomeNotif];
         }
 
-        return item.target === 'candidate-1' || item.target === 'candidate-2';
-      })
+        return userSpecificDbNotifs;
+      })()
       .filter((item) => !deletedNotificationIds.includes(item.id))
       .map((item) => ({
         ...item,
