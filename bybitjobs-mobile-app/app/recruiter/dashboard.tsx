@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth, checkIsJobExpired, formatDeadlineDisplay, getEmployerPackageTier, isPremiumEmployer, isProEmployer } from '@/hooks/use-auth';
+import { db } from '@/src/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface MarketJobItem {
   id: string;
@@ -143,20 +145,22 @@ export default function RecruiterDashboardScreen() {
   const [posterNamesByEmployerId, setPosterNamesByEmployerId] = React.useState<Record<string, string>>({});
   const [premiumEmployersById, setPremiumEmployersById] = React.useState<Record<string, boolean>>({});
 
+  const fetchedEmployerIdsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
     let isActive = true;
     const employerIds = Array.from(new Set(
       jobs
         .filter((job) => {
           if (!job.employerId) return false;
-          const needsPosterName = !job.posterName && !posterNamesByEmployerId[job.employerId];
-          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined;
-          return needsPosterName || needsPremiumStatus;
+          return !fetchedEmployerIdsRef.current.has(job.employerId);
         })
         .map((job) => job.employerId as string)
     ));
 
     if (employerIds.length === 0) return;
+
+    employerIds.forEach((id) => fetchedEmployerIdsRef.current.add(id));
 
     const loadPosterNames = async () => {
       const entries = await Promise.all(employerIds.map(async (employerId) => {
@@ -164,9 +168,15 @@ export default function RecruiterDashboardScreen() {
         let isPremium = false;
 
         try {
-          const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
-          if (response.ok) {
-            const userData = await response.json();
+          const [empDoc, userDoc] = await Promise.all([
+            getDoc(doc(db, 'employers', employerId)).catch(() => null),
+            getDoc(doc(db, 'users', employerId)).catch(() => null),
+          ]);
+
+          const employerData = empDoc?.exists() ? empDoc.data() : null;
+          const userData = userDoc?.exists() ? userDoc.data() : null;
+
+          if (userData) {
             const userName =
               userData.fullName ||
               userData.full_name ||
@@ -177,14 +187,19 @@ export default function RecruiterDashboardScreen() {
               name = userName.trim();
             }
           }
-        } catch (error) {
-          console.error('Lỗi lấy tên người đăng tin:', error);
-        }
 
-        try {
-          const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`);
-          if (response.ok) {
-            const employerData = await response.json();
+          if (employerData) {
+            if (!name) {
+              const compName =
+                employerData.companyName ||
+                employerData.company ||
+                employerData.name ||
+                employerData.posterName;
+              if (typeof compName === 'string' && compName.trim()) {
+                name = compName.trim();
+              }
+            }
+
             const packageText = [
               employerData.current_package,
               employerData.currentPackage,
@@ -199,10 +214,37 @@ export default function RecruiterDashboardScreen() {
               employerData.isPremium === true ||
               packageText.includes('premium') ||
               packageText.includes('diamond') ||
-              packageText.includes('vip');
+              packageText.includes('vip') ||
+              isPremiumEmployer(employerData);
+          }
+
+          // If still missing name, try backend fallback with timeout
+          if (!name) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3000);
+              const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`, {
+                signal: controller.signal,
+              }).catch(() => null);
+              clearTimeout(timeoutId);
+              if (response && response.ok) {
+                const apiUserData = await response.json();
+                const userName =
+                  apiUserData.fullName ||
+                  apiUserData.full_name ||
+                  apiUserData.displayName ||
+                  apiUserData.name;
+
+                if (typeof userName === 'string' && userName.trim()) {
+                  name = userName.trim();
+                }
+              }
+            } catch {
+              // ignore network error gracefully
+            }
           }
         } catch (error) {
-          console.error('Lỗi lấy gói nhà tuyển dụng:', error);
+          console.warn('Lỗi lấy thông tin người đăng tin:', error);
         }
 
         return { employerId, name, isPremium };
@@ -223,17 +265,7 @@ export default function RecruiterDashboardScreen() {
         setPosterNamesByEmployerId((prev) => ({ ...prev, ...nextNames }));
       }
       if (Object.keys(nextPremiumStatuses).length > 0) {
-        setPremiumEmployersById((prev) => {
-          let hasChanged = false;
-          const next = { ...prev };
-          Object.entries(nextPremiumStatuses).forEach(([employerId, isPremium]) => {
-            if (next[employerId] !== isPremium) {
-              next[employerId] = isPremium;
-              hasChanged = true;
-            }
-          });
-          return hasChanged ? next : prev;
-        });
+        setPremiumEmployersById((prev) => ({ ...prev, ...nextPremiumStatuses }));
       }
     };
 
@@ -242,7 +274,7 @@ export default function RecruiterDashboardScreen() {
     return () => {
       isActive = false;
     };
-  }, [jobs, posterNamesByEmployerId, premiumEmployersById]);
+  }, [jobs]);
 
   const getPosterName = (job: any) => {
     return (

@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
 import { useAuth, checkIsJobExpired, formatDeadlineDisplay, getEmployerPackageTier, isPremiumEmployer, isProEmployer } from '@/hooks/use-auth';
+import { db } from '@/src/config/firebase';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 
 
 
@@ -640,20 +642,22 @@ function CandidateHomeScreen() {
     }
   };
 
+  const fetchedEmployerIdsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
     let isActive = true;
     const employerIds = Array.from(new Set(
       jobs
         .filter((job) => {
           if (!job.employerId) return false;
-          const needsPosterName = !job.posterName && !posterNamesByEmployerId[job.employerId];
-          const needsPremiumStatus = premiumEmployersById[job.employerId] === undefined || proEmployersById[job.employerId] === undefined;
-          return needsPosterName || needsPremiumStatus;
+          return !fetchedEmployerIdsRef.current.has(job.employerId);
         })
         .map((job) => job.employerId as string)
     ));
 
     if (employerIds.length === 0) return;
+
+    employerIds.forEach((id) => fetchedEmployerIdsRef.current.add(id));
 
     const loadPosterNames = async () => {
       const entries = await Promise.all(employerIds.map(async (employerId) => {
@@ -663,36 +667,88 @@ function CandidateHomeScreen() {
         let premiumCompany: FeaturedCompany | undefined;
 
         try {
-          const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`);
-          if (response.ok) {
-            const userData = await response.json();
+          const [empDoc, userDoc] = await Promise.all([
+            getDoc(doc(db, 'employers', employerId)).catch(() => null),
+            getDoc(doc(db, 'users', employerId)).catch(() => null),
+          ]);
+
+          const employerData = empDoc?.exists() ? empDoc.data() : null;
+          const userData = userDoc?.exists() ? userDoc.data() : null;
+
+          if (userData) {
             const userName =
               userData.fullName ||
               userData.full_name ||
               userData.displayName ||
               userData.name;
-
             if (typeof userName === 'string' && userName.trim()) {
               name = userName.trim();
             }
           }
-        } catch (error) {
-          console.error('Lỗi lấy tên người đăng tin:', error);
-        }
 
-        try {
-          const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`);
-          if (response.ok) {
-            const employerData = await response.json();
+          if (employerData) {
+            if (!name) {
+              const compName =
+                employerData.companyName ||
+                employerData.company ||
+                employerData.name ||
+                employerData.posterName;
+              if (typeof compName === 'string' && compName.trim()) {
+                name = compName.trim();
+              }
+            }
             isPremium = isPremiumEmployer(employerData);
             isPro = isProEmployer(employerData);
-
             if (isPremium) {
               premiumCompany = buildFeaturedCompany(employerData, employerId, name);
             }
           }
+
+          // If still missing name or employer status, try backend fallback with timeout
+          if (!name || (!isPremium && !isPro)) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3000);
+              const response = await fetch(`http://160.250.246.119:4000/api/users/${employerId}`, {
+                signal: controller.signal,
+              }).catch(() => null);
+              clearTimeout(timeoutId);
+              if (response && response.ok) {
+                const apiUserData = await response.json();
+                const userName =
+                  apiUserData.fullName ||
+                  apiUserData.full_name ||
+                  apiUserData.displayName ||
+                  apiUserData.name;
+                if (typeof userName === 'string' && userName.trim()) {
+                  name = userName.trim();
+                }
+              }
+            } catch {
+              // ignore network errors gracefully
+            }
+
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 3000);
+              const response = await fetch(`http://160.250.246.119:4000/api/employers/${employerId}`, {
+                signal: controller.signal,
+              }).catch(() => null);
+              clearTimeout(timeoutId);
+              if (response && response.ok) {
+                const apiEmployerData = await response.json();
+                if (!isPremium) isPremium = isPremiumEmployer(apiEmployerData);
+                if (!isPro) isPro = isProEmployer(apiEmployerData);
+                if (isPremium && !premiumCompany) {
+                  premiumCompany = buildFeaturedCompany(apiEmployerData, employerId, name);
+                }
+              }
+            } catch {
+              // ignore network errors gracefully
+            }
+          }
         } catch (error) {
-          console.error('Lỗi lấy gói nhà tuyển dụng:', error);
+          console.warn('Lỗi lấy thông tin người đăng tin:', error);
         }
 
         return { employerId, name, isPremium, isPro, premiumCompany };
@@ -721,30 +777,10 @@ function CandidateHomeScreen() {
         setPosterNamesByEmployerId((prev) => ({ ...prev, ...nextNames }));
       }
       if (Object.keys(nextPremiumStatuses).length > 0) {
-        setPremiumEmployersById((prev) => {
-          let hasChanged = false;
-          const next = { ...prev };
-          Object.entries(nextPremiumStatuses).forEach(([employerId, isPremium]) => {
-            if (next[employerId] !== isPremium) {
-              next[employerId] = isPremium;
-              hasChanged = true;
-            }
-          });
-          return hasChanged ? next : prev;
-        });
+        setPremiumEmployersById((prev) => ({ ...prev, ...nextPremiumStatuses }));
       }
       if (Object.keys(nextProStatuses).length > 0) {
-        setProEmployersById((prev) => {
-          let hasChanged = false;
-          const next = { ...prev };
-          Object.entries(nextProStatuses).forEach(([employerId, isPro]) => {
-            if (next[employerId] !== isPro) {
-              next[employerId] = isPro;
-              hasChanged = true;
-            }
-          });
-          return hasChanged ? next : prev;
-        });
+        setProEmployersById((prev) => ({ ...prev, ...nextProStatuses }));
       }
       if (Object.keys(nextPremiumCompanies).length > 0) {
         setPremiumCompaniesByEmployerId((prev) => ({ ...prev, ...nextPremiumCompanies }));
@@ -756,19 +792,31 @@ function CandidateHomeScreen() {
     return () => {
       isActive = false;
     };
-  }, [jobs, posterNamesByEmployerId, premiumEmployersById]);
+  }, [jobs]);
 
   React.useEffect(() => {
     let isActive = true;
 
     const loadPremiumCompanies = async () => {
       try {
-        const response = await fetch('http://160.250.246.119:4000/api/employers');
-        if (!response.ok) return;
+        const snapshot = await getDocs(collection(db, 'employers')).catch(() => null);
+        let employers: any[] = [];
+        if (snapshot && !snapshot.empty) {
+          employers = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } else {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const response = await fetch('http://160.250.246.119:4000/api/employers', {
+            signal: controller.signal,
+          }).catch(() => null);
+          clearTimeout(timeoutId);
+          if (response && response.ok) {
+            const data = await response.json();
+            employers = Array.isArray(data) ? data : data?.employers || [];
+          }
+        }
 
-        const data = await response.json();
-        const employers = Array.isArray(data) ? data : data?.employers;
-        if (!Array.isArray(employers) || !isActive) return;
+        if (!Array.isArray(employers) || employers.length === 0 || !isActive) return;
 
         const premiumEntries = employers
           .map((employer: any) => {
@@ -789,7 +837,7 @@ function CandidateHomeScreen() {
           return next;
         });
       } catch (error) {
-        console.error('Lỗi lấy danh sách công ty Premium:', error);
+        console.warn('Lỗi lấy danh sách công ty Premium:', error);
       }
     };
 

@@ -154,13 +154,30 @@ export default function JobDetailsScreen() {
         let apiUserData: any = null;
         let employerData: any = null;
 
-        const userResponse = await fetch(`http://160.250.246.119:4000/api/users/${currentJob.employerId}`);
-        if (userResponse.ok) {
-          apiUserData = await userResponse.json();
+        const [employerSnapshot, userSnapshot] = await Promise.all([
+          getDoc(doc(db, 'employers', currentJob.employerId)).catch(() => null),
+          getDoc(doc(db, 'users', currentJob.employerId)).catch(() => null),
+        ]);
+
+        employerData = employerSnapshot?.exists() ? employerSnapshot.data() : null;
+        apiUserData = userSnapshot?.exists() ? userSnapshot.data() : null;
+
+        if (!employerData && !apiUserData) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const userResponse = await fetch(`http://160.250.246.119:4000/api/users/${currentJob.employerId}`, {
+              signal: controller.signal,
+            }).catch(() => null);
+            clearTimeout(timeoutId);
+            if (userResponse && userResponse.ok) {
+              apiUserData = await userResponse.json();
+            }
+          } catch {
+            // ignore network error
+          }
         }
 
-        const employerSnapshot = await getDoc(doc(db, 'employers', currentJob.employerId));
-        employerData = employerSnapshot.exists() ? employerSnapshot.data() : null;
         const name = getFirstText(
           storedPosterName,
           employerData?.companyName,
@@ -189,7 +206,7 @@ export default function JobDetailsScreen() {
           });
         }
       } catch (error) {
-        console.error('Lỗi lấy thông tin nhà tuyển dụng:', error);
+        console.warn('Lỗi lấy thông tin nhà tuyển dụng:', error);
         const fallbackName = getFirstText(storedPosterName, 'Nhà tuyển dụng');
         if (isActive) {
           setEmployerName(fallbackName);
