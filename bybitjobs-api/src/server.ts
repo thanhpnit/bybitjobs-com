@@ -69,7 +69,8 @@ async function generateGeminiContent(inputKey: string, contents: any): Promise<a
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-flash-latest'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
 
   let lastError: any = null;
@@ -143,7 +144,8 @@ async function generateGeminiStream(inputKey: string, contents: any, onChunk: (t
 
   const apiKeys = getGeminiApiKeys();
   const modelsToTry = [
-    'gemini-flash-latest'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
 
   let lastStreamError: any = null;
@@ -242,10 +244,10 @@ function extractJsonFromText(text: string): any {
 
     console.warn('[Gemini API] Could not parse JSON directly, constructing fallback result. Raw text:', text);
     return {
-      score: 82,
-      strengths: ['Bố cục trình bày rõ ràng', 'Kinh nghiệm phù hợp với vị trí tuyển dụng'],
-      improvements: ['Cần bổ sung chi tiết số liệu và thành tích cụ thể', 'Tăng cường từ khóa chuyên ngành'],
-      suggestions: ['Thêm các dự án tiêu biểu', 'Bổ sung thêm kỹ năng và chứng chỉ liên quan'],
+      score: 45,
+      strengths: ['Đã nộp hồ sơ'],
+      improvements: ['Không thể phân tích nội dung CV - vui lòng đảm bảo file là CV hợp lệ', 'File cần ở định dạng PDF hoặc DOCX chứa thông tin hồ sơ'],
+      suggestions: ['Tải lên CV đúng định dạng để được chấm điểm chính xác'],
       analysisText: text
     };
   }
