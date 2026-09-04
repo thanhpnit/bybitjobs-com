@@ -977,7 +977,13 @@ function CandidateHomeScreen() {
     const posterName = getPosterName(job);
     const dynamicRating = getCompanyRating(posterName, Number((job as any).companyRating || 5.0));
 
+    const rawPkg = String((job as any).packageTier || (job as any).package || (job as any).packageName || (job as any).packageId || '').toUpperCase();
+    const isEmployerPremium = job.employerId ? premiumEmployersById[job.employerId] === true : false;
+    const isPremium = job.isPremium === true || (job as any).isVip === true || rawPkg.includes('PREMIUM') || rawPkg.includes('VIP') || isEmployerPremium;
+    const isPro = !isPremium && (job.isPro === true || rawPkg.includes('PRO') || (job as any).packageTier === 'PRO');
+
     return {
+      ...job,
       id: job.id,
       title: job.title,
       image: null,
@@ -995,7 +1001,9 @@ function CandidateHomeScreen() {
       price: job.salary,
       originalIndustry: job.industry,
       createdAt: job.createdAt,
-      isPremium: job.employerId ? premiumEmployersById[job.employerId] === true : false,
+      isPremium,
+      isPro,
+      packageTier: isPremium ? 'PREMIUM' : isPro ? 'PRO' : 'FREE',
     };
   });
 
