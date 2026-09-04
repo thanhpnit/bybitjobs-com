@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth, canPostJob } from '@/hooks/use-auth';
+import { useAuth, canPostJob, checkIsJobExpired } from '@/hooks/use-auth';
 import { db } from '@/src/config/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -259,12 +259,17 @@ export default function RecruiterEditJobScreen() {
     }
 
     // Kiểm tra tính hợp lệ của hạn nộp hồ sơ (Không được chọn ngày trong quá khứ)
-    if (deadline && checkIsJobExpired(deadline)) {
-      Alert.alert(
-        'Hạn nộp hồ sơ không hợp lệ',
-        'Hạn chót ứng tuyển không được ở trong quá khứ. Vui lòng chọn một ngày từ hôm nay trở đi.'
-      );
-      return;
+    if (deadline) {
+      const parsedDeadline = parseDateString(deadline);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      if (parsedDeadline.getTime() < todayStart.getTime()) {
+        Alert.alert(
+          'Hạn nộp hồ sơ không hợp lệ',
+          'Hạn chót ứng tuyển không được ở trong quá khứ. Vui lòng chọn một ngày từ hôm nay trở đi.'
+        );
+        return;
+      }
     }
 
     // Kiểm tra giới hạn số lượng tin tuyển dụng được phép đăng theo gói dịch vụ đang sở hữu
