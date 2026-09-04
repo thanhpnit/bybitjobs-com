@@ -2076,15 +2076,19 @@ export function useAuth() {
     try {
       await setDoc(doc(db, 'applications', newApplication.id), sanitizedApp);
 
-      if (job && job.employerId) {
+      const targetEmpId = job?.employerId || job?.userId || (job as any)?.posterEmail || '';
+      try {
         await addDoc(collection(db, 'notifications'), {
-          target: job.employerId,
+          target: targetEmpId || 'RECRUITER',
+          recipientId: targetEmpId,
           role: 'employer',
           category: 'job',
-          title: 'Có hồ sơ ứng tuyển mới',
-          body: `Ứng viên "${newApplication.applicantName}" vừa nộp hồ sơ cho vị trí "${newApplication.jobTitle}".`,
+          title: 'Có hồ sơ ứng tuyển mới 📄',
+          body: `Ứng viên "${newApplication.applicantName}" vừa nộp hồ sơ ứng tuyển vị trí "${newApplication.jobTitle}".`,
           createdAt: serverTimestamp(),
         });
+      } catch (notifErr) {
+        console.error('Lỗi tạo thông báo ứng tuyển mới cho nhà tuyển dụng:', notifErr);
       }
     } catch (error) {
       console.error('Lỗi lưu việc đã ứng tuyển lên Firestore:', error);

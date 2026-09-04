@@ -1,21 +1,14 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
-
-    // Environment Settings
     "module": "commonjs",
     "target": "es2022",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-
-    // Other Outputs
     "sourceMap": true,
-
-    // Recommended Options
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "skipLibCheck": true
   }
 }

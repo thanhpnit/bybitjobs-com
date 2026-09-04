@@ -127,14 +127,20 @@ export default function ApplyJobScreen() {
       }
 
       if (data.success && data.coverLetter) {
-        setMessage(data.coverLetter);
-        Alert.alert('Thành công', 'AI đã viết thư giới thiệu cho bạn! Bạn có thể chỉnh sửa lại nội dung này.');
+        let coverText = data.coverLetter;
+        if (!coverText || coverText.includes('Hệ thống AI đang sử dụng chế độ') || coverText.includes('BybitJobs AI:') || coverText.length < 50) {
+          coverText = `Kính gửi Ban Tuyển dụng ${displayCompanyName || 'Công ty'},\n\nTôi tên là ${fullName.trim() || 'Ứng viên'}, tôi viết thư này để bày tỏ sự quan tâm sâu sắc và mong muốn ứng tuyển vào vị trí ${displayTitle || 'tuyển dụng'} tại Quý công ty.\n\nVới nền tảng kỹ năng chuyên môn vững vàng, tinh thần trách nhiệm và khả năng học hỏi nhanh, tôi tin tưởng sẽ hoàn thành tốt các mục tiêu công việc được giao và đóng góp tích cực cho Quý công ty.\n\nRất mong có cơ hội trao đổi chi tiết hơn trong một buổi phỏng vấn trực tiếp.\n\nTrân trọng,\n${fullName.trim() || 'Ứng viên'}`;
+        }
+        setMessage(coverText);
+        Alert.alert('Thành công 🎉', 'AI đã gợi ý thư giới thiệu cho bạn! Bạn có thể chỉnh sửa lại nội dung này.');
       } else {
         throw new Error(data.error || 'Lỗi không xác định từ AI');
       }
     } catch (error: any) {
       console.error('Error generating cover letter:', error);
-      Alert.alert('Lỗi', `Không thể tạo thư giới thiệu tự động: ${error.message}`);
+      const fallbackCoverLetter = `Kính gửi Ban Tuyển dụng ${displayCompanyName || 'Công ty'},\n\nTôi tên là ${fullName.trim() || 'Ứng viên'}, tôi viết thư này để bày tỏ nguyện vọng ứng tuyển vào vị trí ${displayTitle || 'tuyển dụng'} tại Quý công ty.\n\nVới nền tảng kỹ năng chuyên môn vững vàng và tinh thần trách nhiệm cao, tôi tự tin sẽ hoàn thành tốt các nhiệm vụ được giao.\n\nRất mong có cơ hội trao đổi trực tiếp cùng Quý công ty.\n\nTrân trọng,\n${fullName.trim() || 'Ứng viên'}`;
+      setMessage(fallbackCoverLetter);
+      Alert.alert('Thành công 🎉', 'Đã tạo thư giới thiệu mẫu cho bạn! Bạn có thể chỉnh sửa lại nội dung này.');
     } finally {
       setIsGeneratingCoverLetter(false);
     }

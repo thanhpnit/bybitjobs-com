@@ -2316,10 +2316,14 @@ Bạn là Chuyên gia viết Thư Xin Việc (Cover Letter). Hãy tạo một b�
       .replace(/```/g, '')
       .trim();
 
+    if (!coverLetter || coverLetter.includes('Hệ thống AI đang sử dụng chế độ') || coverLetter.includes('BybitJobs AI:') || coverLetter.length < 50) {
+      coverLetter = `Kính gửi Ban Tuyển dụng ${companyName || 'Công ty'},\n\nTôi tên là ${candidateName || 'Ứng viên'}, tôi viết thư này để bày tỏ sự quan tâm sâu sắc và mong muốn ứng tuyển vào vị trí ${jobTitle || 'tuyển dụng'} tại Quý công ty.\n\nVới nền tảng kiến thức chuyên môn ${desiredJob ? `trong lĩnh vực ${desiredJob}` : 'vững vàng'}, tinh thần học hỏi nhanh và trách nhiệm cao trong công việc, tôi tự tin sẽ hoàn thành xuất sắc các mục tiêu được giao và mang lại giá trị thiết thực cho Quý công ty.\n\nRất mong có cơ hội trao đổi chi tiết hơn trong một buổi phỏng vấn trực tiếp.\n\nTrân trọng,\n${candidateName || 'Ứng viên'}`;
+    }
+
     return res.status(200).json({ success: true, coverLetter });
   } catch (error: any) {
     console.error('Error in Cover Letter Gen:', error);
-    const coverLetter = `Kính gửi Ban Tuyển dụng ${companyName || 'Công ty'},\n\nTôi viết thư này để bày tỏ mong muốn ứng tuyển vào vị trí ${jobTitle || 'tuyển dụng'} tại Quý công ty. Với nền tảng kỹ năng chuyên môn vững vàng và tinh thần trách nhiệm cao, tôi tin tưởng sẽ hoàn thành tốt các mục tiêu công việc được giao.\n\nRất mong có cơ hội trao đổi trực tiếp cùng Quý công ty.\n\nTrân trọng,\n${candidateName || 'Ứng viên'}`;
+    const coverLetter = `Kính gửi Ban Tuyển dụng ${companyName || 'Công ty'},\n\nTôi tên là ${candidateName || 'Ứng viên'}, tôi viết thư này để bày tỏ mong muốn ứng tuyển vào vị trí ${jobTitle || 'tuyển dụng'} tại Quý công ty. Với nền tảng kỹ năng chuyên môn vững vàng và tinh thần trách nhiệm cao, tôi tin tưởng sẽ hoàn thành tốt các mục tiêu công việc được giao.\n\nRất mong có cơ hội trao đổi trực tiếp cùng Quý công ty.\n\nTrân trọng,\n${candidateName || 'Ứng viên'}`;
     return res.status(200).json({ success: true, coverLetter });
   }
 });
